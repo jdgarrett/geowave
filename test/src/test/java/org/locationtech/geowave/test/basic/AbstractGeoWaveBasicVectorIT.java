@@ -537,6 +537,26 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
 
     LOGGER.warn("Total count in table after delete: " + finalFeatures);
     LOGGER.warn("<before> - <after> = " + (allFeatures - finalFeatures));
+    
+    if ((allFeatures - finalFeatures) != deletedFeatures) {
+      LOGGER.warn("Delete mismatch! Expected " + (allFeatures - deletedFeatures) + " features remaining.");
+      Index[] indices = geowaveStore.getIndices();
+      for (Index idx : indices) {
+        bldr = QueryBuilder.newBuilder();
+        bldr.indexName(idx.getName());
+        queryResults = geowaveStore.query(bldr.build());
+
+        finalFeatures = 0;
+        while (queryResults.hasNext()) {
+          final Object obj = queryResults.next();
+          if (obj instanceof SimpleFeature) {
+            finalFeatures++;
+          }
+        }
+        queryResults.close();
+        LOGGER.warn(idx.getName() + " index had " + finalFeatures + " features remaining.");
+      }
+    }
 
     Assert.assertTrue(
         "Unable to delete all features in bulk delete",
