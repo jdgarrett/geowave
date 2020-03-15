@@ -87,12 +87,15 @@ import org.locationtech.geowave.test.TestUtils.DimensionalityType;
 import org.locationtech.geowave.test.TestUtils.ExpectedResults;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.beust.jcommander.internal.Maps;
+import com.beust.jcommander.internal.Sets;
 import com.google.common.collect.Lists;
 
 public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
@@ -467,10 +470,13 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
     queryResults.close();
 
     LOGGER.warn("Total count in table before delete: " + allFeatures);
+    
+    Map<String, SimpleFeature> expectedToDelete = Maps.newHashMap();
 
     // Run the query for this delete to get the expected count
     bldr = QueryBuilder.newBuilder().constraints(query);
     if (index != null) {
+      LOGGER.warn("Deleting from " + index.getName() + "index.");
       bldr.indexName(index.getName());
     }
     queryResults = geowaveStore.query(bldr.build());
@@ -478,6 +484,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
     while (queryResults.hasNext()) {
       final Object obj = queryResults.next();
       if (obj instanceof SimpleFeature) {
+        expectedToDelete.put(((SimpleFeature) obj).getID(), (SimpleFeature) obj);
         expectedFeaturesToDelete++;
       }
     }
@@ -550,6 +557,13 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
         while (queryResults.hasNext()) {
           final Object obj = queryResults.next();
           if (obj instanceof SimpleFeature) {
+            SimpleFeature sf = (SimpleFeature) obj;
+            if (expectedToDelete.containsKey(sf.getID())) {
+              LOGGER.warn("Expected to delete " + sf.getID() + " but it was still found!");
+              for (Property prop : sf.getProperties()) {
+                LOGGER.warn(prop.getName() + ": " + prop.getValue().toString());
+              }
+            }
             finalFeatures++;
           }
         }
