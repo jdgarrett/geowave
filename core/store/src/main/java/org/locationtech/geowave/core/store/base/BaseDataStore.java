@@ -570,8 +570,14 @@ public class BaseDataStore implements DataStore {
                   Set<ByteArray> currentDataIdsToDelete =
                       internalDataIdsToDelete.get(row.getAdapterId());
                   if (currentDataIdsToDelete == null) {
-                    currentDataIdsToDelete = Sets.newConcurrentHashSet();
-                    internalDataIdsToDelete.put(row.getAdapterId(), currentDataIdsToDelete);
+                    synchronized(internalDataIdsToDelete) {
+                      currentDataIdsToDelete =
+                          internalDataIdsToDelete.get(row.getAdapterId());
+                      if (currentDataIdsToDelete == null) {
+                        currentDataIdsToDelete = Sets.newConcurrentHashSet();
+                        internalDataIdsToDelete.put(row.getAdapterId(), currentDataIdsToDelete);
+                      }
+                    }
                   }
                   currentDataIdsToDelete.add(dataId);
                 }
