@@ -79,6 +79,7 @@ import org.locationtech.geowave.core.store.memory.MemoryAdapterStore;
 import org.locationtech.geowave.core.store.query.aggregate.CommonIndexAggregation;
 import org.locationtech.geowave.core.store.query.constraints.DataIdQuery;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.query.filter.QueryFilter;
 import org.locationtech.geowave.datastore.cassandra.CassandraStoreFactoryFamily;
 import org.locationtech.geowave.datastore.dynamodb.DynamoDBStoreFactoryFamily;
 import org.locationtech.geowave.format.geotools.vector.GeoToolsVectorDataStoreIngestPlugin;
@@ -415,7 +416,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
 
   protected void testDeleteByBasicQuery(final URL savedFilterResource, final Index index)
       throws Exception {
-    LOGGER.info("bulk deleting via spatial query");
+    LOGGER.warn("bulk deleting via spatial query");
 
     final org.locationtech.geowave.core.store.api.DataStore geowaveStore =
         getDataStorePluginOptions().createDataStore();
@@ -427,7 +428,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
   }
 
   protected void testDeleteCQL(final String cqlStr, final Index index) throws Exception {
-    LOGGER.info("bulk deleting using CQL: '" + cqlStr + "'");
+    LOGGER.warn("bulk deleting using CQL: '" + cqlStr + "'");
 
     final org.locationtech.geowave.core.store.api.DataStore geowaveStore =
         getDataStorePluginOptions().createDataStore();
@@ -546,6 +547,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
     LOGGER.warn("<before> - <after> = " + (allFeatures - finalFeatures));
     
     if ((allFeatures - finalFeatures) != deletedFeatures) {
+      new Exception().printStackTrace();
       LOGGER.warn("Delete mismatch! Expected " + (allFeatures - deletedFeatures) + " features remaining.");
       Index[] indices = geowaveStore.getIndices();
       for (Index idx : indices) {
@@ -569,6 +571,45 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
         }
         queryResults.close();
         LOGGER.warn(idx.getName() + " index had " + finalFeatures + " features remaining.");
+        LOGGER.warn("Redoing initial constraints query...");
+        bldr = QueryBuilder.newBuilder().constraints(query);
+        if (index != null) {
+          bldr.indexName(index.getName());
+        }
+        queryResults = geowaveStore.query(bldr.build());
+
+        remainingFeatures = 0;
+        while (queryResults.hasNext()) {
+          final Object obj = queryResults.next();
+          if (obj instanceof SimpleFeature) {
+            SimpleFeature sf = (SimpleFeature) obj;
+            remainingFeatures++;
+            LOGGER.warn("Found unwanted feature " + sf.getID() + " in subsequent filtered query!");
+            for (Property prop : sf.getProperties()) {
+              LOGGER.warn(prop.getName() + ": " + prop.getValue().toString());
+            }
+          }
+        }
+        LOGGER.warn("Remaining features from initial constraints: " + remainingFeatures);
+        LOGGER.warn("Trying again using specific index..");
+        bldr = QueryBuilder.newBuilder().constraints(query);
+        bldr.indexName(idx.getName());
+        queryResults = geowaveStore.query(bldr.build());
+
+        remainingFeatures = 0;
+        while (queryResults.hasNext()) {
+          final Object obj = queryResults.next();
+          if (obj instanceof SimpleFeature) {
+            SimpleFeature sf = (SimpleFeature) obj;
+            remainingFeatures++;
+            LOGGER.warn("Found unwanted feature " + sf.getID() + " in subsequent filtered query!");
+            for (Property prop : sf.getProperties()) {
+              LOGGER.warn(prop.getName() + ": " + prop.getValue().toString());
+            }
+          }
+        }
+        LOGGER.warn("Remaining features from initial constraints: " + remainingFeatures);
+        queryResults.close();
       }
     }
 
