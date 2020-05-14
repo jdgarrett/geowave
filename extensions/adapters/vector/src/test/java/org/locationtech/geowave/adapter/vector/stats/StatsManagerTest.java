@@ -34,7 +34,7 @@ import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQue
 import org.locationtech.geowave.core.geotime.store.statistics.FeatureBoundingBoxStatistics;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapterWrapper;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.opengis.feature.simple.SimpleFeature;
@@ -91,7 +91,7 @@ public class StatsManagerTest {
                 "whennot").build().getId()));
 
     // can each type be created uniquely
-    InternalDataStatistics<SimpleFeature, ?, ?> stat =
+    DataStatistics<SimpleFeature, ?, ?> stat =
         statsManager.createDataStatistics(
             VectorStatisticsQueryBuilder.newBuilder().factory().bbox().fieldName(
                 "somewhere").build().getId());
@@ -159,7 +159,7 @@ public class StatsManagerTest {
 
     final StatisticsId[] ids = statsManager.getSupportedStatistics();
     assertEquals(9, ids.length);
-    InternalDataStatistics<SimpleFeature, ?, ?> stat =
+    DataStatistics<SimpleFeature, ?, ?> stat =
         statsManager.createDataStatistics(
             FeatureFixedBinNumericStatistics.STATS_TYPE.newBuilder().fieldName(
                 "pop").build().getId());

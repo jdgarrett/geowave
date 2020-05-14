@@ -19,7 +19,8 @@ public class StatsOperationProvider implements CLIOperationProviderSpi {
           CompactStatsCommand.class,
           ListStatsCommand.class,
           RecalculateStatsCommand.class,
-          RemoveStatCommand.class};
+          RemoveStatCommand.class,
+          AddStatCommand.class};
 
   @Override
   public Class<?>[] getOperations() {

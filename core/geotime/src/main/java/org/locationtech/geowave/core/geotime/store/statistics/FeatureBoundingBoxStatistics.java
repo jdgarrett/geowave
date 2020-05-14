@@ -11,7 +11,7 @@ package org.locationtech.geowave.core.geotime.store.statistics;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
@@ -84,7 +84,7 @@ public class FeatureBoundingBoxStatistics extends
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, Envelope, FieldStatisticsQueryBuilder<Envelope>> duplicate() {
+  public DataStatistics<SimpleFeature, Envelope, FieldStatisticsQueryBuilder<Envelope>> duplicate() {
     return new FeatureBoundingBoxStatistics(adapterId, getFieldName(), reprojectedType, transform);
   }
 }

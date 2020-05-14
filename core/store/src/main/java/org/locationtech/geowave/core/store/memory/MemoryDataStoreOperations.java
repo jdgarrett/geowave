@@ -37,7 +37,7 @@ import org.locationtech.geowave.core.store.DataStoreOptions;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.data.DeferredReadCommonIndexedPersistenceEncoding;
 import org.locationtech.geowave.core.store.data.MultiFieldPersistentDataset;
@@ -510,7 +510,7 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
 
           @Override
           public GeoWaveMetadata next() {
-            InternalDataStatistics currentStat = null;
+            DataStatistics currentStat = null;
             GeoWaveMetadata currentMetadata = null;
             byte[] vis = null;
             while (peekingIt.hasNext()) {
@@ -524,7 +524,7 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
                   && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
                 if (currentStat == null) {
                   currentStat =
-                      (InternalDataStatistics) PersistenceUtils.fromBinary(
+                      (DataStatistics) PersistenceUtils.fromBinary(
                           currentMetadata.getValue());
                 }
                 currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));

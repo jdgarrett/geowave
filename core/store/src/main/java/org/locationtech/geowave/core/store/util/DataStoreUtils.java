@@ -45,7 +45,7 @@ import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter;
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter.RowTransform;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataStore;
@@ -194,7 +194,7 @@ public class DataStoreUtils {
 
   public static <T> long cardinality(
       final Index index,
-      final Map<StatisticsId, InternalDataStatistics<T, ?, ?>> stats,
+      final Map<StatisticsId, DataStatistics<T, ?, ?>> stats,
       final QueryRanges queryRanges) {
 
     long count = 0;
@@ -480,14 +480,14 @@ public class DataStoreUtils {
       final InternalAdapterStore internalAdapterStore) {
     // Get all statistics, remove all statistics, then re-add
     for (final short adapterId : internalAdapterStore.getAdapterIds()) {
-      InternalDataStatistics<?, ?, ?>[] statsArray;
-      try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> stats =
+      DataStatistics<?, ?, ?>[] statsArray;
+      try (final CloseableIterator<DataStatistics<?, ?, ?>> stats =
           statsStore.getDataStatistics(adapterId)) {
-        statsArray = Iterators.toArray(stats, InternalDataStatistics.class);
+        statsArray = Iterators.toArray(stats, DataStatistics.class);
       }
       // Clear all existing stats
       statsStore.removeAllStatistics(adapterId);
-      for (final InternalDataStatistics<?, ?, ?> stats : statsArray) {
+      for (final DataStatistics<?, ?, ?> stats : statsArray) {
         statsStore.incorporateStatistics(stats);
       }
     }

@@ -67,7 +67,7 @@ public abstract class AbstractStatsCommand<T> extends ServiceEnabledCommand<T> {
         } else {
           // If this adapter is not known, provide list of available
           // adapters
-          LOGGER.error("Unknown adapter " + adapterId);
+          LOGGER.error("Unknown type " + typeName);
           final StringBuffer buffer = new StringBuffer();
           for (final String t : internalAdapterStore.getTypeNames()) {
             buffer.append(t).append(' ');

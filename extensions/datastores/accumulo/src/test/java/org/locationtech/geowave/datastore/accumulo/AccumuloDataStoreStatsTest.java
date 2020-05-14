@@ -43,7 +43,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStor
 import org.locationtech.geowave.core.store.adapter.statistics.DefaultFieldStatisticVisibility;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
@@ -423,7 +423,7 @@ public class AccumuloDataStoreStatsTest {
         StatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
             index.getName()).partition(partitionKey.getBytes()).build().getId();
     RowRangeHistogramStatistics<?> histogramStats;
-    try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+    try (CloseableIterator<DataStatistics<?, ?, ?>> it =
         statsStore.getDataStatistics(
             internalAdapterId,
             id.getExtendedId(),
@@ -441,7 +441,7 @@ public class AccumuloDataStoreStatsTest {
             CountDataStatistics.STATS_TYPE,
             new String[] {"bbb"}).hasNext());
 
-    try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+    try (CloseableIterator<DataStatistics<?, ?, ?>> it =
         statsStore.getDataStatistics(
             internalAdapterId,
             id.getExtendedId(),
@@ -565,7 +565,7 @@ public class AccumuloDataStoreStatsTest {
     }
 
     @Override
-    public InternalDataStatistics<TestGeometry, ?, ?> createDataStatistics(
+    public DataStatistics<TestGeometry, ?, ?> createDataStatistics(
         final StatisticsId statisticsId) {
       if (GeoBoundingBoxStatistics.STATS_TYPE.equals(statisticsId.getType())) {
         return new GeoBoundingBoxStatistics();

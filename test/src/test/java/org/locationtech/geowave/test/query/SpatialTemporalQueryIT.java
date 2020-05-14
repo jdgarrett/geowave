@@ -43,7 +43,7 @@ import org.locationtech.geowave.core.geotime.store.query.api.VectorQueryBuilder;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
 import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -281,7 +281,7 @@ public class SpatialTemporalQueryIT {
 
           @Override
           public CloseableIterator<Index> getIndices(
-              final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats,
+              final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats,
               final QueryConstraints query,
               final Index[] indices,
               final DataTypeAdapter<?> adapter,

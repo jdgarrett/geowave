@@ -21,7 +21,7 @@ import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils.GeoConstraintsWrapper;
 import org.locationtech.geowave.core.geotime.util.TimeDescriptors;
 import org.locationtech.geowave.core.geotime.util.TimeUtils;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintSet;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
@@ -34,7 +34,7 @@ import org.opengis.feature.type.AttributeDescriptor;
 public class QueryIndexHelper {
 
   private static TemporalRange getStatsRange(
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap,
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap,
       final AttributeDescriptor attr) {
     final TemporalRange timeRange = new TemporalRange();
     if (attr != null) {
@@ -54,7 +54,7 @@ public class QueryIndexHelper {
    * Clip the provided constraints using the statistics, if available.
    */
   public static TemporalConstraintsSet clipIndexedTemporalConstraints(
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap,
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap,
       final TimeDescriptors timeDescriptors,
       final TemporalConstraintsSet constraintsSet) {
     if ((timeDescriptors.getEndRange() != null) && (timeDescriptors.getStartRange() != null)) {
@@ -101,7 +101,7 @@ public class QueryIndexHelper {
   public static Geometry clipIndexedBBOXConstraints(
       final SimpleFeatureType featureType,
       final Geometry bbox,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap) {
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap) {
 
     final String geoAttrName = featureType.getGeometryDescriptor().getLocalName();
 
@@ -118,7 +118,7 @@ public class QueryIndexHelper {
 
   public static ConstraintSet getTimeConstraintsFromIndex(
       final TimeDescriptors timeDescriptors,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats) {
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats) {
 
     if ((timeDescriptors.getEndRange() != null) || (timeDescriptors.getStartRange() != null)) {
       final TimeRangeDataStatistics endRange =
@@ -157,7 +157,7 @@ public class QueryIndexHelper {
 
   public static ConstraintSet getBBOXIndexConstraintsFromIndex(
       final SimpleFeatureType featureType,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap) {
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap) {
     final String geoAttrName = featureType.getGeometryDescriptor().getLocalName();
     final StatisticsId statId =
         VectorStatisticsQueryBuilder.newBuilder().factory().bbox().fieldName(
@@ -174,7 +174,7 @@ public class QueryIndexHelper {
   public static ConstraintsByClass composeTimeConstraints(
       final SimpleFeatureType featureType,
       final TimeDescriptors timeDescriptors,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap,
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap,
       final TemporalConstraintsSet timeBoundsSet) {
 
     final TemporalConstraints timeBounds =
@@ -231,7 +231,7 @@ public class QueryIndexHelper {
   public static ConstraintsByClass composeConstraints(
       final SimpleFeatureType featureType,
       final TimeDescriptors timeDescriptors,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap,
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap,
       final Geometry jtsBounds,
       final TemporalConstraintsSet timeBoundsSet) {
     final ConstraintsByClass timeConstraints =

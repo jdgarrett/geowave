@@ -24,7 +24,7 @@ import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQue
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.opengis.feature.FeatureVisitor;
 import org.opengis.feature.simple.SimpleFeature;
@@ -62,9 +62,9 @@ public class GeoWaveFeatureSource extends ContentFeatureStore {
   protected ReferencedEnvelope getBoundsInternal(final Query query) throws IOException {
     double minx = -90.0, maxx = 90.0, miny = -180.0, maxy = 180.0;
 
-    InternalDataStatistics<SimpleFeature, ?, ?> bboxStats = null;
+    DataStatistics<SimpleFeature, ?, ?> bboxStats = null;
     if (query.getFilter().equals(Filter.INCLUDE)) {
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats =
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats =
           new GeoWaveEmptyTransaction(components).getDataStatistics();
       bboxStats =
           stats.get(
@@ -101,9 +101,9 @@ public class GeoWaveFeatureSource extends ContentFeatureStore {
   @SuppressWarnings("rawtypes")
   @Override
   protected int getCountInternal(final Query query) throws IOException {
-    final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats =
+    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats =
         new GeoWaveEmptyTransaction(components).getDataStatistics();
-    final InternalDataStatistics<SimpleFeature, ?, ?> countStats =
+    final DataStatistics<SimpleFeature, ?, ?> countStats =
         stats.get(VectorStatisticsQueryBuilder.newBuilder().factory().count().build().getId());
     if ((countStats != null) && query.getFilter().equals(Filter.INCLUDE)) {
       return (int) ((CountDataStatistics) countStats).getCount();

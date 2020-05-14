@@ -8,7 +8,7 @@
  */
 package org.locationtech.geowave.core.store.adapter.statistics;
 
-public class BaseStatisticsType<R> extends StatisticsType<R, BaseStatisticsQueryBuilder<R>> {
+public class BaseStatisticsType extends StatisticsType {
   private static final long serialVersionUID = 1L;
 
   public BaseStatisticsType() {
@@ -21,10 +21,5 @@ public class BaseStatisticsType<R> extends StatisticsType<R, BaseStatisticsQuery
 
   public BaseStatisticsType(final String id) {
     super(id);
-  }
-
-  @Override
-  public BaseStatisticsQueryBuilder<R> newBuilder() {
-    return new BaseStatisticsQueryBuilder<>(this);
   }
 }

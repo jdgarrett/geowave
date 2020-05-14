@@ -54,7 +54,7 @@ public class RowRangeHistogramStatistics<T> extends
   }
 
   @Override
-  public InternalDataStatistics<T, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>> duplicate() {
+  public DataStatistics<T, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>> duplicate() {
     final Pair<String, byte[]> pair =
         PartitionStatisticsQueryBuilder.decomposeIndexAndPartitionFromId(extendedId);
     return new RowRangeHistogramStatistics<>(

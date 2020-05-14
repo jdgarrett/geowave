@@ -14,7 +14,7 @@ import java.util.TimeZone;
 import org.locationtech.geowave.core.geotime.util.TimeUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.opengis.feature.simple.SimpleFeature;
 import org.threeten.extra.Interval;
 
@@ -59,7 +59,7 @@ public class FeatureTimeRangeStatistics extends
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, Interval, FieldStatisticsQueryBuilder<Interval>> duplicate() {
+  public DataStatistics<SimpleFeature, Interval, FieldStatisticsQueryBuilder<Interval>> duplicate() {
     return new FeatureTimeRangeStatistics(adapterId, getFieldName());
   }
 }

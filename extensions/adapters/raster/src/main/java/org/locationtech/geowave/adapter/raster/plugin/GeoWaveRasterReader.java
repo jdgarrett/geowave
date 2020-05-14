@@ -60,7 +60,7 @@ import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
@@ -368,7 +368,7 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public GridEnvelope getOriginalGridRange(final String coverageName) {
-    try (CloseableIterator<InternalDataStatistics<?, ?, ?>> statisticsIt =
+    try (CloseableIterator<DataStatistics<?, ?, ?>> statisticsIt =
         geowaveStatisticsStore.getDataStatistics(
             getAdapterId(coverageName),
             RasterBoundingBoxStatistics.STATS_TYPE,
@@ -378,14 +378,14 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
       int height = 0;
       // try to use both the bounding box and the overview statistics to
       // determine the width and height at the highest resolution
-      InternalDataStatistics<?, ?, ?> statistics = null;
+      DataStatistics<?, ?, ?> statistics = null;
       if (statisticsIt.hasNext()) {
         statistics = statisticsIt.next();
       }
       if ((statistics != null) && (statistics instanceof BoundingBoxDataStatistics)) {
         final BoundingBoxDataStatistics<?, ?> bboxStats =
             (BoundingBoxDataStatistics<?, ?>) statistics;
-        try (CloseableIterator<InternalDataStatistics<?, ?, ?>> overviewStatisticsIt =
+        try (CloseableIterator<DataStatistics<?, ?, ?>> overviewStatisticsIt =
             geowaveStatisticsStore.getDataStatistics(
                 getAdapterId(coverageName),
                 OverviewStatistics.STATS_TYPE,

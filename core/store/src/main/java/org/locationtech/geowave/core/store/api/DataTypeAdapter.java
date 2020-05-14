@@ -79,6 +79,13 @@ public interface DataTypeAdapter<T> extends DataReader<Object>, DataWriter<T, Ob
    *         name
    */
   public String getFieldNameForPosition(CommonIndexModel model, int position);
+  
+  /**
+   * Return the class that represents the data stored by this adapter.
+   * 
+   * @return the class of the data
+   */
+  public Class<T> getDataClass();
 
   /**
    * Get the Description of the data type this adapater is for

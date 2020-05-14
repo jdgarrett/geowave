@@ -12,7 +12,7 @@ import java.util.Arrays;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
 import org.locationtech.geowave.core.store.adapter.statistics.EmptyStatisticVisibility;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatisticsSet;
@@ -73,7 +73,7 @@ public class DataStoreStatisticsProvider<T> implements StatisticsProvider<T> {
   }
 
   @Override
-  public <R, B extends StatisticsQueryBuilder<R, B>> InternalDataStatistics<T, R, B> createDataStatistics(
+  public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<T, R, B> createDataStatistics(
       final StatisticsId statisticsId) {
     final StatisticsType<?, ?> statisticsType = statisticsId.getType();
     if (index != null) {
@@ -100,7 +100,7 @@ public class DataStoreStatisticsProvider<T> implements StatisticsProvider<T> {
       }
     }
     if (adapter.getAdapter() instanceof StatisticsProvider) {
-      final InternalDataStatistics<T, R, B> stats =
+      final DataStatistics<T, R, B> stats =
           ((StatisticsProvider) adapter.getAdapter()).createDataStatistics(statisticsId);
       if (stats != null) {
         stats.setAdapterId(adapter.getAdapterId());

@@ -41,7 +41,7 @@ public class PartitionStatistics<T> extends
   }
 
   @Override
-  public InternalDataStatistics<T, Set<ByteArray>, IndexStatisticsQueryBuilder<Set<ByteArray>>> duplicate() {
+  public DataStatistics<T, Set<ByteArray>, IndexStatisticsQueryBuilder<Set<ByteArray>>> duplicate() {
     return new PartitionStatistics<>(adapterId, extendedId); // indexId
   }
 

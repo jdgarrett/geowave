@@ -29,7 +29,7 @@ import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
 import org.locationtech.geowave.core.store.DataStoreOptions;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
 import org.locationtech.geowave.core.store.metadata.AbstractGeoWavePersistence;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
@@ -88,18 +88,18 @@ public class AccumuloMetadataReader implements MetadataReader {
       if ((metadataType == MetadataType.STATS) && !options.isServerSideLibraryEnabled()) {
         try {
           // final HashMap<Text, Key> keyMap = new HashMap<>();
-          final HashMap<Pair<Text, Text>, InternalDataStatistics<?, ?, ?>> mergedDataMap =
+          final HashMap<Pair<Text, Text>, DataStatistics<?, ?, ?>> mergedDataMap =
               new HashMap<>();
           final Iterator<Entry<Key, Value>> it = scanner.iterator();
 
           while (it.hasNext()) {
             final Entry<Key, Value> row = it.next();
 
-            final InternalDataStatistics<?, ?, ?> stats =
-                (InternalDataStatistics<?, ?, ?>) PersistenceUtils.fromBinary(row.getValue().get());
+            final DataStatistics<?, ?, ?> stats =
+                (DataStatistics<?, ?, ?>) PersistenceUtils.fromBinary(row.getValue().get());
             final Pair<Text, Text> rowCqPair =
                 ImmutablePair.of(row.getKey().getRow(), row.getKey().getColumnQualifier());
-            final InternalDataStatistics<?, ?, ?> mergedStats = mergedDataMap.get(rowCqPair);
+            final DataStatistics<?, ?, ?> mergedStats = mergedDataMap.get(rowCqPair);
             stats.setVisibility(row.getKey().getColumnVisibility().getBytes());
             if (mergedStats != null) {
               mergedStats.merge(stats);
@@ -113,9 +113,9 @@ public class AccumuloMetadataReader implements MetadataReader {
           }
 
           final List<GeoWaveMetadata> metadataList = new ArrayList<>();
-          for (final Entry<Pair<Text, Text>, InternalDataStatistics<?, ?, ?>> entry : mergedDataMap.entrySet()) {
+          for (final Entry<Pair<Text, Text>, DataStatistics<?, ?, ?>> entry : mergedDataMap.entrySet()) {
             final Pair<Text, Text> key = entry.getKey();
-            final InternalDataStatistics<?, ?, ?> mergedStats = entry.getValue();
+            final DataStatistics<?, ?, ?> mergedStats = entry.getValue();
 
             metadataList.add(
                 new GeoWaveMetadata(

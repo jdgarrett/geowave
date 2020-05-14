@@ -30,7 +30,7 @@ import org.locationtech.geowave.core.geotime.util.ExtractTimeFilterVisitor;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -66,7 +66,7 @@ public class GeoWaveFeatureCollection extends DataFeatureCollection {
   public int getCount() {
     if (query.getFilter().equals(Filter.INCLUDE)) {
       // GEOWAVE-60 optimization
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap =
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap =
           reader.getTransaction().getDataStatistics();
       final StatisticsId id = CountDataStatistics.STATS_TYPE.newBuilder().build().getId();
       if (statsMap.containsKey(id)) {
@@ -103,7 +103,7 @@ public class GeoWaveFeatureCollection extends DataFeatureCollection {
         maxy = -Double.MAX_VALUE;
     try {
       // GEOWAVE-60 optimization
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap =
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap =
           reader.getTransaction().getDataStatistics();
       final StatisticsId statId =
           VectorStatisticsQueryBuilder.newBuilder().factory().bbox().fieldName(

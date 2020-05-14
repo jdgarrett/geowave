@@ -412,7 +412,6 @@ public class AccumuloOperations implements MapReduceDataStoreOperations, ServerS
       final String columnFamily,
       final byte[] columnQualifier,
       final String... authorizations) {
-
     boolean success = true;
     BatchDeleter deleter = null;
     try {

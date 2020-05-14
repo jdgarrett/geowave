@@ -10,7 +10,7 @@ package org.locationtech.geowave.adapter.vector.index;
 
 import java.util.Map;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
@@ -25,7 +25,7 @@ public interface IndexQueryStrategySPI {
   boolean requiresStats();
 
   CloseableIterator<Index> getIndices(
-      Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats,
+      Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats,
       QueryConstraints query,
       Index[] indices,
       DataTypeAdapter<?> adapter,

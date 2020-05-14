@@ -24,7 +24,7 @@ import org.geotools.feature.visitor.MinVisitor;
 import org.locationtech.geowave.core.geotime.store.statistics.FieldNameStatistic;
 import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeDataStatistics;
 import org.locationtech.geowave.core.geotime.util.ExtractAttributesFilter;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.NumericRangeDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.opengis.feature.simple.SimpleFeature;
@@ -33,11 +33,11 @@ import org.opengis.feature.type.AttributeDescriptor;
 
 class GeoWaveGTPluginUtils {
 
-  protected static List<InternalDataStatistics<SimpleFeature, ?, ?>> getStatsFor(
+  protected static List<DataStatistics<SimpleFeature, ?, ?>> getStatsFor(
       final String name,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap) {
-    final List<InternalDataStatistics<SimpleFeature, ?, ?>> stats = new LinkedList<>();
-    for (final Map.Entry<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stat : statsMap.entrySet()) {
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap) {
+    final List<DataStatistics<SimpleFeature, ?, ?>> stats = new LinkedList<>();
+    for (final Map.Entry<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stat : statsMap.entrySet()) {
       if ((stat.getValue() instanceof FieldNameStatistic)
           && ((FieldNameStatistic) stat.getValue()).getFieldName().endsWith(name)) {
         stats.add(stat.getValue());
@@ -50,7 +50,7 @@ class GeoWaveGTPluginUtils {
       final org.opengis.feature.FeatureVisitor visitor,
       final org.opengis.util.ProgressListener progress,
       final SimpleFeatureType featureType,
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap)
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap)
       throws IOException {
     if ((visitor instanceof MinVisitor)) {
       final ExtractAttributesFilter filter = new ExtractAttributesFilter();
@@ -60,7 +60,7 @@ class GeoWaveGTPluginUtils {
           (Collection<String>) minVisitor.getExpression().accept(filter, null);
       int acceptedCount = 0;
       for (final String attr : attrs) {
-        for (final InternalDataStatistics<SimpleFeature, ?, ?> stat : getStatsFor(attr, statsMap)) {
+        for (final DataStatistics<SimpleFeature, ?, ?> stat : getStatsFor(attr, statsMap)) {
           if (stat instanceof TimeRangeDataStatistics) {
             minVisitor.setValue(
                 convertToType(
@@ -90,7 +90,7 @@ class GeoWaveGTPluginUtils {
           (Collection<String>) maxVisitor.getExpression().accept(filter, null);
       int acceptedCount = 0;
       for (final String attr : attrs) {
-        for (final InternalDataStatistics<SimpleFeature, ?, ?> stat : getStatsFor(attr, statsMap)) {
+        for (final DataStatistics<SimpleFeature, ?, ?> stat : getStatsFor(attr, statsMap)) {
           if (stat instanceof TimeRangeDataStatistics) {
             maxVisitor.setValue(
                 convertToType(

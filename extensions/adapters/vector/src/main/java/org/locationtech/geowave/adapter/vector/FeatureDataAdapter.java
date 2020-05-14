@@ -42,7 +42,7 @@ import org.locationtech.geowave.core.store.adapter.InitializeWithIndicesDataAdap
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
 import org.locationtech.geowave.core.store.adapter.PersistentIndexFieldHandler;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -212,6 +212,11 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
         fieldVisiblityHandler,
         updateVisibility(featureType, defaultVisibilityManagement));
     setFeatureType(featureType);
+  }
+  
+  @Override
+  public Class<SimpleFeature> getDataClass() {
+    return SimpleFeature.class;
   }
 
   @Override
@@ -750,9 +755,9 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
   }
 
   @Override
-  public <R, B extends StatisticsQueryBuilder<R, B>> InternalDataStatistics<SimpleFeature, R, B> createDataStatistics(
+  public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<SimpleFeature, R, B> createDataStatistics(
       final StatisticsId statisticsId) {
-    return (InternalDataStatistics<SimpleFeature, R, B>) statsManager.createDataStatistics(
+    return (DataStatistics<SimpleFeature, R, B>) statsManager.createDataStatistics(
         statisticsId);
   }
 

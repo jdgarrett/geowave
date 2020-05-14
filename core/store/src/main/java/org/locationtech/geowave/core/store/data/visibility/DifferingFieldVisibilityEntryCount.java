@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatis
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.IndexStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.IndexStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.callback.DeleteCallback;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
@@ -59,7 +59,7 @@ public class DifferingFieldVisibilityEntryCount<T> extends
   }
 
   @Override
-  public InternalDataStatistics<T, Long, IndexStatisticsQueryBuilder<Long>> duplicate() {
+  public DataStatistics<T, Long, IndexStatisticsQueryBuilder<Long>> duplicate() {
     return new DifferingFieldVisibilityEntryCount<>(
         adapterId,
         extendedId,
@@ -135,7 +135,7 @@ public class DifferingFieldVisibilityEntryCount<T> extends
       final String... authorizations) {
     DifferingFieldVisibilityEntryCount combinedVisibilityCount = null;
     for (final short adapterId : adapterIdsToQuery) {
-      try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> adapterVisibilityCountIt =
+      try (final CloseableIterator<DataStatistics<?, ?, ?>> adapterVisibilityCountIt =
           statisticsStore.getDataStatistics(
               adapterId,
               index.getName(),

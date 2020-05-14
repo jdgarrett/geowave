@@ -27,7 +27,7 @@ public class DataStatisticsBuilder<T, R, B extends StatisticsQueryBuilder<R, B>>
     DeleteCallback<T, GeoWaveRow>,
     ScanCallback<T, GeoWaveRow> {
   private final DataStoreStatisticsProvider<T> statisticsProvider;
-  private final Map<ByteArray, InternalDataStatistics<T, R, B>> statisticsMap = new HashMap<>();
+  private final Map<ByteArray, DataStatistics<T, R, B>> statisticsMap = new HashMap<>();
   private final StatisticsId statisticsId;
   private final EntryVisibilityHandler<T> visibilityHandler;
 
@@ -48,7 +48,7 @@ public class DataStatisticsBuilder<T, R, B extends StatisticsQueryBuilder<R, B>>
   @Override
   public void entryIngested(final T entry, final GeoWaveRow... kvs) {
     final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, kvs));
-    InternalDataStatistics<T, R, B> statistics = statisticsMap.get(visibility);
+    DataStatistics<T, R, B> statistics = statisticsMap.get(visibility);
     if (statistics == null) {
       statistics = statisticsProvider.createDataStatistics(statisticsId);
       if (statistics == null) {
@@ -64,7 +64,7 @@ public class DataStatisticsBuilder<T, R, B extends StatisticsQueryBuilder<R, B>>
     return statisticsId;
   }
 
-  public Collection<InternalDataStatistics<T, R, B>> getStatistics() {
+  public Collection<DataStatistics<T, R, B>> getStatistics() {
     return statisticsMap.values();
   }
 
@@ -72,7 +72,7 @@ public class DataStatisticsBuilder<T, R, B extends StatisticsQueryBuilder<R, B>>
   @Override
   public void entryDeleted(final T entry, final GeoWaveRow... kv) {
     final ByteArray visibilityByteArray = new ByteArray(visibilityHandler.getVisibility(entry, kv));
-    InternalDataStatistics<T, R, B> statistics = statisticsMap.get(visibilityByteArray);
+    DataStatistics<T, R, B> statistics = statisticsMap.get(visibilityByteArray);
     if (statistics == null) {
       statistics = statisticsProvider.createDataStatistics(statisticsId);
       statistics.setVisibility(visibilityByteArray.getBytes());
@@ -86,7 +86,7 @@ public class DataStatisticsBuilder<T, R, B extends StatisticsQueryBuilder<R, B>>
   @Override
   public void entryScanned(final T entry, final GeoWaveRow kv) {
     final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, kv));
-    InternalDataStatistics<T, R, B> statistics = statisticsMap.get(visibility);
+    DataStatistics<T, R, B> statistics = statisticsMap.get(visibility);
     if (statistics == null) {
       statistics = statisticsProvider.createDataStatistics(statisticsId);
       if (statistics == null) {

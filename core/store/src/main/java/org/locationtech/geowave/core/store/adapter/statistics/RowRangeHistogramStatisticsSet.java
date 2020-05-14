@@ -79,9 +79,9 @@ public class RowRangeHistogramStatisticsSet<T> extends
   }
 
   @Override
-  public InternalDataStatistics<T, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>>[] getStatisticsSet() {
+  public DataStatistics<T, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>>[] getStatisticsSet() {
     return histogramPerPartition.values().toArray(
-        new InternalDataStatistics[histogramPerPartition.size()]);
+        new DataStatistics[histogramPerPartition.size()]);
   }
 
   protected static ByteArray getPartitionKey(final byte[] partitionBytes) {

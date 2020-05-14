@@ -39,7 +39,7 @@ import org.locationtech.geowave.core.store.adapter.InternalDataAdapterWrapper;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsImpl;
 import org.locationtech.geowave.core.store.api.Aggregation;
 import org.locationtech.geowave.core.store.api.AggregationQuery;
@@ -1260,7 +1260,7 @@ public class BaseDataStore implements DataStore {
     }
   }
 
-  protected <R> CloseableIterator<InternalDataStatistics<?, R, ?>> internalQueryStatistics(
+  protected <R> CloseableIterator<DataStatistics<?, R, ?>> internalQueryStatistics(
       final StatisticsQuery<R> query) {
     // sanity check, although using the builders should disallow this type
     // of query
@@ -1273,7 +1273,7 @@ public class BaseDataStore implements DataStore {
               + "' if statistic type is not provided");
       return new CloseableIterator.Empty<>();
     }
-    CloseableIterator<InternalDataStatistics<?, R, ?>> it = null;
+    CloseableIterator<DataStatistics<?, R, ?>> it = null;
     if ((query.getTypeName() != null) && (query.getTypeName().length() > 0)) {
       final Short adapterId = internalAdapterStore.getAdapterId(query.getTypeName());
       if (adapterId == null) {
@@ -1301,12 +1301,6 @@ public class BaseDataStore implements DataStore {
             (CloseableIterator) statisticsStore.getDataStatistics(
                 adapterId,
                 query.getAuthorizations());
-        if (query.getExtendedId() != null) {
-          it =
-              new CloseableIteratorWrapper<>(
-                  it,
-                  Iterators.filter(it, s -> s.getExtendedId().startsWith(query.getExtendedId())));
-        }
       }
     } else {
       if (query.getStatsType() != null) {
@@ -1331,7 +1325,7 @@ public class BaseDataStore implements DataStore {
 
   @Override
   public <R> Statistics<R>[] queryStatistics(final StatisticsQuery<R> query) {
-    try (CloseableIterator<InternalDataStatistics<?, R, ?>> it = internalQueryStatistics(query)) {
+    try (CloseableIterator<DataStatistics<?, R, ?>> it = internalQueryStatistics(query)) {
       return Streams.stream(it).map(
           s -> new StatisticsImpl<>(
               s.getResult(),
@@ -1348,9 +1342,9 @@ public class BaseDataStore implements DataStore {
       LOGGER.error("Statistic Type must be provided for a statistical aggregation");
       return null;
     }
-    try (CloseableIterator<InternalDataStatistics<?, R, ?>> it = internalQueryStatistics(query)) {
-      final Optional<InternalDataStatistics<?, R, ?>> result =
-          Streams.stream(it).reduce(InternalDataStatistics::reduce);
+    try (CloseableIterator<DataStatistics<?, R, ?>> it = internalQueryStatistics(query)) {
+      final Optional<DataStatistics<?, R, ?>> result =
+          Streams.stream(it).reduce(DataStatistics::reduce);
       if (result.isPresent()) {
         return result.get().getResult();
       }
@@ -1642,11 +1636,11 @@ public class BaseDataStore implements DataStore {
       final short adapterId = markedAdapters.get(i);
       baseOperations.deleteAll(indexName, internalAdapterStore.getTypeName(adapterId), adapterId);
       // need to be careful only deleting stats for this index and not any others for the adapter
-      final List<InternalDataStatistics<?, ?, ?>> statsToRemove = new ArrayList<>();
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+      final List<DataStatistics<?, ?, ?>> statsToRemove = new ArrayList<>();
+      try (CloseableIterator<DataStatistics<?, ?, ?>> it =
           statisticsStore.getDataStatistics(adapterId)) {
         while (it.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> stat = it.next();
+          final DataStatistics<?, ?, ?> stat = it.next();
           if ((stat.getExtendedId() != null) && stat.getExtendedId().startsWith(indexName)) {
             statsToRemove.add(stat);
           }

@@ -51,7 +51,7 @@ public class DuplicateEntryCount<T> extends
   }
 
   @Override
-  public InternalDataStatistics<T, Long, IndexStatisticsQueryBuilder<Long>> duplicate() {
+  public DataStatistics<T, Long, IndexStatisticsQueryBuilder<Long>> duplicate() {
     return new DuplicateEntryCount<>(adapterId, extendedId, entriesWithDuplicates);
   }
 
@@ -118,7 +118,7 @@ public class DuplicateEntryCount<T> extends
       final String... authorizations) {
     DuplicateEntryCount combinedDuplicateCount = null;
     for (final short adapterId : adapterIdsToQuery) {
-      try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> adapterVisibilityCountIt =
+      try (final CloseableIterator<DataStatistics<?, ?, ?>> adapterVisibilityCountIt =
           statisticsStore.getDataStatistics(
               adapterId,
               index.getName(),

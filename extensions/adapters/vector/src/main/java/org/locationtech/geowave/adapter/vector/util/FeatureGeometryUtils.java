@@ -13,7 +13,7 @@ import org.locationtech.geowave.core.geotime.store.statistics.FeatureBoundingBox
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.StatisticsQuery;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.jts.geom.Envelope;
@@ -29,14 +29,14 @@ public class FeatureGeometryUtils {
     final short adapterId = internalAdapterStore.getAdapterId(typeName);
     final StatisticsQuery<Envelope> query =
         VectorStatisticsQueryBuilder.newBuilder().factory().bbox().fieldName(geomField).build();
-    try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> geoStatIt =
+    try (final CloseableIterator<DataStatistics<?, ?, ?>> geoStatIt =
         statisticsStore.getDataStatistics(
             adapterId,
             query.getExtendedId(),
             query.getStatsType(),
             query.getAuthorizations())) {
       if (geoStatIt.hasNext()) {
-        final InternalDataStatistics<?, ?, ?> geoStat = geoStatIt.next();
+        final DataStatistics<?, ?, ?> geoStat = geoStatIt.next();
         if (geoStat != null) {
           if (geoStat instanceof FeatureBoundingBoxStatistics) {
             final FeatureBoundingBoxStatistics bbStats = (FeatureBoundingBoxStatistics) geoStat;

@@ -13,7 +13,7 @@ import java.util.Map;
 import org.locationtech.geowave.adapter.vector.plugin.GeoWaveDataStoreComponents;
 import org.locationtech.geowave.core.geotime.store.GeotoolsFeatureDataAdapter;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -28,19 +28,19 @@ public abstract class AbstractTransactionManagement implements GeoWaveTransactio
 
   @Override
   @SuppressWarnings("unchecked")
-  public Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> getDataStatistics() {
-    final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats = new HashMap<>();
+  public Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> getDataStatistics() {
+    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats = new HashMap<>();
     final GeotoolsFeatureDataAdapter adapter = components.getAdapter();
     final short internalAdapterId =
         components.getGTstore().getInternalAdapterStore().getAdapterId(adapter.getTypeName());
 
-    try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+    try (CloseableIterator<DataStatistics<?, ?, ?>> it =
         components.getStatsStore().getDataStatistics(internalAdapterId, composeAuthorizations())) {
       while (it.hasNext()) {
-        final InternalDataStatistics<?, ?, ?> stat = it.next();
+        final DataStatistics<?, ?, ?> stat = it.next();
         stats.put(
             new StatisticsId(stat.getType(), stat.getExtendedId()),
-            (InternalDataStatistics<SimpleFeature, ?, ?>) stat);
+            (DataStatistics<SimpleFeature, ?, ?>) stat);
       }
 
     } catch (final Exception e) {

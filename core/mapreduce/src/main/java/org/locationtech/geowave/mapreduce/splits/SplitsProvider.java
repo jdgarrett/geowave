@@ -32,7 +32,7 @@ import org.locationtech.geowave.core.store.adapter.AdapterIndexMappingStore;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
@@ -396,7 +396,7 @@ public class SplitsProvider {
         StatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
             index.getName()).partition(partitionKey.getBytes()).build();
     for (final Short adapterId : adapterIds) {
-      try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+      try (final CloseableIterator<DataStatistics<?, ?, ?>> it =
           store.getDataStatistics(
               adapterId,
               statsQuery.getExtendedId(),
@@ -426,7 +426,7 @@ public class SplitsProvider {
         StatisticsQueryBuilder.newBuilder().factory().partitions().indexName(
             index.getName()).build();
     for (final Short adapterId : adapterIds) {
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+      try (CloseableIterator<DataStatistics<?, ?, ?>> it =
           store.getDataStatistics(
               adapterId,
               statsQuery.getExtendedId(),

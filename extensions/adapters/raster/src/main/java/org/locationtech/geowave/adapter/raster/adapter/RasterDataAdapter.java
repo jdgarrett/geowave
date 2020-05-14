@@ -108,7 +108,7 @@ import org.locationtech.geowave.core.store.adapter.IndexedAdapterPersistenceEnco
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter;
 import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DefaultFieldStatisticVisibility;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -1492,9 +1492,9 @@ public class RasterDataAdapter implements
   }
 
   @Override
-  public InternalDataStatistics<GridCoverage, ?, ?> createDataStatistics(
+  public DataStatistics<GridCoverage, ?, ?> createDataStatistics(
       final StatisticsId statisticsId) {
-    InternalDataStatistics<GridCoverage, ?, ?> retVal = null;
+    DataStatistics<GridCoverage, ?, ?> retVal = null;
     if (OverviewStatistics.STATS_TYPE.equals(statisticsId.getType())) {
       retVal = new OverviewStatistics();
     } else if (RasterBoundingBoxStatistics.STATS_TYPE.equals(statisticsId.getType())) {

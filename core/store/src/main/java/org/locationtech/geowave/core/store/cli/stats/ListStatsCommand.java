@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
 
     final StringBuilder builder = new StringBuilder();
 
-    try (CloseableIterator<InternalDataStatistics<?, ?, ?>> statsIt =
+    try (CloseableIterator<DataStatistics<?, ?, ?>> statsIt =
         statsStore.getAllDataStatistics(authorizations)) {
       if (statsOptions.getJsonFormatFlag()) {
         final JSONArray resultsArray = new JSONArray();
@@ -76,7 +76,7 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
           // Output as JSON formatted strings
           outputObject.put("dataType", adapter.getTypeName());
           while (statsIt.hasNext()) {
-            final InternalDataStatistics<?, ?, ?> stats = statsIt.next();
+            final DataStatistics<?, ?, ?> stats = statsIt.next();
             if (stats.getAdapterId() != adapter.getAdapterId()) {
               continue;
             }
@@ -91,7 +91,7 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
       // Output as strings
       else {
         while (statsIt.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> stats = statsIt.next();
+          final DataStatistics<?, ?, ?> stats = statsIt.next();
           if (stats.getAdapterId() != adapter.getAdapterId()) {
             continue;
           }

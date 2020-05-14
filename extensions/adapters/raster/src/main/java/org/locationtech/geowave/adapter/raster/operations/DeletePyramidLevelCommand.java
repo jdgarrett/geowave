@@ -26,7 +26,7 @@ import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -146,12 +146,12 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
       final InternalAdapterStore adapterIdStore = inputStoreLoader.createInternalAdapterStore();
       OverviewStatistics ovStats = null;
       PartitionStatistics<?> pStats = null;
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+      try (CloseableIterator<DataStatistics<?, ?, ?>> it =
           statsStore.getDataStatistics(
               adapterIdStore.getAdapterId(adapter.getTypeName()),
               OverviewStatistics.STATS_TYPE)) {
         while (it.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> next = it.next();
+          final DataStatistics<?, ?, ?> next = it.next();
           if (next instanceof OverviewStatistics) {
             ovStats = (OverviewStatistics) next;
             break;
@@ -166,13 +166,13 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
         LOGGER.error("Unable to remove resolution for pyramid level " + level);
         return;
       }
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> it =
+      try (CloseableIterator<DataStatistics<?, ?, ?>> it =
           statsStore.getDataStatistics(
               adapterIdStore.getAdapterId(adapter.getTypeName()),
               i.getName(),
               PartitionStatistics.STATS_TYPE)) {
         while (it.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> next = it.next();
+          final DataStatistics<?, ?, ?> next = it.next();
           if (next instanceof PartitionStatistics) {
             pStats = (PartitionStatistics) next;
             break;

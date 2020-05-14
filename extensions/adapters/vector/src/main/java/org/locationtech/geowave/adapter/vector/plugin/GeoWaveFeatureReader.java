@@ -48,7 +48,7 @@ import org.locationtech.geowave.core.index.dimension.NumericDimensionDefinition;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass;
@@ -205,7 +205,7 @@ public class GeoWaveFeatureReader implements FeatureReader<SimpleFeatureType, Si
         && (Boolean) this.query.getHints().get(SubsampleProcess.SUBSAMPLE_ENABLED)) {
       spatialOnly = true;
     }
-    final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap =
+    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap =
         getComponents().getGTstore().getIndexQueryStrategy().requiresStats()
             ? transaction.getDataStatistics()
             : null;

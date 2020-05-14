@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.opengis.feature.simple.SimpleFeature;
 import org.slf4j.Logger;
@@ -70,7 +70,7 @@ public class FeatureHyperLogLogStatistics extends
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, HyperLogLogPlus, FieldStatisticsQueryBuilder<HyperLogLogPlus>> duplicate() {
+  public DataStatistics<SimpleFeature, HyperLogLogPlus, FieldStatisticsQueryBuilder<HyperLogLogPlus>> duplicate() {
     return new FeatureHyperLogLogStatistics(adapterId, getFieldName(), precision);
   }
 
@@ -177,7 +177,7 @@ public class FeatureHyperLogLogStatistics extends
     }
 
     @Override
-    public InternalDataStatistics<SimpleFeature, HyperLogLogPlus, FieldStatisticsQueryBuilder<HyperLogLogPlus>> create(
+    public DataStatistics<SimpleFeature, HyperLogLogPlus, FieldStatisticsQueryBuilder<HyperLogLogPlus>> create(
         final Short internalDataAdapterId,
         final String fieldName) {
       return new FeatureHyperLogLogStatistics(internalDataAdapterId, fieldName, precision);

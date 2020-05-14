@@ -8,6 +8,7 @@
  */
 package org.locationtech.geowave.core.store.api;
 
+import java.util.List;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.CloseableIterator;
 
@@ -106,6 +107,39 @@ public interface DataStore {
    * @return An array of the types used within this datastore.
    */
   DataTypeAdapter<?>[] getTypes();
+  
+  /**
+   * Add a statistic to the provided data type adapter with the given options.  The initial value of the statistic will be calculated after being added.
+   * 
+   * @param typeName the data type adapter to add the statistic to
+   * @param options the statistic options
+   */
+  void addStatistic(final String typeName, StatisticsOptions options);
+  
+  /**
+   * Add a statistic to the provided data type adapter with the given options.
+   * 
+   * @param typeName the data type adapter to add the statistic to
+   * @param options the statistic options
+   * @param calculateStat if {@code true} the initial value of the statistic will be calculated after being added
+   */
+  void addStatistic(final String typeName, StatisticsOptions options, boolean calculateStat);
+  
+  /**
+   * Remove a statistic from the provided data type adapter.
+   * 
+   * @param typeName the data type adapter to remove the statistic from
+   * @param statisticName the name of the statistic to remove
+   */
+  void removeStatistic(final String typeName, final String statisticName);
+ 
+  /**
+   * Gets all of the statistics that are being tracked on the provided data type adapter.
+   * 
+   * @param typeName the data type adapter to get the statistics for
+   * @return An iterator of all the statistics that are being tracked on the provided data type adapter.
+   */
+  CloseableIterator<StatisticsOptions> getTypeStatistics(final String typeName);
 
   /**
    * Get data statistics that match the given query criteria
@@ -217,6 +251,7 @@ public interface DataStore {
    * simple way to wipe a datastore cleanly, but don't be surprised if everything is gone.
    */
   void deleteAll();
+  
 
   /**
    * Add this type to the data store. This only needs to be called one time ever per type.
@@ -227,6 +262,17 @@ public interface DataStore {
    *        be added
    */
   <T> void addType(DataTypeAdapter<T> dataTypeAdapter, Index... initialIndices);
+  
+  /**
+   * Add this type to the data store with the given statistics. This only needs to be called one time ever per type.
+   * 
+   * @param dataTypeAdapter the data type adapter for this type that is used to read and write
+   *        GeoWave entries
+   * @param statistics the initial set of statistics that will be used with this adapter
+   * @param initialIndices the initial indexing for this type, in the future additional indices can
+   *        be added
+   */
+  <T> void addType(DataTypeAdapter<T> dataTypeAdapter, List<StatisticsOptions> statistics, Index... initialIndices);
 
   /**
    * Returns an index writer to perform batched write operations for the given data type name. It

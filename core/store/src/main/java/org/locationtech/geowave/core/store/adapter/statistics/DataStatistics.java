@@ -10,39 +10,28 @@ package org.locationtech.geowave.core.store.adapter.statistics;
 
 import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
+import org.locationtech.geowave.core.store.api.StatisticsOptions;
 import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.callback.IngestCallback;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
-public interface InternalDataStatistics<T, R, B extends StatisticsQueryBuilder<R, B>> extends
+public interface DataStatistics<T, R> extends
     Mergeable,
     IngestCallback<T> {
-  Short getAdapterId();
+  StatisticsOptions getOptions();
 
   R getResult();
-
-  StatisticsType<R, B> getType();
-
-  String getExtendedId();
-
-  void setAdapterId(short dataAdapterId);
-
-  void setType(StatisticsType<R, B> statisticsId);
-
-  void setExtendedId(String id);
-
-  void setVisibility(byte[] visibility);
 
   byte[] getVisibility();
 
   JSONObject toJSONObject(InternalAdapterStore adapterStore) throws JSONException;
 
-  InternalDataStatistics<T, R, B> duplicate();
+  DataStatistics<T, R> duplicate();
 
-  static <R> InternalDataStatistics<?, R, ?> reduce(
-      final InternalDataStatistics<?, R, ?> a,
-      final InternalDataStatistics<?, R, ?> b) {
+  static <R> DataStatistics<?, R> reduce(
+      final DataStatistics<?, R> a,
+      final DataStatistics<?, R> b) {
     a.merge(b);
     return a;
   }

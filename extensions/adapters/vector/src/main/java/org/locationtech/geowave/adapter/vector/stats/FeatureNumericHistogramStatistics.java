@@ -25,7 +25,7 @@ import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -65,7 +65,7 @@ public class FeatureNumericHistogramStatistics extends
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, Pair<DoubleHistogram, DoubleHistogram>, FieldStatisticsQueryBuilder<Pair<DoubleHistogram, DoubleHistogram>>> duplicate() {
+  public DataStatistics<SimpleFeature, Pair<DoubleHistogram, DoubleHistogram>, FieldStatisticsQueryBuilder<Pair<DoubleHistogram, DoubleHistogram>>> duplicate() {
     return new FeatureNumericHistogramStatistics(adapterId, getFieldName());
   }
 
@@ -298,7 +298,7 @@ public class FeatureNumericHistogramStatistics extends
     private static final long serialVersionUID = 6309383518148391565L;
 
     @Override
-    public InternalDataStatistics<SimpleFeature, Pair<DoubleHistogram, DoubleHistogram>, FieldStatisticsQueryBuilder<Pair<DoubleHistogram, DoubleHistogram>>> create(
+    public DataStatistics<SimpleFeature, Pair<DoubleHistogram, DoubleHistogram>, FieldStatisticsQueryBuilder<Pair<DoubleHistogram, DoubleHistogram>>> create(
         final Short internalDataAdapterId,
         final String fieldName) {
       return new FeatureNumericHistogramStatistics(internalDataAdapterId, fieldName);

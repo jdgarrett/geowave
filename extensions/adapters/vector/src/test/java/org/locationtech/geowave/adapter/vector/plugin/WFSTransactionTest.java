@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.locationtech.geowave.adapter.vector.BaseDataStoreTest;
 import org.locationtech.geowave.adapter.vector.stats.FeatureNumericRangeStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -115,7 +115,7 @@ public class WFSTransactionTest extends BaseDataStoreTest {
         ((GeoWaveFeatureSource) ((GeoWaveGTDataStore) dataStore).getFeatureSource(
             "geostuff",
             transaction3)).getReaderInternal(query);
-    final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> transStats =
+    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> transStats =
         ((GeoWaveFeatureReader) reader).getTransaction().getDataStatistics();
     assertNotNull(
         transStats.get(

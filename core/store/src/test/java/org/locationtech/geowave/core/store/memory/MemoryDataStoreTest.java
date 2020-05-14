@@ -28,7 +28,7 @@ import org.locationtech.geowave.core.store.adapter.MockComponents.IntegerRangeDa
 import org.locationtech.geowave.core.store.adapter.exceptions.MismatchedIndexToAdapterMapping;
 import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
@@ -107,7 +107,7 @@ public class MemoryDataStoreTest {
       assertFalse(itemIt.hasNext());
     }
 
-    final Iterator<InternalDataStatistics<?, ?, ?>> statsIt = statsStore.getAllDataStatistics();
+    final Iterator<DataStatistics<?, ?, ?>> statsIt = statsStore.getAllDataStatistics();
     assertTrue(checkStats(statsIt, 2, new NumericRange(25, 35)));
 
     dataStore.delete(
@@ -207,7 +207,7 @@ public class MemoryDataStoreTest {
       assertFalse(itemIt.hasNext());
     }
 
-    final Iterator<InternalDataStatistics<?, ?, ?>> statsIt = statsStore.getAllDataStatistics();
+    final Iterator<DataStatistics<?, ?, ?>> statsIt = statsStore.getAllDataStatistics();
     assertTrue(checkStats(statsIt, 2, new NumericRange(25, 35)));
 
     dataStore.delete(
@@ -264,12 +264,12 @@ public class MemoryDataStoreTest {
   }
 
   private boolean checkStats(
-      final Iterator<InternalDataStatistics<?, ?, ?>> statIt,
+      final Iterator<DataStatistics<?, ?, ?>> statIt,
       final int count,
       final NumericRange range) {
     while (statIt.hasNext()) {
-      final InternalDataStatistics<Integer, ?, ?> stat =
-          (InternalDataStatistics<Integer, ?, ?>) statIt.next();
+      final DataStatistics<Integer, ?, ?> stat =
+          (DataStatistics<Integer, ?, ?>) statIt.next();
       if ((stat instanceof CountDataStatistics)
           && (((CountDataStatistics) stat).getCount() != count)) {
         return false;

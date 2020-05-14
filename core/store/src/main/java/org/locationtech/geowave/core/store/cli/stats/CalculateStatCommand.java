@@ -41,7 +41,7 @@ public class CalculateStatCommand extends AbstractStatsCommand<Void> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CalculateStatCommand.class);
 
-  @Parameter(description = "<store name> <datatype name> <stat type>")
+  @Parameter(description = "<store name> <type name> <stat type>")
   private List<String> parameters = new ArrayList<>();
 
   // The state we're re-caculating. Set in execute(), used in

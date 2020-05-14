@@ -21,7 +21,7 @@ import org.locationtech.geowave.core.store.index.CommonIndexModel;
 public interface StatisticsProvider<T> {
   public StatisticsId[] getSupportedStatistics();
 
-  public <R, B extends StatisticsQueryBuilder<R, B>> InternalDataStatistics<T, R, B> createDataStatistics(
+  public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<T, R, B> createDataStatistics(
       StatisticsId statisticsId);
 
   public EntryVisibilityHandler<T> getVisibilityHandler(

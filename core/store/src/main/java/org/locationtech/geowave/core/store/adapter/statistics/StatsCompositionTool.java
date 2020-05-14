@@ -123,7 +123,7 @@ public class StatsCompositionTool<T> implements
 
     synchronized (MUTEX) {
       for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
-        final Collection<InternalDataStatistics<T, ?, ?>> statistics =
+        final Collection<DataStatistics<T, ?, ?>> statistics =
             (Collection) builder.getStatistics();
         if (overwrite) {
           final StatisticsId id = builder.getStatisticsId();
@@ -131,7 +131,7 @@ public class StatsCompositionTool<T> implements
           // here
           statisticsStore.removeStatistics(adapterId, id.getExtendedId(), id.getType());
         }
-        for (final InternalDataStatistics<T, ?, ?> s : statistics) {
+        for (final DataStatistics<T, ?, ?> s : statistics) {
           // using a set and simply checking instanceof this is the
           // simplest approach to enable per partition statistics
           // within the current design
@@ -142,7 +142,7 @@ public class StatsCompositionTool<T> implements
           // which is used by the stats manager within a feature data
           // adapter etc.
           if (s instanceof DataStatisticsSet) {
-            for (final InternalDataStatistics<T, ?, ?> statInSet : ((DataStatisticsSet) s).getStatisticsSet()) {
+            for (final DataStatistics<T, ?, ?> statInSet : ((DataStatisticsSet) s).getStatisticsSet()) {
               statisticsStore.incorporateStatistics(statInSet);
             }
           } else {
@@ -164,7 +164,7 @@ public class StatsCompositionTool<T> implements
 
     synchronized (MUTEX) {
       for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
-        final Collection<InternalDataStatistics<T, ?, ?>> statistics =
+        final Collection<DataStatistics<T, ?, ?>> statistics =
             (Collection) builder.getStatistics();
         statistics.clear();
       }

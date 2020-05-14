@@ -33,7 +33,7 @@ import org.locationtech.geowave.core.store.adapter.AbstractDataAdapter;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
 import org.locationtech.geowave.core.store.adapter.PersistentIndexFieldHandler;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataStore;
@@ -411,7 +411,7 @@ public class AccumuloRangeQueryTest {
     }
 
     @Override
-    public InternalDataStatistics<TestGeometry, ?, ?> createDataStatistics(
+    public DataStatistics<TestGeometry, ?, ?> createDataStatistics(
         final StatisticsId statisticsId) {
       return null;
     }

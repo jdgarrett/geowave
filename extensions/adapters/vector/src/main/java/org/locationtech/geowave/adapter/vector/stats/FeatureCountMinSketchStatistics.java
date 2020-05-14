@@ -9,6 +9,7 @@
 package org.locationtech.geowave.adapter.vector.stats;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.core.geotime.store.statistics.FieldNameStatistic;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.Mergeable;
@@ -16,9 +17,14 @@ import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.StatisticsType;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.StatisticsOptions;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsOptions;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.opengis.feature.simple.SimpleFeature;
+import com.beust.jcommander.Parameter;
 import com.clearspring.analytics.stream.frequency.CountMinSketch;
 import com.clearspring.analytics.stream.frequency.FrequencyMergeException;
 
@@ -31,15 +37,50 @@ import com.clearspring.analytics.stream.frequency.FrequencyMergeException;
  * does not under-state the estimate.
  */
 public class FeatureCountMinSketchStatistics extends
-    AbstractDataStatistics<SimpleFeature, CountMinSketch, FieldStatisticsQueryBuilder<CountMinSketch>>
+    AbstractDataStatistics<SimpleFeature, CountMinSketch>
     implements
     FieldNameStatistic {
-  public static final FieldStatisticsType<CountMinSketch> STATS_TYPE =
-      new FieldStatisticsType<>("ATT_SKETCH");
+  public static final StatisticsType STATS_TYPE = new StatisticsType("ATT_SKETCH");
   private CountMinSketch sketch = null;
+  
+  public static class Options extends FieldStatisticsOptions {
+    
+    @Parameter(names = "--errorFactor", description = "Error factor.")
+    private double errorFactor = 0.001;
+    
+    @Parameter(names = "--probabilityOfCorrectness", description = "Probability of retrieving a correct estimate.")
+    private double probabilityOfCorrectness = 0.98;
+    
+    public void setErrorFactor(double errorFactor) {
+      this.errorFactor = errorFactor;
+    }
+    
+    public double getErrorFactor() {
+      return this.errorFactor;
+    }
+    
+    public void setProbabilityOfCorrectness(double probabilityOfCorrectness) {
+      this.probabilityOfCorrectness = probabilityOfCorrectness;
+    }
+    
+    public double getProbabilityOfCorrectness() {
+      return this.probabilityOfCorrectness;
+    }
+
+    @Override
+    public StatisticsType getStatisticsType() {
+      return STATS_TYPE;
+    }
+
+    @Override
+    public boolean isCompatibleWith(DataTypeAdapter<?> adapter) {
+      return adapter.getDataClass().isAssignableFrom(SimpleFeature.class);
+    }
+    
+  }
 
   public FeatureCountMinSketchStatistics() {
-    super();
+    super(new Options());
     sketch = new CountMinSketch(0.001, 0.98, 7364181);
   }
 
@@ -63,7 +104,7 @@ public class FeatureCountMinSketchStatistics extends
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, CountMinSketch, FieldStatisticsQueryBuilder<CountMinSketch>> duplicate() {
+  public DataStatistics<SimpleFeature, CountMinSketch, FieldStatisticsQueryBuilder<CountMinSketch>> duplicate() {
     return new FeatureCountMinSketchStatistics(adapterId, getFieldName());
   }
 
@@ -135,65 +176,5 @@ public class FeatureCountMinSketchStatistics extends
   @Override
   protected Object resultsValue() {
     return sketch.size();
-  }
-
-  public static class FeatureCountMinSketchConfig implements StatsConfig<SimpleFeature> {
-    /** */
-    private static final long serialVersionUID = 6309383518148391565L;
-
-    private double errorFactor;
-    private double probabilityOfCorrectness;
-
-    public FeatureCountMinSketchConfig() {}
-
-    public FeatureCountMinSketchConfig(
-        final double errorFactor,
-        final double probabilityOfCorrectness) {
-      super();
-      this.errorFactor = errorFactor;
-      this.probabilityOfCorrectness = probabilityOfCorrectness;
-    }
-
-    public void setErrorFactor(final double errorFactor) {
-      this.errorFactor = errorFactor;
-    }
-
-    public void setProbabilityOfCorrectness(final double probabilityOfCorrectness) {
-      this.probabilityOfCorrectness = probabilityOfCorrectness;
-    }
-
-    public double getErrorFactor() {
-      return errorFactor;
-    }
-
-    public double getProbabilityOfCorrectness() {
-      return probabilityOfCorrectness;
-    }
-
-    @Override
-    public InternalDataStatistics<SimpleFeature, CountMinSketch, FieldStatisticsQueryBuilder<CountMinSketch>> create(
-        final Short internalDataAdapterId,
-        final String fieldName) {
-      return new FeatureCountMinSketchStatistics(
-          internalDataAdapterId,
-          fieldName,
-          errorFactor,
-          probabilityOfCorrectness);
-    }
-
-    @Override
-    public byte[] toBinary() {
-      final ByteBuffer buf = ByteBuffer.allocate(16);
-      buf.putDouble(errorFactor);
-      buf.putDouble(probabilityOfCorrectness);
-      return buf.array();
-    }
-
-    @Override
-    public void fromBinary(final byte[] bytes) {
-      final ByteBuffer buf = ByteBuffer.wrap(bytes);
-      errorFactor = buf.getDouble();
-      probabilityOfCorrectness = buf.getDouble();
-    }
   }
 }

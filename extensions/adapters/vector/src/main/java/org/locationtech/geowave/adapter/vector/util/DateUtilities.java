@@ -16,7 +16,7 @@ import org.locationtech.geowave.core.geotime.store.statistics.FeatureTimeRangeSt
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.StatisticsQuery;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.threeten.extra.Interval;
@@ -63,14 +63,14 @@ public class DateUtilities {
       StatisticsQuery<Interval> query =
           VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
               startField).build();
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> timeStatIt =
+      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
           statisticsStore.getDataStatistics(
               adapterId,
               query.getExtendedId(),
               query.getStatsType(),
               new String[0])) {
         if (timeStatIt.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> timeStat = timeStatIt.next();
+          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
           if (timeStat instanceof FeatureTimeRangeStatistics) {
             final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
             start = trStats.getMinTime();
@@ -80,14 +80,14 @@ public class DateUtilities {
       query =
           VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
               endField).build();
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> timeStatIt =
+      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
           statisticsStore.getDataStatistics(
               adapterId,
               query.getExtendedId(),
               query.getStatsType(),
               new String[0])) {
         if (timeStatIt.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> timeStat = timeStatIt.next();
+          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
           if (timeStat instanceof FeatureTimeRangeStatistics) {
             final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
             end = trStats.getMinTime();
@@ -104,14 +104,14 @@ public class DateUtilities {
       final StatisticsQuery<Interval> query =
           VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
               timeField).build();
-      try (CloseableIterator<InternalDataStatistics<?, ?, ?>> timeStatIt =
+      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
           statisticsStore.getDataStatistics(
               adapterId,
               query.getExtendedId(),
               query.getStatsType(),
               new String[0])) {
         if (timeStatIt.hasNext()) {
-          final InternalDataStatistics<?, ?, ?> timeStat = timeStatIt.next();
+          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
           if (timeStat instanceof FeatureTimeRangeStatistics) {
             final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
             return trStats.asTemporalRange();

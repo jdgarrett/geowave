@@ -37,7 +37,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistic
 import org.locationtech.geowave.core.store.adapter.statistics.FieldNameStatisticVisibility;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.NumericRangeDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
@@ -228,12 +228,12 @@ public class MockComponents {
     }
 
     @Override
-    public <R, B extends StatisticsQueryBuilder<R, B>> InternalDataStatistics<Integer, R, B> createDataStatistics(
+    public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<Integer, R, B> createDataStatistics(
         final StatisticsId statisticsId) {
       if (statisticsId.getType().equals(CountDataStatistics.STATS_TYPE)) {
-        return (InternalDataStatistics<Integer, R, B>) new CountDataStatistics<Integer>();
+        return (DataStatistics<Integer, R, B>) new CountDataStatistics<Integer>();
       }
-      return (InternalDataStatistics<Integer, R, B>) new IntegerRangeDataStatistics(getTypeName());
+      return (DataStatistics<Integer, R, B>) new IntegerRangeDataStatistics(getTypeName());
     }
 
     @Override

@@ -14,52 +14,31 @@ import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
+import org.locationtech.geowave.core.store.api.StatisticsOptions;
 import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
-public abstract class AbstractDataStatistics<T, R, B extends StatisticsQueryBuilder<R, B>>
+public abstract class AbstractDataStatistics<T, R>
     implements
-    InternalDataStatistics<T, R, B> {
-  /** ID of source data adapter */
-  protected Short adapterId;
-
-  protected byte[] visibility;
-  /** ID of statistic to be tracked */
-  protected StatisticsType<R, B> statisticsType;
-
+    DataStatistics<T, R> {
+  
+  protected short adapterId;
+  
   protected String extendedId;
 
-  protected AbstractDataStatistics() {}
+  protected StatisticsOptions options;
+
+  protected byte[] visibility;
 
   public AbstractDataStatistics(
-      final Short internalDataAdapterId,
-      final StatisticsType<R, B> statisticsType) {
-    this(internalDataAdapterId, statisticsType, "");
-  }
-
-  public AbstractDataStatistics(
-      final Short adapterId,
-      final StatisticsType<R, B> statisticsType,
-      final String extendedId) {
-    this.adapterId = adapterId;
-    this.statisticsType = statisticsType;
-    this.extendedId = extendedId;
+      final StatisticsOptions options) {
+    this.options = options;
   }
 
   @Override
-  public void setType(final StatisticsType<R, B> statisticsType) {
-    this.statisticsType = statisticsType;
-  }
-
-  @Override
-  public void setExtendedId(final String extendedId) {
-    this.extendedId = extendedId;
-  }
-
-  @Override
-  public String getExtendedId() {
-    return extendedId;
+  public StatisticsOptions getOptions() {
+    return options;
   }
 
   @Override
@@ -67,28 +46,8 @@ public abstract class AbstractDataStatistics<T, R, B extends StatisticsQueryBuil
     return visibility;
   }
 
-  @Override
-  public Short getAdapterId() {
-    return adapterId;
-  }
-
-  @Override
-  public void setAdapterId(final short adapterId) {
-    this.adapterId = adapterId;
-  }
-
-  @Override
-  public void setVisibility(final byte[] visibility) {
-    this.visibility = visibility;
-  }
-
-  @Override
-  public StatisticsType<R, B> getType() {
-    return statisticsType;
-  }
-
   protected ByteBuffer binaryBuffer(final int size) {
-    final byte stypeBytes[] = statisticsType.toBinary();
+    final byte stypeBytes[] = options.getStatisticsType().toBinary();
     final byte sidBytes[] = StringUtils.stringToBinary(extendedId);
     final ByteBuffer buffer =
         ByteBuffer.allocate(
@@ -112,8 +71,8 @@ public abstract class AbstractDataStatistics<T, R, B extends StatisticsQueryBuil
     final int typeLength = VarintUtils.readUnsignedInt(buffer);
     final int extendedIdLength = VarintUtils.readUnsignedInt(buffer);
     final byte typeBytes[] = ByteArrayUtils.safeRead(buffer, typeLength);
-    statisticsType = new BaseStatisticsType();
-    statisticsType.fromBinary(typeBytes);
+    //statisticsType = new StatisticsType();
+    //statisticsType.fromBinary(typeBytes);
     final byte[] extendedIdBytes = ByteArrayUtils.safeRead(buffer, extendedIdLength);
     extendedId = StringUtils.stringFromBinary(extendedIdBytes);
     return buffer;
@@ -121,8 +80,8 @@ public abstract class AbstractDataStatistics<T, R, B extends StatisticsQueryBuil
 
   @Override
   @SuppressWarnings("unchecked")
-  public InternalDataStatistics<T, R, B> duplicate() {
-    return (InternalDataStatistics<T, R, B>) PersistenceUtils.fromBinary(
+  public DataStatistics<T, R> duplicate() {
+    return (DataStatistics<T, R>) PersistenceUtils.fromBinary(
         PersistenceUtils.toBinary(this));
   }
 
@@ -130,7 +89,7 @@ public abstract class AbstractDataStatistics<T, R, B extends StatisticsQueryBuil
   public JSONObject toJSONObject(final InternalAdapterStore store) throws JSONException {
     final JSONObject jo = new JSONObject();
     jo.put("dataType", store.getTypeName(adapterId));
-    jo.put("statsType", statisticsType.getString());
+    jo.put("statsType", options.getStatisticsType().getString());
     if ((extendedId != null) && !extendedId.isEmpty()) {
       jo.put("extendedId", extendedId);
     }
@@ -140,14 +99,14 @@ public abstract class AbstractDataStatistics<T, R, B extends StatisticsQueryBuil
 
   protected abstract String resultsName();
 
-  protected abstract Object resultsValue();
+  protected abstract R resultsValue();
 
   @Override
   public String toString() {
-    return "AbstractDataStatistics [adapterId="
+    return "AbstractDataStatistics [typeName="
         + adapterId
         + ", statisticsType="
-        + statisticsType.getString()
+        + options.getStatisticsType().getString()
         + "]";
   }
 }

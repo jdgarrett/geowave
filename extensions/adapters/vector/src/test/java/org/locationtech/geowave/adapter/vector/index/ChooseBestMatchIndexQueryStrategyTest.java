@@ -31,7 +31,7 @@ import org.locationtech.geowave.core.index.sfc.data.BasicNumericDataset;
 import org.locationtech.geowave.core.index.sfc.data.NumericData;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.index.sfc.data.NumericValue;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.Index;
@@ -65,7 +65,7 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     final RowRangeHistogramStatistics<SimpleFeature> rangeStats =
         new RowRangeHistogramStatistics<>(null, spatialIndex.getName(), null);
 
-    final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsMap = new HashMap<>();
+    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap = new HashMap<>();
     statsMap.put(
         VectorStatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
             spatialIndex.getName()).build().getId(),
@@ -158,7 +158,7 @@ public class ChooseBestMatchIndexQueryStrategyTest {
   }
 
   public Iterator<Index> getIndices(
-      final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> stats,
+      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats,
       final BasicQueryByClass query,
       final ChooseBestMatchIndexQueryStrategy strategy) {
     return strategy.getIndices(

@@ -53,7 +53,7 @@ import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
@@ -764,13 +764,13 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
         final FeatureDataAdapter adapter = (FeatureDataAdapter) internalDataAdapter.getAdapter();
         final StatisticsCache cachedValue = statsCache.get(adapter.getTypeName());
         Assert.assertNotNull(cachedValue);
-        final Collection<InternalDataStatistics<SimpleFeature, ?, ?>> expectedStats =
+        final Collection<DataStatistics<SimpleFeature, ?, ?>> expectedStats =
             cachedValue.statsCache.values();
-        try (CloseableIterator<InternalDataStatistics<?, ?, ?>> statsIterator =
+        try (CloseableIterator<DataStatistics<?, ?, ?>> statsIterator =
             statsStore.getDataStatistics(internalDataAdapter.getAdapterId())) {
           int statsCount = 0;
           while (statsIterator.hasNext()) {
-            final InternalDataStatistics<?, ?, ?> nextStats = statsIterator.next();
+            final DataStatistics<?, ?, ?> nextStats = statsIterator.next();
             if ((nextStats instanceof RowRangeHistogramStatistics)
                 || (nextStats instanceof IndexMetaDataSet)
                 || (nextStats instanceof FieldVisibilityCount)
@@ -788,14 +788,14 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
               expectedStats.size(),
               statsCount);
         }
-        for (final InternalDataStatistics<SimpleFeature, ?, ?> expectedStat : expectedStats) {
-          try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> actualStatsIt =
+        for (final DataStatistics<SimpleFeature, ?, ?> expectedStat : expectedStats) {
+          try (final CloseableIterator<DataStatistics<?, ?, ?>> actualStatsIt =
               statsStore.getDataStatistics(
                   internalDataAdapter.getAdapterId(),
                   expectedStat.getExtendedId(),
                   expectedStat.getType())) {
             if (actualStatsIt.hasNext()) {
-              final InternalDataStatistics<?, ?, ?> actualStats = actualStatsIt.next();
+              final DataStatistics<?, ?, ?> actualStats = actualStatsIt.next();
 
               // Only test RANGE and COUNT in the multithreaded
               // case. None
@@ -843,7 +843,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
                 id.getExtendedId(),
                 id.getType()));
 
-        try (final CloseableIterator<InternalDataStatistics<?, ?, ?>> statsIt =
+        try (final CloseableIterator<DataStatistics<?, ?, ?>> statsIt =
             statsStore.getDataStatistics(
                 internalDataAdapter.getAdapterId(),
                 id.getExtendedId(),
@@ -885,7 +885,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
     private double minY = Double.MAX_VALUE;;
     private double maxX = -Double.MAX_VALUE;;
     private double maxY = -Double.MAX_VALUE;;
-    protected final Map<StatisticsId, InternalDataStatistics<SimpleFeature, ?, ?>> statsCache =
+    protected final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsCache =
         new HashMap<>();
 
     // otherwise use the statistics interface to calculate every statistic
@@ -895,7 +895,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
         final short internalAdapterId) {
       final StatisticsId[] statsIds = dataAdapter.getSupportedStatistics();
       for (final StatisticsId statsId : statsIds) {
-        final InternalDataStatistics<SimpleFeature, ?, ?> stats =
+        final DataStatistics<SimpleFeature, ?, ?> stats =
             dataAdapter.createDataStatistics(statsId);
         stats.setAdapterId(internalAdapterId);
         statsCache.put(statsId, stats);
@@ -904,7 +904,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
 
     @Override
     public void entryIngested(final SimpleFeature entry, final GeoWaveRow... geowaveRows) {
-      for (final InternalDataStatistics<SimpleFeature, ?, ?> stats : statsCache.values()) {
+      for (final DataStatistics<SimpleFeature, ?, ?> stats : statsCache.values()) {
         stats.entryIngested(entry, geowaveRows);
       }
       final Geometry geometry = ((Geometry) entry.getDefaultGeometry());

@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
  *
  * @param <R> The type of statistic
  */
-public abstract class StatisticsType<R, B extends StatisticsQueryBuilder<R, B>> extends ByteArray
+public class StatisticsType extends ByteArray
     implements
     Persistable {
   private static final long serialVersionUID = 1L;
@@ -35,8 +35,6 @@ public abstract class StatisticsType<R, B extends StatisticsQueryBuilder<R, B>> 
   public StatisticsType(final String id) {
     super(id);
   }
-
-  public abstract B newBuilder();
 
   @Override
   public byte[] toBinary() {
@@ -63,7 +61,7 @@ public abstract class StatisticsType<R, B extends StatisticsQueryBuilder<R, B>> 
     if (!(obj instanceof StatisticsType)) {
       return false;
     }
-    final StatisticsType<?, ?> other = (StatisticsType<?, ?>) obj;
+    final StatisticsType other = (StatisticsType) obj;
     return Arrays.equals(bytes, other.getBytes());
   }
 }

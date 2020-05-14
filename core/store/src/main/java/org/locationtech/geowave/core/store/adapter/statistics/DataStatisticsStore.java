@@ -9,12 +9,17 @@
 package org.locationtech.geowave.core.store.adapter.statistics;
 
 import org.locationtech.geowave.core.store.CloseableIterator;
+import org.locationtech.geowave.core.store.api.StatisticsOptions;
 
 /**
  * This is responsible for persisting data statistics (either in memory or to disk depending on the
  * implementation).
  */
 public interface DataStatisticsStore {
+  public void addStatistic(StatisticsOptions options);
+  
+  public void removeStatistic(StatisticsOptions options);
+  public void removeStatistic(short adapterId, byte[] statisticId);
   /**
    * This will write the statistics to the underlying store. Note that this will overwrite whatever
    * the current persisted statistics are with the given statistics ID and data adapter ID. Use
@@ -22,7 +27,7 @@ public interface DataStatisticsStore {
    *
    * @param statistics The statistics to write
    */
-  public void setStatistics(InternalDataStatistics<?, ?, ?> statistics);
+  public void setStatistics(DataStatistics<?, ?, ?> statistics);
 
   /**
    * Add the statistics to the store, overwriting existing data statistics with the aggregation of
@@ -30,7 +35,7 @@ public interface DataStatisticsStore {
    *
    * @param statistics the data statistics
    */
-  public void incorporateStatistics(InternalDataStatistics<?, ?, ?> statistics);
+  public void incorporateStatistics(DataStatistics<?, ?, ?> statistics);
 
   /**
    * Get all data statistics from the store by a data adapter ID
@@ -39,7 +44,7 @@ public interface DataStatisticsStore {
    * @param authorizations authorizations for the query
    * @return the list of statistics for the given adapter, empty if it doesn't exist
    */
-  public CloseableIterator<InternalDataStatistics<?, ?, ?>> getDataStatistics(
+  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
       short adapterId,
       String... authorizations);
 
@@ -50,7 +55,7 @@ public interface DataStatisticsStore {
    * @param authorizations authorizations for the query
    * @return the list of statistics for the given adapter, empty if it doesn't exist
    */
-  public CloseableIterator<InternalDataStatistics<?, ?, ?>> getDataStatistics(
+  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
       StatisticsType<?, ?> statisticsType,
       String... authorizations);
 
@@ -62,7 +67,7 @@ public interface DataStatisticsStore {
    * @param authorizations authorizations for the query
    * @return the list of statistics for the given adapter, empty if it doesn't exist
    */
-  public CloseableIterator<InternalDataStatistics<?, ?, ?>> getDataStatistics(
+  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
       String extendedIdPrefix,
       StatisticsType<?, ?> statisticsType,
       String... authorizations);
@@ -73,7 +78,7 @@ public interface DataStatisticsStore {
    * @param authorizations authorizations for the query
    * @return the list of all statistics
    */
-  public CloseableIterator<InternalDataStatistics<?, ?, ?>> getAllDataStatistics(
+  public CloseableIterator<DataStatistics<?, ?, ?>> getAllDataStatistics(
       String... authorizations);
 
   /**
@@ -84,7 +89,7 @@ public interface DataStatisticsStore {
    * @param authorizations authorizations for the query
    * @return the persisted statistics value
    */
-  public CloseableIterator<InternalDataStatistics<?, ?, ?>> getDataStatistics(
+  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
       short adapterId,
       StatisticsType<?, ?> statisticsType,
       String... authorizations);
@@ -98,7 +103,7 @@ public interface DataStatisticsStore {
    * @param authorizations authorizations for the query
    * @return the persisted statistics value
    */
-  public CloseableIterator<InternalDataStatistics<?, ?, ?>> getDataStatistics(
+  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
       short adapterId,
       String extendedIdPrefix,
       StatisticsType<?, ?> statisticsType,

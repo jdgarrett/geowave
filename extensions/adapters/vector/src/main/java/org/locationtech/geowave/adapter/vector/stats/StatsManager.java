@@ -20,7 +20,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatis
 import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DefaultFieldStatisticVisibility;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldNameStatisticVisibility;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
@@ -42,7 +42,7 @@ public class StatsManager {
       new DefaultFieldStatisticVisibility<>();
 
   /** List of stats objects supported by this manager for the adapter */
-  private final List<InternalDataStatistics<SimpleFeature, ?, ?>> statsObjList = new ArrayList<>();
+  private final List<DataStatistics<SimpleFeature, ?, ?>> statsObjList = new ArrayList<>();
   /** List of visibility handlers supported by this manager for the stats objects */
   private final Map<StatisticsId, String> statisticsIdToFieldNameMap = new HashMap<>();
 
@@ -141,9 +141,9 @@ public class StatsManager {
    * @param statisticsId - name of statistics type to be created
    * @return new statistics object of specified type
    */
-  public InternalDataStatistics<SimpleFeature, ?, ?> createDataStatistics(
+  public DataStatistics<SimpleFeature, ?, ?> createDataStatistics(
       final StatisticsId statisticsId) {
-    for (final InternalDataStatistics<SimpleFeature, ?, ?> statObj : statsObjList) {
+    for (final DataStatistics<SimpleFeature, ?, ?> statObj : statsObjList) {
       if (statObj.getType().equals(statisticsId.getType())
           && statObj.getExtendedId().equals(statisticsId.getExtendedId())) {
         // TODO most of the data statistics seem to do shallow clones
@@ -205,12 +205,12 @@ public class StatsManager {
    * @param fieldName - the field name for the statistic
    */
   public void addStats(
-      final InternalDataStatistics<SimpleFeature, ?, ?> statsObj,
+      final DataStatistics<SimpleFeature, ?, ?> statsObj,
       final String fieldName) {
     int replaceStat = 0;
 
     // Go through stats list managed by this manager and look for a match
-    for (final InternalDataStatistics<SimpleFeature, ?, ?> currentStat : statsObjList) {
+    for (final DataStatistics<SimpleFeature, ?, ?> currentStat : statsObjList) {
       if (currentStat.getType().equals(statsObj.getType())
           && currentStat.getExtendedId().equals(statsObj.getExtendedId())) {
         // If a match was found for an existing stat object in list,
@@ -241,7 +241,7 @@ public class StatsManager {
     final StatisticsId[] statObjIds = new StatisticsId[statsObjList.size() + 1];
     int i = 0;
 
-    for (final InternalDataStatistics<SimpleFeature, ?, ?> statObj : statsObjList) {
+    for (final DataStatistics<SimpleFeature, ?, ?> statObj : statsObjList) {
       statObjIds[i++] = new StatisticsId(statObj.getType(), statObj.getExtendedId());
     }
 

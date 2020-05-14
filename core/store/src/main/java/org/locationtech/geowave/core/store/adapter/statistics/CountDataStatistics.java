@@ -13,22 +13,38 @@ import java.util.HashSet;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.StatisticsOptions;
 import org.locationtech.geowave.core.store.callback.DeleteCallback;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 
-public class CountDataStatistics<T> extends
-    AbstractDataStatistics<T, Long, BaseStatisticsQueryBuilder<Long>> implements
-    DeleteCallback<T, GeoWaveRow> {
-  public static final BaseStatisticsType<Long> STATS_TYPE = new BaseStatisticsType<>("COUNT_DATA");
+public class CountDataStatistics extends
+    AbstractDataStatistics<Object, Long> implements
+    DeleteCallback<Object, GeoWaveRow> {
+  public static final StatisticsType STATS_TYPE = new StatisticsType("COUNT_DATA");
 
   private long count = Long.MIN_VALUE;
+  
+  public static class Options extends StatisticsOptions {
+
+    @Override
+    public StatisticsType getStatisticsType() {
+      return STATS_TYPE;
+    }
+
+    @Override
+    public boolean isCompatibleWith(DataTypeAdapter<?> adapter) {
+      return true;
+    }
+
+  };
 
   public CountDataStatistics() {
-    this(null);
+    this(new Options());
   }
 
-  public CountDataStatistics(final Short internalDataAdapterId) {
-    super(internalDataAdapterId, STATS_TYPE);
+  public CountDataStatistics(final Options options) {
+    super(options);
   }
 
   public boolean isSet() {
@@ -53,7 +69,7 @@ public class CountDataStatistics<T> extends
   }
 
   @Override
-  public void entryIngested(final T entry, final GeoWaveRow... kvs) {
+  public void entryIngested(final Object entry, final GeoWaveRow... kvs) {
     if (!isSet()) {
       count = 0;
     }
@@ -67,7 +83,7 @@ public class CountDataStatistics<T> extends
     }
     if ((statistics != null) && (statistics instanceof CountDataStatistics)) {
       @SuppressWarnings("unchecked")
-      final CountDataStatistics<T> cStats = (CountDataStatistics<T>) statistics;
+      final CountDataStatistics cStats = (CountDataStatistics) statistics;
       if (cStats.isSet()) {
         count = count + cStats.count;
       }
@@ -79,7 +95,7 @@ public class CountDataStatistics<T> extends
   private transient HashSet<ByteArray> ids = new HashSet<>();
 
   @Override
-  public void entryDeleted(final T entry, final GeoWaveRow... kv) {
+  public void entryDeleted(final Object entry, final GeoWaveRow... kv) {
     if (kv.length > 0) {
       if (ids.add(new ByteArray(kv[0].getDataId()))) {
         if (!isSet()) {
@@ -110,7 +126,7 @@ public class CountDataStatistics<T> extends
   }
 
   @Override
-  protected Object resultsValue() {
-    return Long.toString(count);
+  protected Long resultsValue() {
+    return count;
   }
 }

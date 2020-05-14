@@ -14,7 +14,7 @@ import org.locationtech.geowave.core.geotime.store.statistics.FieldNameStatistic
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
 import org.locationtech.geowave.core.store.adapter.statistics.FixedBinNumericStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.FixedBinNumericHistogram;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.opengis.feature.simple.SimpleFeature;
@@ -73,7 +73,7 @@ public class FeatureFixedBinNumericStatistics extends FixedBinNumericStatistics<
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, FixedBinNumericHistogram, FieldStatisticsQueryBuilder<FixedBinNumericHistogram>> duplicate() {
+  public DataStatistics<SimpleFeature, FixedBinNumericHistogram, FieldStatisticsQueryBuilder<FixedBinNumericHistogram>> duplicate() {
     return new FeatureFixedBinNumericStatistics(adapterId, getFieldName());
   }
 
@@ -137,7 +137,7 @@ public class FeatureFixedBinNumericStatistics extends FixedBinNumericStatistics<
     }
 
     @Override
-    public InternalDataStatistics<SimpleFeature, FixedBinNumericHistogram, FieldStatisticsQueryBuilder<FixedBinNumericHistogram>> create(
+    public DataStatistics<SimpleFeature, FixedBinNumericHistogram, FieldStatisticsQueryBuilder<FixedBinNumericHistogram>> create(
         final Short internalDataAdapterId,
         final String fieldName) {
       return new FeatureFixedBinNumericStatistics(

@@ -15,7 +15,7 @@ import org.locationtech.geowave.core.geotime.store.statistics.FieldNameStatistic
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.InternalDataStatistics;
+import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.NumericRangeDataStatistics;
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -55,7 +55,7 @@ public class FeatureNumericRangeStatistics extends
   }
 
   @Override
-  public InternalDataStatistics<SimpleFeature, Range<Double>, FieldStatisticsQueryBuilder<Range<Double>>> duplicate() {
+  public DataStatistics<SimpleFeature, Range<Double>, FieldStatisticsQueryBuilder<Range<Double>>> duplicate() {
     return new FeatureNumericRangeStatistics(adapterId, getFieldName());
   }
 
@@ -98,7 +98,7 @@ public class FeatureNumericRangeStatistics extends
     private static final long serialVersionUID = 6309383518148391565L;
 
     @Override
-    public InternalDataStatistics<SimpleFeature, Range<Double>, FieldStatisticsQueryBuilder<Range<Double>>> create(
+    public DataStatistics<SimpleFeature, Range<Double>, FieldStatisticsQueryBuilder<Range<Double>>> create(
         final Short adapterId,
         final String fieldName) {
       return new FeatureNumericRangeStatistics(adapterId, fieldName);
