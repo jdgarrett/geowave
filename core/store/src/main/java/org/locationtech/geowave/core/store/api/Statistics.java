@@ -8,7 +8,7 @@
  */
 package org.locationtech.geowave.core.store.api;
 
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsType;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
 
 /**
  * The statistics represents an aggregation on the ingested entries that has been pre-computed and
@@ -30,7 +30,7 @@ public interface Statistics<R> {
    *
    * @return the type
    */
-  StatisticsType<R, ?> getType();
+  StatisticType getType();
 
   /**
    * sometimes there are more than one stat per statistical type per data type and in these cases,

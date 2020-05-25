@@ -106,13 +106,11 @@ import org.locationtech.geowave.core.store.adapter.FitToIndexPersistenceEncoding
 import org.locationtech.geowave.core.store.adapter.IndexDependentDataAdapter;
 import org.locationtech.geowave.core.store.adapter.IndexedAdapterPersistenceEncoding;
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DefaultFieldStatisticVisibility;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.data.MultiFieldPersistentDataset;
 import org.locationtech.geowave.core.store.data.PersistentDataset;
 import org.locationtech.geowave.core.store.data.SingleFieldPersistentDataset;
@@ -121,6 +119,9 @@ import org.locationtech.geowave.core.store.data.field.FieldWriter;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
 import org.locationtech.geowave.core.store.util.CompoundHierarchicalIndexStrategyWrapper;
 import org.locationtech.geowave.core.store.util.IteratorWrapper;
 import org.locationtech.geowave.core.store.util.IteratorWrapper.Converter;
@@ -145,7 +146,6 @@ import org.slf4j.LoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class RasterDataAdapter implements
-    StatisticsProvider<GridCoverage>,
     IndexDependentDataAdapter<GridCoverage>,
     HadoopDataAdapter<GridCoverage, GridCoverageWritable>,
     RowMergingDataAdapter<GridCoverage, RasterTile<?>> {
@@ -1487,11 +1487,6 @@ public class RasterDataAdapter implements
   }
 
   @Override
-  public StatisticsId[] getSupportedStatistics() {
-    return supportedStats;
-  }
-
-  @Override
   public DataStatistics<GridCoverage, ?, ?> createDataStatistics(
       final StatisticsId statisticsId) {
     DataStatistics<GridCoverage, ?, ?> retVal = null;
@@ -1512,7 +1507,7 @@ public class RasterDataAdapter implements
           "Unrecognized statistics type "
               + statisticsId.getType().getString()
               + " using count statistic");
-      retVal = new CountDataStatistics<>();
+      retVal = new CountStatistic<>();
     }
     return retVal;
   }
@@ -1878,19 +1873,34 @@ public class RasterDataAdapter implements
   }
 
   @Override
-  public EntryVisibilityHandler<GridCoverage> getVisibilityHandler(
-      final CommonIndexModel indexModel,
-      final DataTypeAdapter<GridCoverage> adapter,
-      final StatisticsId statisticsId) {
-    return visibilityHandler;
-  }
-
-  @Override
   public Map<String, String> describe() {
     Map<String, String> description = new HashMap<>();
     description.put("tile size", String.valueOf(tileSize));
     return description;
   }
 
+  @Override
+  public int getFieldCount() {
+    return 1;
+  }
 
+  @Override
+  public Class<?> getFieldClass(int fieldIndex) {
+    return RasterTile.class;
+  }
+
+  @Override
+  public String getFieldName(int fieldIndex) {
+    return DATA_FIELD_ID;
+  }
+
+  @Override
+  public Object getFieldValue(GridCoverage entry, String fieldName) {
+    return getRasterTileFromCoverage(entry);
+  }
+
+  @Override
+  public Class<GridCoverage> getDataClass() {
+    return GridCoverage.class;
+  }
 }

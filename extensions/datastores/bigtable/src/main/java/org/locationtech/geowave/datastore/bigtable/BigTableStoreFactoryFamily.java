@@ -10,8 +10,8 @@ package org.locationtech.geowave.datastore.bigtable;
 
 import org.locationtech.geowave.core.store.BaseDataStoreFamily;
 import org.locationtech.geowave.core.store.GenericStoreFactory;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.api.DataStore;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 
 public class BigTableStoreFactoryFamily extends BaseDataStoreFamily {
   public static final String TYPE = "bigtable";

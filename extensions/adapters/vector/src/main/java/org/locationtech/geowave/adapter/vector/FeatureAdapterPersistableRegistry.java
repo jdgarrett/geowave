@@ -30,10 +30,10 @@ import org.locationtech.geowave.adapter.vector.stats.FeatureCountMinSketchStatis
 import org.locationtech.geowave.adapter.vector.stats.FeatureCountMinSketchStatistics.FeatureCountMinSketchConfig;
 import org.locationtech.geowave.adapter.vector.stats.FeatureFixedBinNumericStatistics;
 import org.locationtech.geowave.adapter.vector.stats.FeatureFixedBinNumericStatistics.FeatureFixedBinConfig;
-import org.locationtech.geowave.adapter.vector.stats.FeatureHyperLogLogStatistics;
-import org.locationtech.geowave.adapter.vector.stats.FeatureHyperLogLogStatistics.FeatureHyperLogLogConfig;
-import org.locationtech.geowave.adapter.vector.stats.FeatureNumericHistogramStatistics;
-import org.locationtech.geowave.adapter.vector.stats.FeatureNumericHistogramStatistics.FeatureNumericHistogramConfig;
+import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistics;
+import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistics.FeatureHyperLogLogConfig;
+import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistics;
+import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistics.FeatureNumericHistogramConfig;
 import org.locationtech.geowave.adapter.vector.stats.FeatureNumericRangeStatistics;
 import org.locationtech.geowave.adapter.vector.stats.FeatureNumericRangeStatistics.FeatureNumericRangeConfig;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection;
@@ -69,8 +69,8 @@ public class FeatureAdapterPersistableRegistry implements PersistableRegistrySpi
         new PersistableIdAndConstructor((short) 514, FeatureBoundingBoxStatistics::new),
         new PersistableIdAndConstructor((short) 515, FeatureCountMinSketchStatistics::new),
         new PersistableIdAndConstructor((short) 516, FeatureFixedBinNumericStatistics::new),
-        new PersistableIdAndConstructor((short) 517, FeatureHyperLogLogStatistics::new),
-        new PersistableIdAndConstructor((short) 518, FeatureNumericHistogramStatistics::new),
+        new PersistableIdAndConstructor((short) 517, HyperLogLogStatistics::new),
+        new PersistableIdAndConstructor((short) 518, NumericHistogramStatistics::new),
         new PersistableIdAndConstructor((short) 519, FeatureNumericRangeStatistics::new),
         new PersistableIdAndConstructor((short) 520, FeatureTimeRangeStatistics::new),
         new PersistableIdAndConstructor((short) 521, DistributedRenderAggregation::new),

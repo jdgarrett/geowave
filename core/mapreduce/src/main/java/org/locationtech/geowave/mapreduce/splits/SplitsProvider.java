@@ -31,10 +31,7 @@ import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.AdapterIndexMappingStore;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
@@ -49,6 +46,9 @@ import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.query.options.CommonQueryOptions;
 import org.locationtech.geowave.core.store.query.options.DataTypeQueryOptions;
 import org.locationtech.geowave.core.store.query.options.IndexQueryOptions;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.geowave.mapreduce.input.GeoWaveInputFormat;
 import org.slf4j.Logger;
@@ -77,7 +77,7 @@ public class SplitsProvider {
       final Integer minSplits,
       final Integer maxSplits) throws IOException, InterruptedException {
 
-    final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistics<?>> statsCache = new HashMap<>();
+    final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistic<?>> statsCache = new HashMap<>();
 
     final List<InputSplit> retVal = new ArrayList<>();
     final TreeSet<IntermediateSplitInfo> splits = new TreeSet<>();
@@ -227,7 +227,7 @@ public class SplitsProvider {
       final DataStoreOperations operations,
       final Index index,
       final List<Short> adapterIds,
-      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistics<?>> statsCache,
+      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistic<?>> statsCache,
       final TransientAdapterStore adapterStore,
       final DataStatisticsStore statsStore,
       final Integer maxSplits,
@@ -262,7 +262,7 @@ public class SplitsProvider {
     final List<RangeLocationPair> rangeList = new ArrayList<>();
     if (ranges == null) {
 
-      final PartitionStatistics<?> statistics =
+      final PartitionsStatistic<?> statistics =
           getPartitionStats(index, adapterIds, statsStore, authorizations);
 
       // Try to get ranges from histogram statistics
@@ -327,7 +327,7 @@ public class SplitsProvider {
   }
 
   protected double getCardinality(
-      final RowRangeHistogramStatistics<?> rangeStats,
+      final RowRangeHistogramStatistic<?> rangeStats,
       final GeoWaveRowRange range) {
     if (range == null) {
       if (rangeStats != null) {
@@ -343,16 +343,16 @@ public class SplitsProvider {
         : rangeStats.cardinality(range.getStartSortKey(), range.getEndSortKey());
   }
 
-  protected RowRangeHistogramStatistics<?> getHistStats(
+  protected RowRangeHistogramStatistic<?> getHistStats(
       final Index index,
       final List<Short> adapterIds,
       final TransientAdapterStore adapterStore,
       final DataStatisticsStore statsStore,
-      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistics<?>> statsCache,
+      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistic<?>> statsCache,
       final ByteArray partitionKey,
       final String[] authorizations) throws IOException {
     final Pair<Index, ByteArray> key = Pair.of(index, partitionKey);
-    RowRangeHistogramStatistics<?> rangeStats = statsCache.get(key);
+    RowRangeHistogramStatistic<?> rangeStats = statsCache.get(key);
 
     if (rangeStats == null) {
       try {
@@ -383,14 +383,14 @@ public class SplitsProvider {
     return bytes;
   }
 
-  private RowRangeHistogramStatistics<?> getRangeStats(
+  private RowRangeHistogramStatistic<?> getRangeStats(
       final Index index,
       final List<Short> adapterIds,
       final TransientAdapterStore adapterStore,
       final DataStatisticsStore store,
       final ByteArray partitionKey,
       final String[] authorizations) {
-    RowRangeHistogramStatistics<?> singleStats = null;
+    RowRangeHistogramStatistic<?> singleStats = null;
 
     final StatisticsQuery<NumericHistogram> statsQuery =
         StatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
@@ -403,7 +403,7 @@ public class SplitsProvider {
               statsQuery.getStatsType(),
               authorizations)) {
         while (it.hasNext()) {
-          final RowRangeHistogramStatistics<?> rowStat = (RowRangeHistogramStatistics<?>) it.next();
+          final RowRangeHistogramStatistic<?> rowStat = (RowRangeHistogramStatistic<?>) it.next();
           if (singleStats == null) {
             singleStats = rowStat;
           } else {
@@ -416,12 +416,12 @@ public class SplitsProvider {
     return singleStats;
   }
 
-  protected PartitionStatistics<?> getPartitionStats(
+  protected PartitionsStatistic<?> getPartitionStats(
       final Index index,
       final List<Short> adapterIds,
       final DataStatisticsStore store,
       final String[] authorizations) {
-    PartitionStatistics<?> singleStats = null;
+    PartitionsStatistic<?> singleStats = null;
     final StatisticsQuery<Set<ByteArray>> statsQuery =
         StatisticsQueryBuilder.newBuilder().factory().partitions().indexName(
             index.getName()).build();
@@ -433,7 +433,7 @@ public class SplitsProvider {
               statsQuery.getStatsType(),
               authorizations)) {
         while (it.hasNext()) {
-          final PartitionStatistics<?> rowStat = (PartitionStatistics<?>) it.next();
+          final PartitionsStatistic<?> rowStat = (PartitionsStatistic<?>) it.next();
           if (singleStats == null) {
             singleStats = rowStat;
           } else {

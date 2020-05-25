@@ -15,15 +15,17 @@ import java.util.Map;
 import org.locationtech.geowave.core.geotime.store.statistics.FeatureBoundingBoxStatistics;
 import org.locationtech.geowave.core.geotime.store.statistics.FeatureTimeRangeStatistics;
 import org.locationtech.geowave.core.geotime.util.TimeUtils;
+import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DefaultFieldStatisticVisibility;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldNameStatisticVisibility;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
+import org.locationtech.geowave.core.store.statistics.visibility.FieldNameStatisticVisibility;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -31,6 +33,7 @@ import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.referencing.operation.MathTransform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import it.unimi.dsi.fastutil.bytes.ByteArrays;
 
 /** Object that manages statistics for an adapter */
 public class StatsManager {
@@ -42,7 +45,7 @@ public class StatsManager {
       new DefaultFieldStatisticVisibility<>();
 
   /** List of stats objects supported by this manager for the adapter */
-  private final List<DataStatistics<SimpleFeature, ?, ?>> statsObjList = new ArrayList<>();
+  private final List<Statistic<?>> statsObjList = new ArrayList<>();
   /** List of visibility handlers supported by this manager for the stats objects */
   private final Map<StatisticsId, String> statisticsIdToFieldNameMap = new HashMap<>();
 
@@ -154,8 +157,8 @@ public class StatsManager {
       }
     }
 
-    if (statisticsId.getType().equals(CountDataStatistics.STATS_TYPE)) {
-      return new CountDataStatistics<>();
+    if (statisticsId.getType().equals(CountStatistic.STATS_TYPE)) {
+      return new CountStatistic<>();
     }
 
     // HP Fortify "Log Forging" false positive
@@ -168,7 +171,7 @@ public class StatsManager {
             + "' with field name '"
             + statisticsId.getExtendedId()
             + "', using count statistic.");
-    return new CountDataStatistics<>();
+    return new CountStatistic<>();
   }
 
   // -----------------------------------------------------------------------------------
@@ -186,7 +189,7 @@ public class StatsManager {
       final StatisticsId statisticsId) {
     // If the statistics object is of type CountDataStats or there is no
     // visibility handler, then return the default visibility handler
-    if (statisticsId.getType().equals(CountDataStatistics.STATS_TYPE)
+    if (statisticsId.getType().equals(CountStatistic.STATS_TYPE)
         || (!statisticsIdToFieldNameMap.containsKey(statisticsId))) {
       return DEFAULT_VISIBILITY_HANDLER;
     }
@@ -205,14 +208,13 @@ public class StatsManager {
    * @param fieldName - the field name for the statistic
    */
   public void addStats(
-      final DataStatistics<SimpleFeature, ?, ?> statsObj,
-      final String fieldName) {
+      final Statistic<?> statsObj) {
     int replaceStat = 0;
 
     // Go through stats list managed by this manager and look for a match
-    for (final DataStatistics<SimpleFeature, ?, ?> currentStat : statsObjList) {
-      if (currentStat.getType().equals(statsObj.getType())
-          && currentStat.getExtendedId().equals(statsObj.getExtendedId())) {
+    for (final Statistic<?> currentStat : statsObjList) {
+      if (currentStat.getStatisticType().equals(statsObj.getStatisticType())
+          && ByteArrayUtils.compare(currentStat.getUniqueId(), statsObj.getUniqueId()) == 0) {
         // If a match was found for an existing stat object in list,
         // remove it now and replace it later.
         statsObjList.remove(replaceStat);
@@ -222,9 +224,6 @@ public class StatsManager {
     }
 
     statsObjList.add(statsObj);
-    statisticsIdToFieldNameMap.put(
-        new StatisticsId(statsObj.getType(), statsObj.getExtendedId()),
-        fieldName);
   }
 
   // -----------------------------------------------------------------------------------
@@ -245,7 +244,7 @@ public class StatsManager {
       statObjIds[i++] = new StatisticsId(statObj.getType(), statObj.getExtendedId());
     }
 
-    statObjIds[i] = CountDataStatistics.STATS_TYPE.newBuilder().build().getId();
+    statObjIds[i] = CountStatistic.STATS_TYPE.newBuilder().build().getId();
 
     return statObjIds;
   }

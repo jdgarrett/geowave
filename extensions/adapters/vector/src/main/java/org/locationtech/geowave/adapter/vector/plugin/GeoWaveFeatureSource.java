@@ -23,9 +23,9 @@ import org.locationtech.geowave.core.geotime.store.GeotoolsFeatureDataAdapter;
 import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQueryBuilder;
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.opengis.feature.FeatureVisitor;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -106,7 +106,7 @@ public class GeoWaveFeatureSource extends ContentFeatureStore {
     final DataStatistics<SimpleFeature, ?, ?> countStats =
         stats.get(VectorStatisticsQueryBuilder.newBuilder().factory().count().build().getId());
     if ((countStats != null) && query.getFilter().equals(Filter.INCLUDE)) {
-      return (int) ((CountDataStatistics) countStats).getCount();
+      return (int) ((CountStatistic) countStats).getCount();
     } else {
       try (GeoWaveFeatureReader reader =
           new GeoWaveFeatureReader(query, new GeoWaveEmptyTransaction(components), components)) {

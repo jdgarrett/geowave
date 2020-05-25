@@ -25,15 +25,15 @@ import org.locationtech.geowave.core.index.HierarchicalNumericIndexStrategy.SubS
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
 import org.locationtech.geowave.core.store.util.CompoundHierarchicalIndexStrategyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,7 +145,7 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
       final DataStatisticsStore statsStore = inputStoreLoader.createDataStatisticsStore();
       final InternalAdapterStore adapterIdStore = inputStoreLoader.createInternalAdapterStore();
       OverviewStatistics ovStats = null;
-      PartitionStatistics<?> pStats = null;
+      PartitionsStatistic<?> pStats = null;
       try (CloseableIterator<DataStatistics<?, ?, ?>> it =
           statsStore.getDataStatistics(
               adapterIdStore.getAdapterId(adapter.getTypeName()),
@@ -170,11 +170,11 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
           statsStore.getDataStatistics(
               adapterIdStore.getAdapterId(adapter.getTypeName()),
               i.getName(),
-              PartitionStatistics.STATS_TYPE)) {
+              PartitionsStatistic.STATS_TYPE)) {
         while (it.hasNext()) {
           final DataStatistics<?, ?, ?> next = it.next();
-          if (next instanceof PartitionStatistics) {
-            pStats = (PartitionStatistics) next;
+          if (next instanceof PartitionsStatistic) {
+            pStats = (PartitionsStatistic) next;
             break;
           }
         }

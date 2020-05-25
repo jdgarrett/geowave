@@ -33,12 +33,9 @@ import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.index.sfc.data.NumericValue;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldNameStatisticVisibility;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.NumericRangeDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -51,6 +48,9 @@ import org.locationtech.geowave.core.store.data.field.FieldWriter;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
+import org.locationtech.geowave.core.store.statistics.visibility.FieldNameStatisticVisibility;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 
@@ -224,14 +224,14 @@ public class MockComponents {
 
     @Override
     public StatisticsId[] getSupportedStatistics() {
-      return new StatisticsId[] {CountDataStatistics.STATS_TYPE.newBuilder().build().getId(),};
+      return new StatisticsId[] {CountStatistic.STATS_TYPE.newBuilder().build().getId(),};
     }
 
     @Override
     public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<Integer, R, B> createDataStatistics(
         final StatisticsId statisticsId) {
-      if (statisticsId.getType().equals(CountDataStatistics.STATS_TYPE)) {
-        return (DataStatistics<Integer, R, B>) new CountDataStatistics<Integer>();
+      if (statisticsId.getType().equals(CountStatistic.STATS_TYPE)) {
+        return (DataStatistics<Integer, R, B>) new CountStatistic<Integer>();
       }
       return (DataStatistics<Integer, R, B>) new IntegerRangeDataStatistics(getTypeName());
     }
@@ -287,7 +287,7 @@ public class MockComponents {
   } // class MockAbstractDataAdapter
 
   public static class IntegerRangeDataStatistics extends
-      NumericRangeDataStatistics<Integer, FieldStatisticsQueryBuilder<Range<Double>>> {
+      NumericRangeStatistic<Integer, FieldStatisticsQueryBuilder<Range<Double>>> {
     protected static final FieldStatisticsType<Range<Double>> TYPE =
         new FieldStatisticsType<>("Integer_Range");
 

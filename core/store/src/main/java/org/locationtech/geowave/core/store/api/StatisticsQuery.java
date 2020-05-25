@@ -9,7 +9,7 @@
 package org.locationtech.geowave.core.store.api;
 
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsType;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
 
 /**
  * A StatisticsQuery represent the method for querying and aggregating statistics. Use
@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.StatisticsType;
  */
 public class StatisticsQuery<R> {
   private final String typeName;
-  private final StatisticsType<R, ?> statsType;
+  private final StatisticType<R, ?> statsType;
   private final String extendedId;
   private final String[] authorizations;
 
@@ -33,7 +33,7 @@ public class StatisticsQuery<R> {
    */
   public StatisticsQuery(
       final String typeName,
-      final StatisticsType<R, ?> statsType,
+      final StatisticType<R, ?> statsType,
       final String extendedId,
       final String[] authorizations) {
     super();
@@ -47,7 +47,7 @@ public class StatisticsQuery<R> {
     return typeName;
   }
 
-  public StatisticsType<R, ?> getStatsType() {
+  public StatisticType<R, ?> getStatsType() {
     return statsType;
   }
 

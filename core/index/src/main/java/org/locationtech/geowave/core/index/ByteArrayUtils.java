@@ -323,6 +323,20 @@ public class ByteArrayUtils {
     return true;
   }
 
+  public static boolean endsWith(final byte[] bytes, final byte[] suffix) {
+    if (bytes == null || suffix == null || suffix.length > bytes.length) {
+      return false;
+    }
+    int suffixEnd = suffix.length - 1;
+    int bytesEnd = bytes.length - 1;
+    for (int i = 0; i < suffix.length; i++) {
+      if (bytes[bytesEnd - i] != suffix[suffixEnd - i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static String getHexString(final byte[] bytes) {
     final StringBuffer str = new StringBuffer();
     for (final byte b : bytes) {

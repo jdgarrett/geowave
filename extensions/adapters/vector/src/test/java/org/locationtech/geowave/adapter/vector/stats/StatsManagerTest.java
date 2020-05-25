@@ -26,8 +26,8 @@ import org.junit.Test;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.adapter.vector.stats.FeatureCountMinSketchStatistics.FeatureCountMinSketchConfig;
 import org.locationtech.geowave.adapter.vector.stats.FeatureFixedBinNumericStatistics.FeatureFixedBinConfig;
-import org.locationtech.geowave.adapter.vector.stats.FeatureHyperLogLogStatistics.FeatureHyperLogLogConfig;
-import org.locationtech.geowave.adapter.vector.stats.FeatureNumericHistogramStatistics.FeatureNumericHistogramConfig;
+import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistics.FeatureHyperLogLogConfig;
+import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistics.FeatureNumericHistogramConfig;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection.SimpleFeatureStatsConfigurationCollection;
 import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigurationSet;
 import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQueryBuilder;
@@ -166,12 +166,12 @@ public class StatsManagerTest {
     assertNotNull(stat);
     stat =
         statsManager.createDataStatistics(
-            FeatureNumericHistogramStatistics.STATS_TYPE.newBuilder().fieldName(
+            NumericHistogramStatistics.STATS_TYPE.newBuilder().fieldName(
                 "pop").build().getId());
     assertNotNull(stat);
     stat =
         statsManager.createDataStatistics(
-            FeatureHyperLogLogStatistics.STATS_TYPE.newBuilder().fieldName("pid").build().getId());
+            HyperLogLogStatistics.STATS_TYPE.newBuilder().fieldName("pid").build().getId());
     assertNotNull(stat);
     stat =
         statsManager.createDataStatistics(

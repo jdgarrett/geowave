@@ -29,9 +29,9 @@ import org.locationtech.geowave.core.geotime.util.ExtractGeometryFilterVisitorRe
 import org.locationtech.geowave.core.geotime.util.ExtractTimeFilterVisitor;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.opengis.feature.simple.SimpleFeature;
@@ -68,9 +68,9 @@ public class GeoWaveFeatureCollection extends DataFeatureCollection {
       // GEOWAVE-60 optimization
       final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap =
           reader.getTransaction().getDataStatistics();
-      final StatisticsId id = CountDataStatistics.STATS_TYPE.newBuilder().build().getId();
+      final StatisticsId id = CountStatistic.STATS_TYPE.newBuilder().build().getId();
       if (statsMap.containsKey(id)) {
-        final CountDataStatistics stats = (CountDataStatistics) statsMap.get(id);
+        final CountStatistic stats = (CountStatistic) statsMap.get(id);
         if ((stats != null) && stats.isSet()) {
           return (int) stats.getCount();
         }

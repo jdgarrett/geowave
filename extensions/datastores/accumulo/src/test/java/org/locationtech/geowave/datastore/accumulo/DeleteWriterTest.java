@@ -37,8 +37,6 @@ import org.locationtech.geowave.core.index.sfc.SFCFactory.SFCType;
 import org.locationtech.geowave.core.index.sfc.tiered.TieredSFCIndexFactory;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
@@ -51,6 +49,8 @@ import org.locationtech.geowave.core.store.metadata.InternalAdapterStoreImpl;
 import org.locationtech.geowave.core.store.query.constraints.DataIdQuery;
 import org.locationtech.geowave.core.store.query.constraints.InsertionIdQuery;
 import org.locationtech.geowave.core.store.query.constraints.PrefixIdQuery;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.datastore.accumulo.AccumuloDataStoreStatsTest.TestGeometry;
 import org.locationtech.geowave.datastore.accumulo.AccumuloDataStoreStatsTest.TestGeometryAdapter;
 import org.locationtech.geowave.datastore.accumulo.config.AccumuloOptions;
@@ -148,10 +148,10 @@ public class DeleteWriterTest {
   @Test
   public void testDeleteByInsertionId() throws IOException {
     final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
-    CountDataStatistics countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+    CountStatistic countStats =
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(3, countStats.getCount());
     assertTrue(rowIds1.getSize() > 1);
 
@@ -182,19 +182,19 @@ public class DeleteWriterTest {
       assertTrue(!it2.hasNext());
     }
     countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(2, countStats.getCount());
   }
 
   @Test
   public void testDeleteBySpatialConstraint() throws IOException {
     final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
-    CountDataStatistics countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+    CountStatistic countStats =
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(3, countStats.getCount());
     final ExplicitSpatialQuery spatialQuery =
         new ExplicitSpatialQuery(new GeometryFactory().toGeometry(new Envelope(-78, -77, 38, 39)));
@@ -211,19 +211,19 @@ public class DeleteWriterTest {
       assertTrue(!it2.hasNext());
     }
     countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(2, countStats.getCount());
   }
 
   @Test
   public void testDeleteByPrefixId() throws IOException {
     final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
-    CountDataStatistics countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+    CountStatistic countStats =
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(3, countStats.getCount());
     final Pair<byte[], byte[]> rowId3 = rowIds3.getFirstPartitionAndSortKeyPair();
     // just take the first half of the row ID as the prefix
@@ -244,19 +244,19 @@ public class DeleteWriterTest {
       assertTrue(!it2.hasNext());
     }
     countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(2, countStats.getCount());
   }
 
   @Test
   public void testDeleteByDataId() throws IOException {
     final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
-    CountDataStatistics countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+    CountStatistic countStats =
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
     assertEquals(3, countStats.getCount());
     assertTrue(rowIds1.getSize() > 1);
     try (final CloseableIterator it1 =
@@ -280,9 +280,9 @@ public class DeleteWriterTest {
       assertTrue(!it2.hasNext());
     }
     countStats =
-        (CountDataStatistics) statsStore.getDataStatistics(
+        (CountStatistic) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE).next();
+            CountStatistic.STATS_TYPE).next();
 
     assertEquals(2, countStats.getCount());
   }

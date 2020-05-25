@@ -14,8 +14,8 @@ import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.base.dataidx.DataIndexRetrieval;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
+import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
+import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.FieldVisibilityCountValue;
 import org.locationtech.geowave.core.store.query.constraints.InsertionIdQuery;
 import org.locationtech.geowave.core.store.query.filter.DedupeFilter;
 import com.google.common.collect.Lists;
@@ -30,8 +30,8 @@ class BaseInsertionIdQuery<T> extends BaseConstraintsQuery {
       final InsertionIdQuery query,
       final ScanCallback<T, ?> scanCallback,
       final DedupeFilter dedupeFilter,
-      final DifferingFieldVisibilityEntryCount differingVisibilityCounts,
-      final FieldVisibilityCount visibilityCounts,
+      final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts,
+      final FieldVisibilityCountValue visibilityCounts,
       final DataIndexRetrieval dataIndexRetrieval,
       final String[] authorizations) {
     super(

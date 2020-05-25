@@ -25,8 +25,8 @@ import org.locationtech.geowave.core.geotime.store.statistics.FieldNameStatistic
 import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeDataStatistics;
 import org.locationtech.geowave.core.geotime.util.ExtractAttributesFilter;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.NumericRangeDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
+import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -68,9 +68,9 @@ class GeoWaveGTPluginUtils {
                     new Date(((TimeRangeDataStatistics) stat).getMin()),
                     featureType));
             acceptedCount++;
-          } else if (stat instanceof NumericRangeDataStatistics) {
+          } else if (stat instanceof NumericRangeStatistic) {
             minVisitor.setValue(
-                convertToType(attr, ((NumericRangeDataStatistics) stat).getMin(), featureType));
+                convertToType(attr, ((NumericRangeStatistic) stat).getMin(), featureType));
             acceptedCount++;
           }
         }
@@ -98,9 +98,9 @@ class GeoWaveGTPluginUtils {
                     new Date(((TimeRangeDataStatistics) stat).getMax()),
                     featureType));
             acceptedCount++;
-          } else if (stat instanceof NumericRangeDataStatistics) {
+          } else if (stat instanceof NumericRangeStatistic) {
             maxVisitor.setValue(
-                convertToType(attr, ((NumericRangeDataStatistics) stat).getMax(), featureType));
+                convertToType(attr, ((NumericRangeStatistic) stat).getMax(), featureType));
             acceptedCount++;
           }
         }

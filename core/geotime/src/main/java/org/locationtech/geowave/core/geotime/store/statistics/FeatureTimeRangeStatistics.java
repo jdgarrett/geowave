@@ -10,56 +10,53 @@ package org.locationtech.geowave.core.geotime.store.statistics;
 
 import java.util.Calendar;
 import java.util.Date;
-import java.util.TimeZone;
 import org.locationtech.geowave.core.geotime.util.TimeUtils;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.opengis.feature.simple.SimpleFeature;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.threeten.extra.Interval;
 
 public class FeatureTimeRangeStatistics extends
-    TimeRangeDataStatistics<SimpleFeature, FieldStatisticsQueryBuilder<Interval>> implements
-    FieldNameStatistic {
-  public static final FieldStatisticsType<Interval> STATS_TYPE =
-      new FieldStatisticsType<>("TIME_RANGE");
+    FieldStatistic<FeatureTimeRangeStatistics.FeatureTimeRangeValue> {
+  public static final StatisticType STATS_TYPE = new StatisticType("TIME_RANGE");
 
   public FeatureTimeRangeStatistics() {
     super(STATS_TYPE);
   }
 
-  public FeatureTimeRangeStatistics(final String fieldName) {
-    this(null, fieldName);
+  public FeatureTimeRangeStatistics(final String typeName, final String fieldName) {
+    super(STATS_TYPE, typeName, fieldName);
   }
-
-  public FeatureTimeRangeStatistics(final Short adapterId, final String fieldName) {
-    super(adapterId, STATS_TYPE, fieldName);
+  
+  @Override
+  public String getDescription() {
+    return "Maintains the time range of a temporal field.";
   }
 
   @Override
-  public String getFieldName() {
-    return extendedId;
-  }
-
-  public Date getMaxTime() {
-    final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-    c.setTimeInMillis(getMax());
-    return c.getTime();
-  }
-
-  public Date getMinTime() {
-    final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-    c.setTimeInMillis(getMin());
-    return c.getTime();
+  public FeatureTimeRangeValue createEmpty() {
+    return new FeatureTimeRangeValue(getFieldName());
   }
 
   @Override
-  protected Interval getInterval(final SimpleFeature entry) {
-    return TimeUtils.getInterval(entry, getFieldName());
+  public boolean isCompatibleWith(Class<?> fieldClass) {
+    return Date.class.isAssignableFrom(fieldClass) || Calendar.class.isAssignableFrom(fieldClass) || Number.class.isAssignableFrom(fieldClass);
   }
+  
+  public static class FeatureTimeRangeValue extends TimeRangeStatisticValue {
+    
+    private final String fieldName;
+    
+    public FeatureTimeRangeValue(final String fieldName) {
+      this.fieldName = fieldName;
+    }
 
-  @Override
-  public DataStatistics<SimpleFeature, Interval, FieldStatisticsQueryBuilder<Interval>> duplicate() {
-    return new FeatureTimeRangeStatistics(adapterId, getFieldName());
+    @Override
+    protected <T> Interval getInterval(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
+      Object fieldValue = adapter.getFieldValue(entry, fieldName);
+      return TimeUtils.getInterval(fieldValue);
+    }
+    
   }
 }

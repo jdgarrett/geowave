@@ -38,13 +38,9 @@ import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
 import org.locationtech.geowave.core.store.adapter.PersistentIndexFieldHandler;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DefaultFieldStatisticVisibility;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -69,6 +65,10 @@ import org.locationtech.geowave.core.store.index.CommonIndexValue;
 import org.locationtech.geowave.core.store.metadata.DataStatisticsStoreImpl;
 import org.locationtech.geowave.core.store.metadata.InternalAdapterStoreImpl;
 import org.locationtech.geowave.core.store.query.constraints.DataIdQuery;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
+import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
 import org.locationtech.geowave.datastore.accumulo.config.AccumuloOptions;
 import org.locationtech.geowave.datastore.accumulo.operations.AccumuloOperations;
 import org.locationtech.jts.geom.Coordinate;
@@ -407,7 +407,7 @@ public class AccumuloDataStoreStatsTest {
     assertFalse(
         statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE,
+            CountStatistic.STATS_TYPE,
             new String[] {"aaa", "bbb"}).hasNext());
     mockDataStore.addType(adapter, index);
     try (Writer<TestGeometry> indexWriter = mockDataStore.createWriter(adapter.getTypeName())) {
@@ -422,7 +422,7 @@ public class AccumuloDataStoreStatsTest {
     final StatisticsId id =
         StatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
             index.getName()).partition(partitionKey.getBytes()).build().getId();
-    RowRangeHistogramStatistics<?> histogramStats;
+    RowRangeHistogramStatistic<?> histogramStats;
     try (CloseableIterator<DataStatistics<?, ?, ?>> it =
         statsStore.getDataStatistics(
             internalAdapterId,
@@ -430,7 +430,7 @@ public class AccumuloDataStoreStatsTest {
             id.getType(),
             new String[] {"bbb"})) {
       assertTrue(it.hasNext());
-      histogramStats = (RowRangeHistogramStatistics<?>) it.next();
+      histogramStats = (RowRangeHistogramStatistic<?>) it.next();
       assertTrue(histogramStats != null);
     }
 
@@ -438,7 +438,7 @@ public class AccumuloDataStoreStatsTest {
     assertFalse(
         statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE,
+            CountStatistic.STATS_TYPE,
             new String[] {"bbb"}).hasNext());
 
     try (CloseableIterator<DataStatistics<?, ?, ?>> it =
@@ -569,8 +569,8 @@ public class AccumuloDataStoreStatsTest {
         final StatisticsId statisticsId) {
       if (GeoBoundingBoxStatistics.STATS_TYPE.equals(statisticsId.getType())) {
         return new GeoBoundingBoxStatistics();
-      } else if (CountDataStatistics.STATS_TYPE.equals(statisticsId.getType())) {
-        return new CountDataStatistics<>();
+      } else if (CountStatistic.STATS_TYPE.equals(statisticsId.getType())) {
+        return new CountStatistic<>();
       }
       LOGGER.warn(
           "Unrecognized statistics type "
@@ -666,7 +666,7 @@ public class AccumuloDataStoreStatsTest {
   private static final StatisticsId[] SUPPORTED_STATS_IDS =
       new StatisticsId[] {
           GeoBoundingBoxStatistics.STATS_TYPE.newBuilder().build().getId(),
-          CountDataStatistics.STATS_TYPE.newBuilder().build().getId()};
+          CountStatistic.STATS_TYPE.newBuilder().build().getId()};
 
   protected static class GeoBoundingBoxStatistics extends
       BoundingBoxDataStatistics<TestGeometry, FieldStatisticsQueryBuilder<Envelope>> {

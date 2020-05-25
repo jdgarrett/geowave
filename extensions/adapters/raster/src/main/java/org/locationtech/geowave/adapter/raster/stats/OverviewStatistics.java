@@ -11,9 +11,7 @@ package org.locationtech.geowave.adapter.raster.stats;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeSet;
 import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
@@ -22,76 +20,137 @@ import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
-import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsQueryBuilder;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.opengis.coverage.grid.GridCoverage;
 
-public class OverviewStatistics extends
-    AbstractDataStatistics<GridCoverage, Resolution[], BaseStatisticsQueryBuilder<Resolution[]>> {
-  public static final BaseStatisticsType<Resolution[]> STATS_TYPE =
-      new BaseStatisticsType<>("OVERVIEW");
+public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.OverviewValue> {
+  public static final StatisticType STATS_TYPE = new StatisticType("RASTER_OVERVIEW");
 
-  private Resolution[] resolutions = new Resolution[] {};
 
   public OverviewStatistics() {
-    this(null);
+    super(STATS_TYPE);
   }
 
-  public OverviewStatistics(final Short adapterId) {
-    super(adapterId, STATS_TYPE);
+  public OverviewStatistics(final String typeName) {
+    super(STATS_TYPE, typeName);
+  }
+  
+  @Override
+  public boolean isCompatibleWith(final Class<?> adapterClass) {
+    return GridCoverage.class.isAssignableFrom(adapterClass);
   }
 
   @Override
-  public byte[] toBinary() {
-    synchronized (this) {
-      final List<byte[]> resolutionBinaries = new ArrayList<>(resolutions.length);
-      int byteCount = 0; // an int for the list size
-      for (final Resolution res : resolutions) {
-        final byte[] resBinary = PersistenceUtils.toBinary(res);
-        resolutionBinaries.add(resBinary);
-        byteCount += (resBinary.length + VarintUtils.unsignedIntByteLength(resBinary.length)); // an
-        // int
-        // for
-        // the
-        // binary
-        // size
-      }
-      byteCount += VarintUtils.unsignedIntByteLength(resolutionBinaries.size());
-
-      final ByteBuffer buf = super.binaryBuffer(byteCount);
-      VarintUtils.writeUnsignedInt(resolutionBinaries.size(), buf);
-      for (final byte[] resBinary : resolutionBinaries) {
-        VarintUtils.writeUnsignedInt(resBinary.length, buf);
-        buf.put(resBinary);
-      }
-      return buf.array();
-    }
+  public String getDescription() {
+    // STATS_TODO: Better description.
+    return "Provides an overview of a raster dataset.";
   }
 
   @Override
-  public void fromBinary(final byte[] bytes) {
-    final ByteBuffer buf = super.binaryBuffer(bytes);
-    final int resLength = VarintUtils.readUnsignedInt(buf);
-    synchronized (this) {
-      resolutions = new Resolution[resLength];
-      for (int i = 0; i < resolutions.length; i++) {
-        final byte[] resBytes = ByteArrayUtils.safeRead(buf, VarintUtils.readUnsignedInt(buf));
-        resolutions[i] = (Resolution) PersistenceUtils.fromBinary(resBytes);
-      }
-    }
+  public OverviewValue createEmpty() {
+    return new OverviewValue();
   }
-
-  @Override
-  public void entryIngested(final GridCoverage entry, final GeoWaveRow... geoWaveRows) {
-    if (entry instanceof FitToIndexGridCoverage) {
-      final FitToIndexGridCoverage fitEntry = (FitToIndexGridCoverage) entry;
+  
+  public static class OverviewValue implements StatisticValue<Resolution[]>, StatisticsIngestCallback {
+    private Resolution[] resolutions = new Resolution[] {};
+    
+    public Resolution[] getResolutions() {
       synchronized (this) {
-        resolutions =
-            incorporateResolutions(resolutions, new Resolution[] {fitEntry.getResolution()});
+        return resolutions;
       }
     }
+    
+    public boolean removeResolution(Resolution res) {
+      synchronized (this) {
+        int index = -1;
+        for (int i = 0; i < resolutions.length; i++) {
+          if (Arrays.equals(
+              resolutions[i].getResolutionPerDimension(),
+              res.getResolutionPerDimension())) {
+            index = i;
+            break;
+          }
+        }
+        if (index >= 0) {
+          resolutions = ArrayUtils.remove(resolutions, index);
+          return true;
+        }
+        return false;
+      }
+    }
+    
+    @Override
+    public void merge(Mergeable merge) {
+      if (merge instanceof OverviewValue) {
+        synchronized (this) {
+          resolutions =
+              incorporateResolutions(resolutions, ((OverviewValue) merge).getResolutions());
+        }
+      }
+    }
+
+    @Override
+    public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
+      if (entry instanceof FitToIndexGridCoverage) {
+        final FitToIndexGridCoverage fitEntry = (FitToIndexGridCoverage) entry;
+        synchronized (this) {
+          resolutions =
+              incorporateResolutions(resolutions, new Resolution[] {fitEntry.getResolution()});
+        }
+      }
+    }
+
+    @Override
+    public Resolution[] getValue() {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public byte[] toBinary() {
+      synchronized (this) {
+        final List<byte[]> resolutionBinaries = new ArrayList<>(resolutions.length);
+        int byteCount = 0; // an int for the list size
+        for (final Resolution res : resolutions) {
+          final byte[] resBinary = PersistenceUtils.toBinary(res);
+          resolutionBinaries.add(resBinary);
+          byteCount += (resBinary.length + VarintUtils.unsignedIntByteLength(resBinary.length)); // an
+          // int
+          // for
+          // the
+          // binary
+          // size
+        }
+        byteCount += VarintUtils.unsignedIntByteLength(resolutionBinaries.size());
+
+        final ByteBuffer buf = ByteBuffer.allocate(byteCount);
+        VarintUtils.writeUnsignedInt(resolutionBinaries.size(), buf);
+        for (final byte[] resBinary : resolutionBinaries) {
+          VarintUtils.writeUnsignedInt(resBinary.length, buf);
+          buf.put(resBinary);
+        }
+        return buf.array();
+      }
+    }
+
+    @Override
+    public void fromBinary(byte[] bytes) {
+      final ByteBuffer buf = ByteBuffer.wrap(bytes);
+      final int resLength = VarintUtils.readUnsignedInt(buf);
+      synchronized (this) {
+        resolutions = new Resolution[resLength];
+        for (int i = 0; i < resolutions.length; i++) {
+          final byte[] resBytes = ByteArrayUtils.safeRead(buf, VarintUtils.readUnsignedInt(buf));
+          resolutions[i] = (Resolution) PersistenceUtils.fromBinary(resBytes);
+        }
+      }
+    }
+    
   }
 
   private static Resolution[] incorporateResolutions(
@@ -110,61 +169,5 @@ public class OverviewStatistics extends
       combinedRes[i++] = res;
     }
     return combinedRes;
-  }
-
-  @Override
-  public void merge(final Mergeable statistics) {
-    if (statistics instanceof OverviewStatistics) {
-      synchronized (this) {
-        resolutions =
-            incorporateResolutions(resolutions, ((OverviewStatistics) statistics).getResolutions());
-      }
-    }
-  }
-
-  public Resolution[] getResolutions() {
-    synchronized (this) {
-      return resolutions;
-    }
-  }
-
-  public boolean removeResolution(Resolution res) {
-    synchronized (this) {
-      int index = -1;
-      for (int i = 0; i < resolutions.length; i++) {
-        if (Arrays.equals(
-            resolutions[i].getResolutionPerDimension(),
-            res.getResolutionPerDimension())) {
-          index = i;
-          break;
-        }
-      }
-      if (index >= 0) {
-        resolutions = ArrayUtils.remove(resolutions, index);
-        return true;
-      }
-      return false;
-    }
-  }
-
-  @Override
-  public Resolution[] getResult() {
-    return getResolutions();
-  }
-
-  @Override
-  protected String resultsName() {
-    return "resolutions";
-  }
-
-  @Override
-  protected Object resultsValue() {
-    final Map<Integer, double[]> map = new HashMap<>();
-    synchronized (this) {
-      for (int i = 0; i < resolutions.length; i++) {
-        map.put(i, resolutions[i].getResolutionPerDimension());
-      }
-    }
-    return map;
   }
 }

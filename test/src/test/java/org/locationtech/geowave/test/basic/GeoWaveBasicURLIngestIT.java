@@ -21,13 +21,13 @@ import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataSta
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.test.GeoWaveITRunner;
 import org.locationtech.geowave.test.TestUtils;
 import org.locationtech.geowave.test.TestUtils.DimensionalityType;
@@ -111,11 +111,11 @@ public class GeoWaveBasicURLIngestIT extends AbstractGeoWaveBasicVectorIT {
                 statsId.getExtendedId(),
                 statsId.getType())) {
           final BoundingBoxDataStatistics<?, ?> bboxStat = bboxStatIt.next();
-          try (final CloseableIterator<CountDataStatistics<SimpleFeature>> countStatIt =
+          try (final CloseableIterator<CountStatistic<SimpleFeature>> countStatIt =
               (CloseableIterator) statsStore.getDataStatistics(
                   internalDataAdapter.getAdapterId(),
-                  CountDataStatistics.STATS_TYPE)) {
-            final CountDataStatistics<?> countStat = countStatIt.next();
+                  CountStatistic.STATS_TYPE)) {
+            final CountStatistic<?> countStat = countStatIt.next();
             // then query it
             final GeometryFactory factory = new GeometryFactory();
             final Envelope env =

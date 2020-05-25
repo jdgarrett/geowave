@@ -44,9 +44,7 @@ import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter;
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter.RowTransform;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -84,6 +82,8 @@ import org.locationtech.geowave.core.store.operations.RowReader;
 import org.locationtech.geowave.core.store.operations.RowWriter;
 import org.locationtech.geowave.core.store.query.constraints.CustomQueryConstraints.InternalCustomConstraints;
 import org.locationtech.geowave.core.store.query.options.CommonQueryOptions.HintKey;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.beust.jcommander.ParameterException;
@@ -199,8 +199,8 @@ public class DataStoreUtils {
 
     long count = 0;
     for (final SinglePartitionQueryRanges partitionRange : queryRanges.getPartitionQueryRanges()) {
-      final RowRangeHistogramStatistics rangeStats =
-          (RowRangeHistogramStatistics) stats.get(
+      final RowRangeHistogramStatistic rangeStats =
+          (RowRangeHistogramStatistic) stats.get(
               StatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
                   index.getName()).partition(partitionRange.getPartitionKey()).build().getId());
       if (rangeStats == null) {

@@ -50,12 +50,7 @@ import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.Aggregation;
@@ -79,6 +74,11 @@ import org.locationtech.geowave.core.store.memory.MemoryAdapterStore;
 import org.locationtech.geowave.core.store.query.aggregate.CommonIndexAggregation;
 import org.locationtech.geowave.core.store.query.constraints.DataIdQuery;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.datastore.cassandra.CassandraStoreFactoryFamily;
 import org.locationtech.geowave.datastore.dynamodb.DynamoDBStoreFactoryFamily;
 import org.locationtech.geowave.format.geotools.vector.GeoToolsVectorDataStoreIngestPlugin;
@@ -771,12 +771,12 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
           int statsCount = 0;
           while (statsIterator.hasNext()) {
             final DataStatistics<?, ?, ?> nextStats = statsIterator.next();
-            if ((nextStats instanceof RowRangeHistogramStatistics)
+            if ((nextStats instanceof RowRangeHistogramStatistic)
                 || (nextStats instanceof IndexMetaDataSet)
                 || (nextStats instanceof FieldVisibilityCount)
                 || (nextStats instanceof DifferingFieldVisibilityEntryCount)
-                || (nextStats instanceof DuplicateEntryCount)
-                || (nextStats instanceof PartitionStatistics)) {
+                || (nextStats instanceof DuplicateEntryCountStatistic)
+                || (nextStats instanceof PartitionsStatistic)) {
               continue;
             }
             statsCount++;
@@ -803,7 +803,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
               if (multithreaded) {
                 if (!(expectedStat.getType().getString().startsWith(
                     FeatureNumericRangeStatistics.STATS_TYPE.getString())
-                    || expectedStat.getType().equals(CountDataStatistics.STATS_TYPE)
+                    || expectedStat.getType().equals(CountStatistic.STATS_TYPE)
                     || expectedStat.getType().getString().startsWith("BOUNDING_BOX"))) {
                   continue;
                 }

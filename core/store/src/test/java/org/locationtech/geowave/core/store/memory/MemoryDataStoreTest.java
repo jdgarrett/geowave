@@ -26,8 +26,6 @@ import org.locationtech.geowave.core.store.StoreFactoryFamilySpi;
 import org.locationtech.geowave.core.store.adapter.MockComponents;
 import org.locationtech.geowave.core.store.adapter.MockComponents.IntegerRangeDataStatistics;
 import org.locationtech.geowave.core.store.adapter.exceptions.MismatchedIndexToAdapterMapping;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -44,6 +42,8 @@ import org.locationtech.geowave.core.store.index.IndexImpl;
 import org.locationtech.geowave.core.store.query.constraints.DataIdQuery;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.query.filter.QueryFilter;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 
 public class MemoryDataStoreTest {
 
@@ -268,10 +268,8 @@ public class MemoryDataStoreTest {
       final int count,
       final NumericRange range) {
     while (statIt.hasNext()) {
-      final DataStatistics<Integer, ?, ?> stat =
-          (DataStatistics<Integer, ?, ?>) statIt.next();
-      if ((stat instanceof CountDataStatistics)
-          && (((CountDataStatistics) stat).getCount() != count)) {
+      final DataStatistics<Integer, ?, ?> stat = (DataStatistics<Integer, ?, ?>) statIt.next();
+      if ((stat instanceof CountStatistic) && (((CountStatistic) stat).getCount() != count)) {
         return false;
       } else if ((stat instanceof IntegerRangeDataStatistics)
           && ((((IntegerRangeDataStatistics) stat).getMin() != range.getMin())

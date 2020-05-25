@@ -14,12 +14,16 @@ import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
 import org.locationtech.geowave.core.store.api.StatisticsQuery;
 import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 
 public class StatisticsQueryBuilderImpl<R, B extends StatisticsQueryBuilder<R, B>> implements
     StatisticsQueryBuilder<R, B> {
   private String dataTypeName;
   protected String[] authorizations = new String[0];
-  protected StatisticsType<R, B> statsType = null;
+  protected StatisticType<R, B> statsType = null;
 
   @Override
   public B dataType(final String dataTypeName) {
@@ -65,17 +69,17 @@ public class StatisticsQueryBuilderImpl<R, B extends StatisticsQueryBuilder<R, B
 
     @Override
     public BaseStatisticsQueryBuilder<Long> count() {
-      return CountDataStatistics.STATS_TYPE.newBuilder();
+      return CountStatistic.STATS_TYPE.newBuilder();
     }
 
     @Override
     public PartitionStatisticsQueryBuilder<NumericHistogram> rowHistogram() {
-      return RowRangeHistogramStatistics.STATS_TYPE.newBuilder();
+      return RowRangeHistogramStatistic.STATS_TYPE.newBuilder();
     }
 
     @Override
     public IndexStatisticsQueryBuilder<Set<ByteArray>> partitions() {
-      return PartitionStatistics.STATS_TYPE.newBuilder();
+      return PartitionsStatistic.STATS_TYPE.newBuilder();
     }
   }
 }

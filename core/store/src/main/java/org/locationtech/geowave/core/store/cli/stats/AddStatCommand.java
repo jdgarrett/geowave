@@ -14,12 +14,12 @@ import java.util.List;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.OperationParams;
 import org.locationtech.geowave.core.cli.api.ServiceEnabledCommand;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsRegistry;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.StatisticsOptions;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
@@ -29,14 +29,9 @@ import com.beust.jcommander.ParametersDelegate;
 @Parameters(commandDescription = "Add a statistic to a data store")
 public class AddStatCommand extends ServiceEnabledCommand<Void> {
 
-  @Parameter(description = "<store name> <type name> <stat type>")
+  @Parameter(description = "<store name> <stat type>")
   private final List<String> parameters = new ArrayList<>();
 
-  @Parameter(
-      names = {"--fieldName"},
-      description = "If the statistic is maintained per field, provide a field name")
-  private String fieldName;
-  
   @Parameter(
       names = "--skipCalculation",
       description = "If specified, the initial value of the statistic will not be calculated.")
@@ -45,18 +40,18 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
   private String statType = null;
 
   @ParametersDelegate
-  StatisticsOptions statOptions;
+  Statistic<?> statOptions;
 
   @Override
   public boolean prepare(final OperationParams params) {
     super.prepare(params);
 
     // Ensure we have all the required arguments
-    if (parameters.size() != 3) {
-      throw new ParameterException("Requires arguments: <store name> <datatype name> <stat type>");
+    if (parameters.size() != 2) {
+      throw new ParameterException("Requires arguments: <store name> <stat type>");
     }
 
-    statType = parameters.get(2);
+    statType = parameters.get(1);
 
     statOptions = StatisticsRegistry.instance().getStatisticsOptions(statType);
     if (statOptions == null) {
@@ -74,7 +69,6 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
   @Override
   public Void computeResults(final OperationParams params) {
     final String storeName = parameters.get(0);
-    final String typeName = parameters.get(1);
 
     // Attempt to load store.
     final File configFile = getGeoWaveConfigFile(params);
@@ -86,13 +80,8 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
     final DataStorePluginOptions storeOptions = inputStoreLoader.getDataStorePlugin();
 
     final DataStore dataStore = storeOptions.createDataStore();
-    final DataTypeAdapter<?> adapter = dataStore.getType(typeName);
 
-    if (adapter == null) {
-      throw new ParameterException("Unrecognized type name: " + typeName);
-    }
-
-    dataStore.addStatistic(typeName, statOptions, !skipCalculation);
+    dataStore.addStatistic(statOptions, !skipCalculation);
 
     return null;
   }

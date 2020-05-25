@@ -42,7 +42,6 @@ import org.locationtech.geowave.core.geotime.store.query.ExplicitSpatialTemporal
 import org.locationtech.geowave.core.geotime.store.query.api.VectorQueryBuilder;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
-import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataStore;
@@ -55,6 +54,7 @@ import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.index.IndexPluginOptions.PartitionStrategy;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
 import org.locationtech.geowave.test.GeoWaveITRunner;
 import org.locationtech.geowave.test.TestUtils;
 import org.locationtech.geowave.test.annotation.GeoWaveTestStore;
@@ -711,8 +711,8 @@ public class SpatialTemporalQueryIT {
     final long numExpectedDuplicates = (DUPLICATE_DELETION_YEAR_MAX - DUPLICATE_DELETION_YEAR_MIN);
 
     // check and count the number of entries with duplicates
-    DuplicateEntryCount dupeEntryCount =
-        DuplicateEntryCount.getDuplicateCounts(
+    DuplicateEntryCountStatistic dupeEntryCount =
+        DuplicateEntryCountStatistic.getDuplicateCounts(
             YEAR_INDEX,
             Collections.singletonList(typeId),
             ((BaseDataStore) dataStore).getStatisticsStore());
@@ -750,7 +750,7 @@ public class SpatialTemporalQueryIT {
     // number of entries with duplicates should match the sanity query count
     // 3(1980-1987, 1987-1995, 1980-1990)
     dupeEntryCount =
-        DuplicateEntryCount.getDuplicateCounts(
+        DuplicateEntryCountStatistic.getDuplicateCounts(
             YEAR_INDEX,
             Collections.singletonList(typeId),
             ((BaseDataStore) dataStore).getStatisticsStore());

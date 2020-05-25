@@ -25,8 +25,8 @@ import org.locationtech.geowave.core.store.base.dataidx.DataIndexRetrieval;
 import org.locationtech.geowave.core.store.base.dataidx.DataIndexUtils;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
 import org.locationtech.geowave.core.store.callback.ScanCallbackList;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
+import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.FieldVisibilityCountValue;
+import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowIteratorTransformer;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.operations.Deleter;
@@ -45,8 +45,8 @@ abstract class BaseQuery {
   protected short[] adapterIds;
   protected final Index index;
   protected final Pair<String[], InternalDataAdapter<?>> fieldIdsAdapterPair;
-  protected final DifferingFieldVisibilityEntryCount differingVisibilityCounts;
-  protected final FieldVisibilityCount visibilityCounts;
+  protected final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts;
+  protected final FieldVisibilityCountValue visibilityCounts;
   protected final String[] authorizations;
   protected final ScanCallbackList<?, ?> scanCallback;
   private final DataIndexRetrieval dataIndexRetrieval;
@@ -54,8 +54,8 @@ abstract class BaseQuery {
   public BaseQuery(
       final Index index,
       final ScanCallback<?, ?> scanCallback,
-      final DifferingFieldVisibilityEntryCount differingVisibilityCounts,
-      final FieldVisibilityCount visibilityCounts,
+      final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts,
+      final FieldVisibilityCountValue visibilityCounts,
       final DataIndexRetrieval dataIndexRetrieval,
       final String... authorizations) {
     this(
@@ -74,8 +74,8 @@ abstract class BaseQuery {
       final Index index,
       final Pair<String[], InternalDataAdapter<?>> fieldIdsAdapterPair,
       final ScanCallback<?, ?> scanCallback,
-      final DifferingFieldVisibilityEntryCount differingVisibilityCounts,
-      final FieldVisibilityCount visibilityCounts,
+      final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts,
+      final FieldVisibilityCountValue visibilityCounts,
       final DataIndexRetrieval dataIndexRetrieval,
       final String... authorizations) {
     this.adapterIds = adapterIds;

@@ -21,6 +21,8 @@ import org.locationtech.geowave.core.store.callback.DeleteCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallback;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.StatisticUpdateHandler;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +44,7 @@ public class StatsCompositionTool<T> implements
 
   int updateCount = 0;
   DataStatisticsStore statisticsStore;
-  List<DataStatisticsBuilder<T, ?, ?>> statisticsBuilders = null;
+  List<StatisticUpdateHandler<T, ?>> statisticsBuilders = null;
   final Object MUTEX = new Object();
   protected boolean skipFlush = false;
   private boolean overwrite;
@@ -75,7 +77,7 @@ public class StatsCompositionTool<T> implements
     final StatisticsId[] statisticsIds = statisticsProvider.getSupportedStatistics();
     statisticsBuilders = new ArrayList<>(statisticsIds.length);
     for (final StatisticsId id : statisticsIds) {
-      statisticsBuilders.add(new DataStatisticsBuilder<>(index, adapter, statisticsProvider, id));
+      statisticsBuilders.add(new StatisticUpdateHandler<>(index, adapter, statisticsProvider, id));
     }
     try {
       final Object v = System.getProperty("StatsCompositionTool.skipFlush");
@@ -91,7 +93,7 @@ public class StatsCompositionTool<T> implements
       return;
     }
     synchronized (MUTEX) {
-      for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
+      for (final StatisticUpdateHandler<T, ?, ?> builder : statisticsBuilders) {
         builder.entryDeleted(entry, kvs);
       }
       updateCount++;
@@ -106,7 +108,7 @@ public class StatsCompositionTool<T> implements
     }
 
     synchronized (MUTEX) {
-      for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
+      for (final StatisticUpdateHandler<T, ?, ?> builder : statisticsBuilders) {
         builder.entryScanned(entry, kv);
       }
       updateCount++;
@@ -122,9 +124,8 @@ public class StatsCompositionTool<T> implements
     }
 
     synchronized (MUTEX) {
-      for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
-        final Collection<DataStatistics<T, ?, ?>> statistics =
-            (Collection) builder.getStatistics();
+      for (final StatisticUpdateHandler<T, ?, ?> builder : statisticsBuilders) {
+        final Collection<DataStatistics<T, ?, ?>> statistics = (Collection) builder.getStatistics();
         if (overwrite) {
           final StatisticsId id = builder.getStatisticsId();
           // TODO how should we deal with authorizations/visibilities
@@ -163,9 +164,8 @@ public class StatsCompositionTool<T> implements
     }
 
     synchronized (MUTEX) {
-      for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
-        final Collection<DataStatistics<T, ?, ?>> statistics =
-            (Collection) builder.getStatistics();
+      for (final StatisticUpdateHandler<T, ?, ?> builder : statisticsBuilders) {
+        final Collection<DataStatistics<T, ?, ?>> statistics = (Collection) builder.getStatistics();
         statistics.clear();
       }
     }
@@ -178,7 +178,7 @@ public class StatsCompositionTool<T> implements
     }
 
     synchronized (MUTEX) {
-      for (final DataStatisticsBuilder<T, ?, ?> builder : statisticsBuilders) {
+      for (final StatisticUpdateHandler<T, ?, ?> builder : statisticsBuilders) {
         builder.entryIngested(entry, kvs);
       }
       updateCount++;

@@ -32,7 +32,6 @@ import org.locationtech.geowave.core.index.sfc.data.NumericData;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.index.sfc.data.NumericValue;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
@@ -45,6 +44,7 @@ import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintData;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintSet;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.opengis.feature.simple.SimpleFeature;
 import com.beust.jcommander.internal.Maps;
 
@@ -59,11 +59,11 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     final Index temporalindex = new SpatialTemporalIndexBuilder().createIndex();
     final Index spatialIndex = new SpatialIndexBuilder().createIndex();
 
-    final RowRangeHistogramStatistics<SimpleFeature> rangeTempStats =
-        new RowRangeHistogramStatistics<>(null, temporalindex.getName(), null);
+    final RowRangeHistogramStatistic<SimpleFeature> rangeTempStats =
+        new RowRangeHistogramStatistic<>(null, temporalindex.getName(), null);
 
-    final RowRangeHistogramStatistics<SimpleFeature> rangeStats =
-        new RowRangeHistogramStatistics<>(null, spatialIndex.getName(), null);
+    final RowRangeHistogramStatistic<SimpleFeature> rangeStats =
+        new RowRangeHistogramStatistic<>(null, spatialIndex.getName(), null);
 
     final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap = new HashMap<>();
     statsMap.put(

@@ -28,11 +28,11 @@ import org.locationtech.geowave.core.index.IndexMetaData;
 import org.locationtech.geowave.core.index.NumericIndexStrategy;
 import org.locationtech.geowave.core.index.sfc.data.MultiDimensionalNumericData;
 import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.geowave.datastore.accumulo.mapreduce.BackwardCompatibleTabletLocatorFactory.BackwardCompatibleTabletLocator;
 import org.locationtech.geowave.datastore.accumulo.operations.AccumuloOperations;
@@ -54,7 +54,7 @@ public class AccumuloSplitsProvider extends SplitsProvider {
       final DataStoreOperations operations,
       final Index index,
       final List<Short> adapterIds,
-      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistics<?>> statsCache,
+      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistic<?>> statsCache,
       final TransientAdapterStore adapterStore,
       final DataStatisticsStore statsStore,
       final Integer maxSplits,

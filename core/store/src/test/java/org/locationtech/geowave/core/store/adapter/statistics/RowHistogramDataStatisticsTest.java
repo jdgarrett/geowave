@@ -18,6 +18,7 @@ import org.locationtech.geowave.core.store.entities.GeoWaveKeyImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 
 public class RowHistogramDataStatisticsTest {
   static final long base = 7l;
@@ -32,8 +33,8 @@ public class RowHistogramDataStatisticsTest {
 
   @Test
   public void testIngest() {
-    final RowRangeHistogramStatistics<Integer> stats =
-        new RowRangeHistogramStatistics<>((short) -1, "20030", null);
+    final RowRangeHistogramStatistic<Integer> stats =
+        new RowRangeHistogramStatistic<>((short) -1, "20030", null);
 
     for (long i = 0; i < 10000; i++) {
       final GeoWaveRow row = new GeoWaveRowImpl(genKey(i), new GeoWaveValue[] {});
@@ -48,8 +49,8 @@ public class RowHistogramDataStatisticsTest {
 
     assertEquals(0.5, stats.cdf(genKey(5000).getSortKey()), 0.04);
 
-    final RowRangeHistogramStatistics<Integer> stats2 =
-        new RowRangeHistogramStatistics<>("20030", null);
+    final RowRangeHistogramStatistic<Integer> stats2 =
+        new RowRangeHistogramStatistic<>("20030", null);
 
     for (long j = 10000; j < 20000; j++) {
 

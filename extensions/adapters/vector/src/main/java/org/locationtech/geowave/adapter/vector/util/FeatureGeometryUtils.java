@@ -12,10 +12,10 @@ import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQue
 import org.locationtech.geowave.core.geotime.store.statistics.FeatureBoundingBoxStatistics;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.StatisticsQuery;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.jts.geom.Envelope;
 
 public class FeatureGeometryUtils {

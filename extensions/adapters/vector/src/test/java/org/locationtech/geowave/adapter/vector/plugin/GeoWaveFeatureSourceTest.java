@@ -32,8 +32,8 @@ import org.locationtech.geowave.adapter.vector.util.DateUtilities;
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
 import org.locationtech.geowave.core.geotime.store.statistics.FeatureTimeRangeStatistics;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -94,15 +94,15 @@ public class GeoWaveFeatureSourceTest extends BaseDataStoreTest {
       assertTrue(stats.hasNext());
       int count = 0;
       BoundingBoxDataStatistics<SimpleFeature, ?> bboxStats = null;
-      CountDataStatistics<SimpleFeature> cStats = null;
+      CountStatistic<SimpleFeature> cStats = null;
       FeatureTimeRangeStatistics timeRangeStats = null;
       FeatureNumericRangeStatistics popStats = null;
       while (stats.hasNext()) {
         final DataStatistics<?, ?, ?> statsData = stats.next();
         if (statsData instanceof BoundingBoxDataStatistics) {
           bboxStats = (BoundingBoxDataStatistics<SimpleFeature, ?>) statsData;
-        } else if (statsData instanceof CountDataStatistics) {
-          cStats = (CountDataStatistics<SimpleFeature>) statsData;
+        } else if (statsData instanceof CountStatistic) {
+          cStats = (CountStatistic<SimpleFeature>) statsData;
         } else if (statsData instanceof FeatureTimeRangeStatistics) {
           timeRangeStats = (FeatureTimeRangeStatistics) statsData;
         } else if (statsData instanceof FeatureNumericRangeStatistics) {

@@ -16,6 +16,8 @@ import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 
 /**
  * This class really just needs to get ingest callbacks and collect individual
@@ -26,12 +28,12 @@ import org.locationtech.geowave.core.store.entities.GeoWaveRow;
  * @param <T> The type of the row to keep statistics on
  */
 public class RowRangeHistogramStatisticsSet<T> extends
-    AbstractDataStatistics<T, Map<ByteArray, RowRangeHistogramStatistics<T>>, IndexStatisticsQueryBuilder<Map<ByteArray, RowRangeHistogramStatistics<T>>>>
+    AbstractDataStatistics<T, Map<ByteArray, RowRangeHistogramStatistic<T>>, IndexStatisticsQueryBuilder<Map<ByteArray, RowRangeHistogramStatistic<T>>>>
     implements
-    DataStatisticsSet<T, Map<ByteArray, RowRangeHistogramStatistics<T>>, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>, IndexStatisticsQueryBuilder<Map<ByteArray, RowRangeHistogramStatistics<T>>>> {
-  public static final IndexStatisticsType<Map<ByteArray, RowRangeHistogramStatistics<?>>> STATS_TYPE =
-      new IndexStatisticsType<>(RowRangeHistogramStatistics.STATS_TYPE.getString());
-  private final Map<ByteArray, RowRangeHistogramStatistics<T>> histogramPerPartition =
+    DataStatisticsSet<T, Map<ByteArray, RowRangeHistogramStatistic<T>>, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>, IndexStatisticsQueryBuilder<Map<ByteArray, RowRangeHistogramStatistic<T>>>> {
+  public static final IndexStatisticsType<Map<ByteArray, RowRangeHistogramStatistic<?>>> STATS_TYPE =
+      new IndexStatisticsType<>(RowRangeHistogramStatistic.STATS_TYPE.getString());
+  private final Map<ByteArray, RowRangeHistogramStatistic<T>> histogramPerPartition =
       new HashMap<>();
 
   public RowRangeHistogramStatisticsSet() {
@@ -39,15 +41,15 @@ public class RowRangeHistogramStatisticsSet<T> extends
   }
 
   public RowRangeHistogramStatisticsSet(final Short adapterId, final String indexName) {
-    super(adapterId, (StatisticsType) STATS_TYPE, indexName);
+    super(adapterId, (StatisticType) STATS_TYPE, indexName);
   }
 
-  private synchronized RowRangeHistogramStatistics<T> getPartitionStatistic(
+  private synchronized RowRangeHistogramStatistic<T> getPartitionStatistic(
       final byte[] partitionKey) {
     final ByteArray partitionKeyObj = getPartitionKey(partitionKey);
-    RowRangeHistogramStatistics<T> histogram = histogramPerPartition.get(partitionKeyObj);
+    RowRangeHistogramStatistic<T> histogram = histogramPerPartition.get(partitionKeyObj);
     if (histogram == null) {
-      histogram = new RowRangeHistogramStatistics<>(adapterId, extendedId, partitionKey);
+      histogram = new RowRangeHistogramStatistic<>(adapterId, extendedId, partitionKey);
       histogramPerPartition.put(partitionKeyObj, histogram);
     }
     return histogram;
@@ -80,8 +82,7 @@ public class RowRangeHistogramStatisticsSet<T> extends
 
   @Override
   public DataStatistics<T, NumericHistogram, PartitionStatisticsQueryBuilder<NumericHistogram>>[] getStatisticsSet() {
-    return histogramPerPartition.values().toArray(
-        new DataStatistics[histogramPerPartition.size()]);
+    return histogramPerPartition.values().toArray(new DataStatistics[histogramPerPartition.size()]);
   }
 
   protected static ByteArray getPartitionKey(final byte[] partitionBytes) {
@@ -90,7 +91,7 @@ public class RowRangeHistogramStatisticsSet<T> extends
   }
 
   @Override
-  public Map<ByteArray, RowRangeHistogramStatistics<T>> getResult() {
+  public Map<ByteArray, RowRangeHistogramStatistic<T>> getResult() {
     return histogramPerPartition;
   }
 
@@ -102,7 +103,7 @@ public class RowRangeHistogramStatisticsSet<T> extends
   @Override
   protected Object resultsValue() {
     final Collection<Object> values = new ArrayList<>();
-    for (final RowRangeHistogramStatistics<?> h : histogramPerPartition.values()) {
+    for (final RowRangeHistogramStatistic<?> h : histogramPerPartition.values()) {
       values.add(h.resultsValue());
     }
     return values;

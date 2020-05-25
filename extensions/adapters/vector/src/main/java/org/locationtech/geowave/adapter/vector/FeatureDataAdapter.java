@@ -47,6 +47,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.data.field.FieldReader;
 import org.locationtech.geowave.core.store.data.field.FieldUtils;
@@ -765,7 +766,7 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
   public EntryVisibilityHandler<SimpleFeature> getVisibilityHandler(
       final CommonIndexModel indexModel,
       final DataTypeAdapter<SimpleFeature> adapter,
-      final StatisticsId statisticsId) {
+      final Statistic statistic) {
     return statsManager.getVisibilityHandler(indexModel, adapter, statisticsId);
   }
 
@@ -876,6 +877,26 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
     } catch (final Exception e) {
       LOGGER.error("Unable to initialize position map, continuing anyways", e);
     }
+  }
+  
+  @Override
+  public int getFieldCount() {
+    return reprojectedFeatureType.getAttributeCount();
+  }
+  
+  @Override
+  public Class<?> getFieldClass(final int fieldIndex) {
+    return reprojectedFeatureType.getDescriptor(fieldIndex).getClass();
+  }
+  
+  @Override
+  public String getFieldName(final int fieldIndex) {
+    return reprojectedFeatureType.getDescriptor(fieldIndex).getLocalName();
+  }
+  
+  @Override
+  public Object getFieldValue(final SimpleFeature entry, final String fieldName) {
+    return entry.getAttribute(fieldName);
   }
 
   protected List<String> getDimensionFieldNames(final CommonIndexModel model) {

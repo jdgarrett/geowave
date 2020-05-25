@@ -79,7 +79,39 @@ public interface DataTypeAdapter<T> extends DataReader<Object>, DataWriter<T, Ob
    *         name
    */
   public String getFieldNameForPosition(CommonIndexModel model, int position);
-  
+
+  /**
+   * Returns the number of fields represented by this data type.
+   * 
+   * @return the number of fields
+   */
+  public int getFieldCount();
+
+  /**
+   * Returns the class of the data that is represented by the field at the given index.
+   * 
+   * @param fieldIndex the field index
+   * @return the class of the data for the field
+   */
+  public Class<?> getFieldClass(int fieldIndex);
+
+  /**
+   * Returns the name of the field at the given index.
+   * 
+   * @param fieldIndex the field index
+   * @return the name of the field
+   */
+  public String getFieldName(int fieldIndex);
+
+  /**
+   * Returns the value of the field with the given name from the entry.
+   * 
+   * @param entry the entry
+   * @param fieldName the field name
+   * @return the value of the field on the entry
+   */
+  public Object getFieldValue(T entry, String fieldName);
+
   /**
    * Return the class that represents the data stored by this adapter.
    * 

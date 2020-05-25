@@ -8,11 +8,13 @@
  */
 package org.locationtech.geowave.core.store.adapter.statistics;
 
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+
 public class StatisticsId {
-  private final StatisticsType<?, ?> type;
+  private final StatisticType<?, ?> type;
   private final String extendedId;
 
-  public StatisticsId(final StatisticsType<?, ?> type, final String extendedId) {
+  public StatisticsId(final StatisticType<?, ?> type, final String extendedId) {
     super();
     this.type = type;
     this.extendedId = extendedId;
@@ -56,7 +58,7 @@ public class StatisticsId {
     return true;
   }
 
-  public StatisticsType<?, ?> getType() {
+  public StatisticType<?, ?> getType() {
     return type;
   }
 

@@ -27,12 +27,12 @@ import org.locationtech.geowave.core.index.IndexMetaData;
 import org.locationtech.geowave.core.index.NumericIndexStrategy;
 import org.locationtech.geowave.core.index.sfc.data.MultiDimensionalNumericData;
 import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.geowave.datastore.hbase.operations.HBaseOperations;
 import org.locationtech.geowave.mapreduce.splits.GeoWaveRowRange;
@@ -52,7 +52,7 @@ public class HBaseSplitsProvider extends SplitsProvider {
       final DataStoreOperations operations,
       final Index index,
       final List<Short> adapterIds,
-      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistics<?>> statsCache,
+      final Map<Pair<Index, ByteArray>, RowRangeHistogramStatistic<?>> statsCache,
       final TransientAdapterStore adapterStore,
       final DataStatisticsStore statsStore,
       final Integer maxSplits,
@@ -103,7 +103,7 @@ public class HBaseSplitsProvider extends SplitsProvider {
     }
 
     if (ranges == null) { // get partition ranges from stats
-      final PartitionStatistics<?> statistics =
+      final PartitionsStatistic<?> statistics =
           getPartitionStats(index, adapterIds, statsStore, authorizations);
       if (statistics != null) {
         ranges = new ArrayList();

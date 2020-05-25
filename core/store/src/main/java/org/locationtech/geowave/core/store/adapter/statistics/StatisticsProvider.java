@@ -10,8 +10,9 @@ package org.locationtech.geowave.core.store.adapter.statistics;
 
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
 
 /**
  * This interface defines the set of statistics to capture for a specific adapter.
@@ -19,13 +20,16 @@ import org.locationtech.geowave.core.store.index.CommonIndexModel;
  * @param <T> The type for the data elements that are being adapted by the adapter
  */
 public interface StatisticsProvider<T> {
-  public StatisticsId[] getSupportedStatistics();
+  public StatisticType[] getSupportedStatistics();
 
-  public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<T, R, B> createDataStatistics(
-      StatisticsId statisticsId);
+  public StatisticType[] getSupportedStatistics(final String fieldName);
+
+  public Statistic[] getTrackedStatistics();
+
+  public Statistic[] getTrackedStatistics(final String fieldName);
 
   public EntryVisibilityHandler<T> getVisibilityHandler(
       CommonIndexModel indexModel,
       DataTypeAdapter<T> adapter,
-      StatisticsId statisticsId);
+      Statistic statistic);
 }

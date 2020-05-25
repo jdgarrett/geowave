@@ -32,8 +32,6 @@ import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.exceptions.MismatchedIndexToAdapterMapping;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.AggregationQueryBuilder;
 import org.locationtech.geowave.core.store.api.DataStore;
@@ -43,6 +41,8 @@ import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.data.VisibilityWriter;
 import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
 import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.test.GeoWaveITRunner;
 import org.locationtech.geowave.test.TestUtils;
 import org.locationtech.geowave.test.annotation.GeoWaveTestStore;
@@ -752,12 +752,12 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         expectedResultCount,
         count.intValue());
 
-    try (final CloseableIterator<CountDataStatistics<?>> statsIt =
+    try (final CloseableIterator<CountStatistic<?>> statsIt =
         (CloseableIterator) statsStore.getDataStatistics(
             internalAdapterId,
-            CountDataStatistics.STATS_TYPE,
+            CountStatistic.STATS_TYPE,
             auths)) {
-      final CountDataStatistics<?> stats = statsIt.next();
+      final CountStatistic<?> stats = statsIt.next();
       Assert.assertEquals(
           "Unexpected stats result count for "
               + (spatial ? "spatial query" : "full table scan")

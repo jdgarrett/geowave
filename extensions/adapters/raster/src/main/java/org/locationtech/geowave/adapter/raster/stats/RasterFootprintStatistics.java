@@ -14,92 +14,102 @@ import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.core.geotime.util.TWKBReader;
 import org.locationtech.geowave.core.geotime.util.TWKBWriter;
 import org.locationtech.geowave.core.index.Mergeable;
-import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsQueryBuilder;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTWriter;
 import org.opengis.coverage.grid.GridCoverage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RasterFootprintStatistics extends
-    AbstractDataStatistics<GridCoverage, Geometry, BaseStatisticsQueryBuilder<Geometry>> {
+    AdapterStatistic<RasterFootprintStatistics.RasterFootprintValue> {
   private static final Logger LOGGER = LoggerFactory.getLogger(RasterFootprintStatistics.class);
-  public static final BaseStatisticsType<Geometry> STATS_TYPE =
-      new BaseStatisticsType<>("FOOTPRINT");
-  private Geometry footprint;
+  public static final StatisticType STATS_TYPE = new StatisticType("RASTER_FOOTPRINT");
 
   public RasterFootprintStatistics() {
-    this(null);
+    super(STATS_TYPE);
   }
 
-  public RasterFootprintStatistics(final Short adapterId) {
-    super(adapterId, STATS_TYPE);
+  public RasterFootprintStatistics(final String typeName) {
+    super(STATS_TYPE, typeName);
+  }
+  
+  @Override
+  public boolean isCompatibleWith(final Class<?> adapterClass) {
+    return GridCoverage.class.isAssignableFrom(adapterClass);
   }
 
   @Override
-  public byte[] toBinary() {
-    byte[] bytes = null;
-    if (footprint == null) {
-      bytes = new byte[] {};
-    } else {
-      bytes = new TWKBWriter().write(footprint);
-    }
-    final ByteBuffer buf = super.binaryBuffer(bytes.length);
-    buf.put(bytes);
-    return buf.array();
+  public String getDescription() {
+    return "Maintains a footprint that encompasses all of the raster data.";
   }
 
   @Override
-  public void fromBinary(final byte[] bytes) {
-    final ByteBuffer buf = super.binaryBuffer(bytes);
-    final byte[] payload = buf.array();
-    if (payload.length > 0) {
-      try {
-        footprint = new TWKBReader().read(payload);
-      } catch (final ParseException e) {
-        LOGGER.warn("Unable to parse WKB", e);
+  public RasterFootprintValue createEmpty() {
+    return new RasterFootprintValue();
+  }
+  
+  public static class RasterFootprintValue implements StatisticValue<Geometry>, StatisticsIngestCallback {
+
+    private Geometry footprint = null;
+
+    @Override
+    public void merge(Mergeable merge) {
+      if (merge instanceof RasterFootprintValue) {
+        footprint =
+            RasterUtils.combineIntoOneGeometry(
+                footprint,
+                ((RasterFootprintValue) merge).footprint);
       }
-    } else {
-      footprint = null;
     }
-  }
 
-  @Override
-  public void entryIngested(final GridCoverage entry, final GeoWaveRow... geoWaveRows) {
-    if (entry instanceof FitToIndexGridCoverage) {
-      footprint =
-          RasterUtils.combineIntoOneGeometry(
-              footprint,
-              ((FitToIndexGridCoverage) entry).getFootprintWorldGeometry());
+    @Override
+    public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
+      if (entry instanceof FitToIndexGridCoverage) {
+        footprint =
+            RasterUtils.combineIntoOneGeometry(
+                footprint,
+                ((FitToIndexGridCoverage) entry).getFootprintWorldGeometry());
+      }
     }
-  }
 
-  @Override
-  public void merge(final Mergeable statistics) {
-    if (statistics instanceof RasterFootprintStatistics) {
-      footprint =
-          RasterUtils.combineIntoOneGeometry(
-              footprint,
-              ((RasterFootprintStatistics) statistics).footprint);
+    @Override
+    public Geometry getValue() {
+      return footprint;
     }
-  }
 
-  @Override
-  public Geometry getResult() {
-    return footprint;
-  }
+    @Override
+    public byte[] toBinary() {
+      byte[] bytes = null;
+      if (footprint == null) {
+        bytes = new byte[] {};
+      } else {
+        bytes = new TWKBWriter().write(footprint);
+      }
+      final ByteBuffer buf = ByteBuffer.allocate(bytes.length);
+      buf.put(bytes);
+      return buf.array();
+    }
 
-  @Override
-  protected String resultsName() {
-    return "footprint";
-  }
-
-  @Override
-  protected Object resultsValue() {
-    return new WKTWriter().write(footprint);
+    @Override
+    public void fromBinary(byte[] bytes) {
+      final ByteBuffer buf = ByteBuffer.wrap(bytes);
+      final byte[] payload = buf.array();
+      if (payload.length > 0) {
+        try {
+          footprint = new TWKBReader().read(payload);
+        } catch (final ParseException e) {
+          LOGGER.warn("Unable to parse WKB", e);
+        }
+      } else {
+        footprint = null;
+      }
+    }
+    
   }
 }

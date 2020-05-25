@@ -13,14 +13,8 @@ import org.locationtech.geowave.core.store.adapter.BinaryDataAdapter;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapterWrapper;
 import org.locationtech.geowave.core.store.adapter.SimpleRowTransform;
 import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.CountDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.DuplicateEntryCount;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
 import org.locationtech.geowave.core.store.adapter.statistics.IndexStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.MaxDuplicatesStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.PartitionStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatisticsSet;
 import org.locationtech.geowave.core.store.api.AggregationQuery;
 import org.locationtech.geowave.core.store.api.Query;
@@ -64,6 +58,11 @@ import org.locationtech.geowave.core.store.query.options.FilterByTypeQueryOption
 import org.locationtech.geowave.core.store.query.options.QueryAllIndices;
 import org.locationtech.geowave.core.store.query.options.QueryAllTypes;
 import org.locationtech.geowave.core.store.query.options.QuerySingleIndex;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.MaxDuplicatesStatistic;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 
 public class StorePersistableRegistry implements PersistableRegistrySpi {
 
@@ -71,10 +70,10 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
   public PersistableIdAndConstructor[] getSupportedPersistables() {
     return new PersistableIdAndConstructor[] {
         new PersistableIdAndConstructor((short) 200, AdapterToIndexMapping::new),
-        new PersistableIdAndConstructor((short) 201, CountDataStatistics::new),
-        new PersistableIdAndConstructor((short) 202, DuplicateEntryCount::new),
-        new PersistableIdAndConstructor((short) 203, MaxDuplicatesStatistics::new),
-        new PersistableIdAndConstructor((short) 205, RowRangeHistogramStatistics::new),
+        new PersistableIdAndConstructor((short) 201, CountStatistic::new),
+        new PersistableIdAndConstructor((short) 202, DuplicateEntryCountStatistic::new),
+        new PersistableIdAndConstructor((short) 203, MaxDuplicatesStatistic::new),
+        new PersistableIdAndConstructor((short) 205, RowRangeHistogramStatistic::new),
         new PersistableIdAndConstructor((short) 206, DifferingFieldVisibilityEntryCount::new),
         new PersistableIdAndConstructor((short) 207, FieldVisibilityCount::new),
         new PersistableIdAndConstructor((short) 208, AdapterIdQueryFilter::new),
@@ -98,7 +97,7 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 233, CountAggregation::new),
         new PersistableIdAndConstructor((short) 234, DataStatisticsAggregation::new),
         new PersistableIdAndConstructor((short) 235, InsertionIdQueryFilter::new),
-        new PersistableIdAndConstructor((short) 236, PartitionStatistics::new),
+        new PersistableIdAndConstructor((short) 236, PartitionsStatistic::new),
         new PersistableIdAndConstructor((short) 237, FilterByTypeQueryOptions::new),
         new PersistableIdAndConstructor((short) 238, QueryAllIndices::new),
         new PersistableIdAndConstructor((short) 239, IndexStatisticsType::new),

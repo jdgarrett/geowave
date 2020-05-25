@@ -1,9 +1,9 @@
 package org.locationtech.geowave.adapter.vector.stats.legacy;
 
 import java.nio.ByteBuffer;
-import org.locationtech.geowave.adapter.vector.stats.FeatureCountMinSketchStatistics;
+import org.locationtech.geowave.adapter.vector.stats.CountMinSketchStatistics;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfig;
-import org.locationtech.geowave.core.store.api.StatisticsOptions;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.opengis.feature.simple.SimpleFeature;
 
 public class FeatureCountMinSketchConfig implements StatsConfig<SimpleFeature> {
@@ -40,14 +40,10 @@ public class FeatureCountMinSketchConfig implements StatsConfig<SimpleFeature> {
   }
 
   @Override
-  public StatisticsOptions create(
-      final Short internalDataAdapterId,
+  public Statistic<?> create(
+      final String typeName,
       final String fieldName) {
-    FeatureCountMinSketchStatistics.Options options = new FeatureCountMinSketchStatistics.Options();
-    options.setErrorFactor(errorFactor);
-    options.setProbabilityOfCorrectness(probabilityOfCorrectness);
-    options.setFieldName(fieldName);
-    return options;
+    return new CountMinSketchStatistics(typeName, fieldName, errorFactor, probabilityOfCorrectness);
   }
 
   @Override

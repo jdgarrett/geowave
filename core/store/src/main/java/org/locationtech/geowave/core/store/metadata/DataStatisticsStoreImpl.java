@@ -1,325 +1,302 @@
-/**
- * Copyright (c) 2013-2020 Contributors to the Eclipse Foundation
- *
- * <p> See the NOTICE file distributed with this work for additional information regarding copyright
- * ownership. All rights reserved. This program and the accompanying materials are made available
- * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
- * available at http://www.apache.org/licenses/LICENSE-2.0.txt
- */
 package org.locationtech.geowave.core.store.metadata;
 
-import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.DataStoreOptions;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsType;
-import org.locationtech.geowave.core.store.api.StatisticsOptions;
-import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataType;
-import com.google.common.cache.CacheBuilder;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
+import org.locationtech.geowave.core.store.statistics.StatisticsProviderSPI.ProvidedStatistic;
+import org.locationtech.geowave.core.store.statistics.StatisticsProviderSPI.StatisticContext;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Bytes;
 
-/**
- * This class will persist Index objects within an Accumulo table for GeoWave metadata. The adapters
- * will be persisted in an "INDEX" column family.
- *
- * <p> There is an LRU cache associated with it so staying in sync with external updates is not
- * practical - it assumes the objects are not updated often or at all. The objects are stored in
- * their own table.
- */
-public class DataStatisticsStoreImpl extends
-    AbstractGeoWavePersistence<DataStatistics<?, ?, ?>> implements
+public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statistic<?>> implements
     DataStatisticsStore {
-  // this is fairly arbitrary at the moment because it is the only custom
-  // server op added
-  public static final int STATS_COMBINER_PRIORITY = 10;
-  public static final String STATISTICS_COMBINER_NAME = "STATS_COMBINER";
-
-  private static final long STATISTICS_CACHE_TIMEOUT = 60 * 1000; // 1 Minute
-  
-  private static class StatOptionsMetadataStore extends AbstractGeoWavePersistence<StatisticsOptions> {
-
-    public StatOptionsMetadataStore(
-        DataStoreOperations operations,
-        DataStoreOptions options) {
-      super(operations, options, MetadataType.STAT_OPTIONS);
-    }
-
-    @Override
-    protected ByteArray getPrimaryId(StatisticsOptions persistedObject) {
-      return new ByteArray(persistedObject.getStatisticId());
-    }
-    
-  }
-  
-  private static class StatsMetadataStore extends AbstractGeoWavePersistence<DataStatistics<?, ?, ?>> {
-
-    public StatsMetadataStore(
-        DataStoreOperations operations,
-        DataStoreOptions options) {
-      super(operations, options, MetadataType.STATS);
-    }
-
-    @Override
-    protected ByteArray getPrimaryId(DataStatistics<?, ?, ?> persistedObject) {
-      return null;
-    }
-    
-  }
-
-  public DataStatisticsStoreImpl(
-      final DataStoreOperations operations,
-      final DataStoreOptions options) {
-    super(operations, options, MetadataType.STATS);
+  public DataStatisticsStoreImpl(DataStoreOperations operations, DataStoreOptions options) {
+    super(operations, options, MetadataType.STAT_OPTIONS);
   }
 
   @Override
-  protected void buildCache() {
-    final CacheBuilder<Object, Object> cacheBuilder =
-        CacheBuilder.newBuilder().maximumSize(MAX_ENTRIES).expireAfterWrite(
-            STATISTICS_CACHE_TIMEOUT,
-            TimeUnit.MILLISECONDS);
-    cache = cacheBuilder.<ByteArray, Map<String, DataStatistics<?, ?, ?>>>build();
+  protected ByteArray getPrimaryId(Statistic<?> persistedObject) {
+    return getPrimaryId(persistedObject.getStatisticType(), persistedObject.getUniqueId());
   }
 
-  private String getCombinedAuths(final String[] authorizations) {
-    final StringBuilder sb = new StringBuilder();
-    if ((authorizations != null) && (authorizations.length > 0)) {
-      Arrays.sort(authorizations);
-      for (int i = 0; i < authorizations.length; i++) {
-        sb.append(authorizations[i]);
-        if ((i + 1) < authorizations.length) {
-          sb.append("&");
-        }
-      }
-    }
-    return sb.toString();
-  }
-
-  @Override
-  public void incorporateStatistics(final DataStatistics<?, ?, ?> statistics) {
-    // because we're using the combiner, we should simply be able to add the
-    // object
-    addObject(statistics);
-    deleteObjectFromCache(getPrimaryId(statistics), getSecondaryId(statistics));
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  protected void addObjectToCache(
-      final ByteArray primaryId,
-      final ByteArray secondaryId,
-      final DataStatistics<?, ?, ?> object,
-      final String... authorizations) {
-    final ByteArray combinedId = getCombinedId(primaryId, secondaryId);
-
-    Map<String, DataStatistics<?, ?, ?>> cached =
-        (Map<String, DataStatistics<?, ?, ?>>) cache.getIfPresent(combinedId);
-    if (cached == null) {
-      cached = new ConcurrentHashMap<>();
-      cache.put(combinedId, cached);
-    }
-    cached.put(getCombinedAuths(authorizations), object);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  protected Object getObjectFromCache(
-      final ByteArray primaryId,
-      final ByteArray secondaryId,
-      final String... authorizations) {
-    final ByteArray combinedId = getCombinedId(primaryId, secondaryId);
-    final Map<String, DataStatistics<?, ?, ?>> cached =
-        (Map<String, DataStatistics<?, ?, ?>>) cache.getIfPresent(combinedId);
-    if (cached != null) {
-      return cached.get(getCombinedAuths(authorizations));
-    }
-    return null;
-  }
-
-  protected ByteArray shortToByteArrayId(final short internalAdapterId) {
-    return new ByteArray(ByteArrayUtils.shortToByteArray(internalAdapterId));
-  }
-
-  protected short byteArrayToShort(final byte[] bytes) {
-    return ByteArrayUtils.byteArrayToShort(bytes);
-  }
-
-  @Override
-  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
-      final short adapterId,
-      final StatisticsType<?, ?> statisticsType,
-      final String... authorizations) {
-    return internalGetDataStatistics(adapterId, statisticsType, authorizations);
-  }
-
-  protected CloseableIterator<DataStatistics<?, ?, ?>> internalGetDataStatistics(
-      final Short adapterId,
-      final ByteArray primaryId,
-      final String... authorizations) {
-
-    final ByteArray secondaryId = adapterId == null ? null : shortToByteArrayId(adapterId);
-    final Object cacheResult = getObjectFromCache(primaryId, secondaryId, authorizations);
-
-    // if there's an exact match in the cache return a singleton
-    if (cacheResult != null) {
-      return new CloseableIterator.Wrapper<>(
-          Iterators.singletonIterator((DataStatistics<?, ?, ?>) cacheResult));
-    }
-
-    // otherwise scan
-    // TODO issue 1443 will enable prefix scans on the primary ID
-    return internalGetObjects(
-        new MetadataQuery(
-            primaryId.getBytes(),
-            secondaryId == null ? null : secondaryId.getBytes(),
-            authorizations));
-  }
-
-  @Override
-  protected DataStatistics<?, ?, ?> entryToValue(
-      final GeoWaveMetadata entry,
-      final String... authorizations) {
-    final DataStatistics<?, ?, ?> stats = super.entryToValue(entry, authorizations);
-    if (stats != null) {
-      return setFields(entry, stats, byteArrayToShort(entry.getSecondaryId()));
-    }
-    return null;
-  }
-
-  public static DataStatistics<?, ?, ?> setFields(
-      final GeoWaveMetadata entry,
-      final DataStatistics<?, ?, ?> basicStats,
-      final short adapterId) {
-    if (basicStats != null) {
-      basicStats.setAdapterId(adapterId);
-      final int index = Bytes.indexOf(entry.getPrimaryId(), (byte) 0);
-      if ((index > 0) && (index < (entry.getPrimaryId().length - 1))) {
-        basicStats.setType(
-            new BaseStatisticsType(Arrays.copyOfRange(entry.getPrimaryId(), 0, index)));
-
-        basicStats.setExtendedId(
-            StringUtils.stringFromBinary(
-                Arrays.copyOfRange(entry.getPrimaryId(), index + 1, entry.getPrimaryId().length)));
-      } else {
-        basicStats.setType(new BaseStatisticsType(entry.getPrimaryId()));
-      }
-      final byte[] visibility = entry.getVisibility();
-      if (visibility != null) {
-        basicStats.setVisibility(visibility);
-      }
-    }
-    return basicStats;
-  }
-
-  @Override
-  protected ByteArray getPrimaryId(final DataStatistics<?, ?, ?> persistedObject) {
-    return getPrimaryId(persistedObject.getType(), persistedObject.getExtendedId());
-  }
-
-  public static ByteArray getPrimaryId(final StatisticsType<?, ?> type, final String extendedId) {
+  public static ByteArray getPrimaryId(final StatisticType type, final String extendedId) {
     if ((extendedId != null) && (extendedId.length() > 0)) {
       return new ByteArray(
           Bytes.concat(
               type.getBytes(),
-              new byte[] {(byte) 0},
+              new byte[] {(byte) Statistic.UNIQUE_ID_SEPARATOR},
               StringUtils.stringToBinary(extendedId)));
     }
     return type;
   }
 
   @Override
-  protected ByteArray getSecondaryId(final DataStatistics<?, ?, ?> persistedObject) {
-    return shortToByteArrayId(persistedObject.getAdapterId());
+  protected ByteArray getSecondaryId(Statistic<?> persistedObject) {
+    if (persistedObject instanceof IndexStatistic) {
+      return indexStatisticSecondaryId(((IndexStatistic<?>) persistedObject).getIndexName());
+    } else if (persistedObject instanceof AdapterStatistic) {
+      return new ByteArray(
+          ("A" + ((AdapterStatistic<?>) persistedObject).getTypeName()).getBytes());
+    } else if (persistedObject instanceof FieldStatistic) {
+      return new ByteArray(("F" + ((FieldStatistic<?>) persistedObject).getTypeName()).getBytes());
+    }
+    return null;
+  }
+
+  private ByteArray indexStatisticSecondaryId(final String indexName) {
+    return new ByteArray(("I" + indexName).getBytes());
+  }
+
+  private ByteArray adapterStatisticSecondaryId(final String typeName) {
+    return new ByteArray(("A" + typeName).getBytes());
+  }
+
+  private ByteArray fieldStatisticSecondaryId(final String typeName) {
+    return new ByteArray(("F" + typeName).getBytes());
   }
 
   @Override
-  public void setStatistics(final DataStatistics<?, ?, ?> statistics) {
-    removeStatistics(statistics.getAdapterId(), statistics.getType());
-    addObject(statistics);
+  public List<Statistic<?>> getRegisteredIndexStatistics() {
+    return StatisticsRegistry.instance().getStatistics().values().stream().filter(
+        ProvidedStatistic::isIndexStatistic).map(s -> s.getOptionsConstructor().get()).collect(
+            Collectors.toList());
   }
 
   @Override
-  public CloseableIterator<DataStatistics<?, ?, ?>> getAllDataStatistics(
-      final String... authorizations) {
-    return getObjects(authorizations);
+  public List<Statistic<?>> getRegisteredAdapterStatistics(Class<?> adapterDataClass) {
+    return StatisticsRegistry.instance().getStatistics().values().stream().filter(
+        s -> s.isAdapterStatistic() && s.isCompatibleWith(adapterDataClass)).map(
+            s -> s.getOptionsConstructor().get()).collect(Collectors.toList());
   }
 
   @Override
-  public boolean removeStatistics(
-      final short adapterId,
-      final StatisticsType<?, ?> statisticsType,
-      final String... authorizations) {
-    return deleteObject(statisticsType, shortToByteArrayId(adapterId), authorizations);
+  public Map<String, List<Statistic<?>>> getRegisteredFieldStatistics(
+      DataTypeAdapter<?> type,
+      String fieldName) {
+    Map<String, List<Statistic<?>>> statistics = Maps.newHashMap();
+    final int fieldCount = type.getFieldCount();
+    for (int i = 0; i < fieldCount; i++) {
+      String name = type.getFieldName(i);
+      Class<?> fieldClass = type.getFieldClass(i);
+      if (fieldName == null || fieldName.equals(name)) {
+        List<Statistic<?>> fieldOptions =
+            StatisticsRegistry.instance().getStatistics().values().stream().filter(
+                s -> s.isFieldStatistic() && s.isCompatibleWith(fieldClass)).map(
+                    s -> s.getOptionsConstructor().get()).collect(Collectors.toList());
+        statistics.put(name, fieldOptions);
+      }
+    }
+    return statistics;
   }
 
   @Override
-  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
-      final short adapterId,
-      final String... authorizations) {
-    return getAllObjectsWithSecondaryId(shortToByteArrayId(adapterId), authorizations);
+  public boolean exists(Statistic<?> statistic) {
+    return getObject(getPrimaryId(statistic), getSecondaryId(statistic)) != null;
   }
 
   @Override
-  protected byte[] getVisibility(final DataStatistics<?, ?, ?> entry) {
-    return entry.getVisibility();
+  public void addStatistic(Statistic<?> statistic) {
+    this.addObject(statistic);
   }
 
   @Override
-  public void removeAllStatistics(final short adapterId, final String... authorizations) {
-    deleteObjects(shortToByteArrayId(adapterId), authorizations);
+  public boolean removeStatistic(Statistic<?> statistic) {
+    return deleteObject(getPrimaryId(statistic), getSecondaryId(statistic));
   }
 
   @Override
-  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
-      final short adapterId,
-      final String extendedId,
-      final StatisticsType<?, ?> statisticsType,
-      final String... authorizations) {
-    return internalGetDataStatistics(
-        adapterId,
-        getPrimaryId(statisticsType, extendedId),
-        authorizations);
+  public boolean removeStatistics(Iterator<Statistic<?>> statistics) {
+    boolean deleted = false;
+    while (statistics.hasNext()) {
+      Statistic<?> statistic = statistics.next();
+      deleted = deleted || deleteObject(getPrimaryId(statistic), getSecondaryId(statistic));
+    }
+    return deleted;
   }
 
   @Override
-  public boolean removeStatistics(
-      final short adapterId,
-      final String extendedId,
-      final StatisticsType<?, ?> statisticsType,
-      final String... authorizations) {
-    return deleteObject(
-        getPrimaryId(statisticsType, extendedId),
-        shortToByteArrayId(adapterId),
-        authorizations);
+  public boolean removeStatistics(final Index index) {
+    return removeStatistics(getIndexStatistics(index, null, null));
   }
 
   @Override
-  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
-      final StatisticsType<?, ?> statisticsType,
-      final String... authorizations) {
-    return internalGetDataStatistics(null, statisticsType, authorizations);
+  public boolean removeStatistics(final DataTypeAdapter<?> type) {
+    boolean removed = removeStatistics(getAdapterStatistics(type, null));
+    // STATS_TODO: Remove all index statistics with this type name
+    return removed;
   }
 
   @Override
-  public CloseableIterator<DataStatistics<?, ?, ?>> getDataStatistics(
-      final String extendedIdPrefix,
-      final StatisticsType<?, ?> statisticsType,
-      final String... authorizations) {
-    return internalGetDataStatistics(
-        null,
-        getPrimaryId(statisticsType, extendedIdPrefix),
-        authorizations);
+  public void setStatistic(Statistic<?> statistic) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public void incorporateStatistic(Statistic<?> statistic) {
+    // TODO Auto-generated method stub
+
+  }
+
+  protected CloseableIterator<Statistic<?>> getCachedObject(
+      ByteArray primaryId,
+      ByteArray secondaryId) {
+    final Object cacheResult = getObjectFromCache(primaryId, secondaryId);
+
+    // if there's an exact match in the cache return a singleton
+    if (cacheResult != null) {
+      return new CloseableIterator.Wrapper<>(
+          Iterators.singletonIterator((Statistic<?>) cacheResult));
+    }
+    return internalGetObjects(new MetadataQuery(primaryId.getBytes(), secondaryId.getBytes()));
+  }
+
+  @Override
+  public CloseableIterator<Statistic<?>> getIndexStatistics(
+      final Index index,
+      final @Nullable StatisticType statisticType,
+      final @Nullable String typeName) {
+    final ByteArray secondaryId = indexStatisticSecondaryId(index.getName());
+    if (statisticType == null) {
+      CloseableIterator<Statistic<?>> stats = getAllObjectsWithSecondaryId(secondaryId);
+      if (typeName == null) {
+        return stats;
+      }
+      return new SuffixPrimaryIdFilter(stats, typeName.getBytes());
+    } else if (typeName == null) {
+      return internalGetObjects(
+          new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes()));
+    }
+    return getCachedObject(getPrimaryId(statisticType, typeName), secondaryId);
+
+  }
+
+  @Override
+  public CloseableIterator<Statistic<?>> getAdapterStatistics(
+      final DataTypeAdapter<?> type,
+      final @Nullable StatisticType statisticType) {
+    final ByteArray secondaryId = adapterStatisticSecondaryId(type.getTypeName());
+    if (statisticType == null) {
+      return getAllObjectsWithSecondaryId(secondaryId);
+    }
+    return getCachedObject(statisticType, secondaryId);
+  }
+
+  @Override
+  public CloseableIterator<Statistic<?>> getFieldStatistics(
+      final DataTypeAdapter<?> type,
+      final @Nullable StatisticType statisticType,
+      final @Nullable String fieldName) {
+    final ByteArray secondaryId = fieldStatisticSecondaryId(type.getTypeName());
+    if (statisticType == null) {
+      CloseableIterator<Statistic<?>> stats = getAllObjectsWithSecondaryId(secondaryId);
+      if (fieldName == null) {
+        return stats;
+      }
+      return new SuffixPrimaryIdFilter(stats, fieldName.getBytes());
+    } else if (fieldName == null) {
+      return internalGetObjects(
+          new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes()));
+    }
+    return getCachedObject(getPrimaryId(statisticType, fieldName), secondaryId);
+  }
+
+  @Override
+  public CloseableIterator<Statistic<?>> getAllStatistics(
+      final @Nullable StatisticType statisticType) {
+    return internalGetObjects(
+        new MetadataQuery(statisticType == null ? null : statisticType.getBytes(), null));
+  }
+
+  @Override
+  public CloseableIterator<StatisticValue<?>> getStatisticValues(
+      Iterator<Statistic<?>> statistics,
+      String... authorizations) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <T> StatisticValue<T> getStatisticValue(Statistic<T> statistic, String... authorizations) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void removeAll() {
+    super.removeAll();
+  }
+
+  // STATS_TODO: This needs to be a little more complex, for example, a statistic might have a
+  // primary id of STAT_TYPE_fieldName_extended. Find a way to isolate the part of the primaryId
+  // that we want.. Maybe some kind of separator for the extended part...
+  public static class SuffixPrimaryIdFilter implements CloseableIterator<Statistic<?>> {
+
+    private final CloseableIterator<Statistic<?>> source;
+    private final byte[] suffix;
+
+    private Statistic<?> next = null;
+
+    public SuffixPrimaryIdFilter(CloseableIterator<Statistic<?>> source, byte[] suffix) {
+      this.source = source;
+      this.suffix = suffix;
+    }
+
+    private void computeNext() {
+      while (source.hasNext()) {
+        Statistic<?> possibleNext = source.next();
+        ByteArray primaryId =
+            getPrimaryId(possibleNext.getStatisticType(), possibleNext.getUniqueId());
+        if (ByteArrayUtils.endsWith(primaryId.getBytes(), suffix)) {
+          next = possibleNext;
+          break;
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (next == null) {
+        computeNext();
+      }
+      return next != null;
+    }
+
+    @Override
+    public Statistic<?> next() {
+      if (next == null) {
+        computeNext();
+      }
+      Statistic<?> nextValue = next;
+      next = null;
+      return nextValue;
+    }
+
+    @Override
+    public void close() {
+      source.close();
+    }
+
   }
 }

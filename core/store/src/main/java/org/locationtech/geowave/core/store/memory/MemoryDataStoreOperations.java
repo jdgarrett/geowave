@@ -524,8 +524,7 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
                   && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
                 if (currentStat == null) {
                   currentStat =
-                      (DataStatistics) PersistenceUtils.fromBinary(
-                          currentMetadata.getValue());
+                      (DataStatistics) PersistenceUtils.fromBinary(currentMetadata.getValue());
                 }
                 currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));
                 vis = combineVisibilities(vis, next.getVisibility());

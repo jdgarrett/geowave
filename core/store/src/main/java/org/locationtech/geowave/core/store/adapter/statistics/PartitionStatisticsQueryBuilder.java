@@ -10,6 +10,7 @@ package org.locationtech.geowave.core.store.adapter.statistics;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,7 @@ public class PartitionStatisticsQueryBuilder<R> extends
   private byte[] partitionKey;
 
   public PartitionStatisticsQueryBuilder(
-      final StatisticsType<R, PartitionStatisticsQueryBuilder<R>> statsType) {
+      final StatisticType<R, PartitionStatisticsQueryBuilder<R>> statsType) {
     this.statsType = statsType;
   }
 

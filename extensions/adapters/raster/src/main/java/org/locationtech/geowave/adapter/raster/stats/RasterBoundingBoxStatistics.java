@@ -10,47 +10,69 @@ package org.locationtech.geowave.adapter.raster.stats;
 
 import org.geotools.geometry.GeneralEnvelope;
 import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
-import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsQueryBuilder;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
+import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatisticValue;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.jts.geom.Envelope;
 import org.opengis.coverage.grid.GridCoverage;
 
 public class RasterBoundingBoxStatistics extends
-    BoundingBoxDataStatistics<GridCoverage, BaseStatisticsQueryBuilder<Envelope>> {
-  public static final BaseStatisticsType<Envelope> STATS_TYPE =
-      new BaseStatisticsType<>("BOUNDING_BOX");
+    AdapterStatistic<RasterBoundingBoxStatistics.RasterBoundingBoxValue> {
+  public static final StatisticType STATS_TYPE = new StatisticType("RASTER_BOUNDING_BOX");
 
   public RasterBoundingBoxStatistics() {
-    this(null);
+    super(STATS_TYPE);
   }
 
-  public RasterBoundingBoxStatistics(final Short internalAdapterId) {
-    super(internalAdapterId, STATS_TYPE);
+  public RasterBoundingBoxStatistics(final String typeName) {
+    super(STATS_TYPE, typeName);
   }
-
+  
   @Override
-  protected Envelope getEnvelope(final GridCoverage entry) {
-    final org.opengis.geometry.Envelope indexedEnvelope = entry.getEnvelope();
-    final org.opengis.geometry.Envelope originalEnvelope;
-    if (entry instanceof FitToIndexGridCoverage) {
-      originalEnvelope = ((FitToIndexGridCoverage) entry).getOriginalEnvelope();
-    } else {
-      originalEnvelope = null;
+  public String getDescription() {
+    return "Maintains a bounding box for a raster data set.";
+  }
+  
+  @Override
+  public boolean isCompatibleWith(final Class<?> adapterClass) {
+    return GridCoverage.class.isAssignableFrom(adapterClass);
+  }
+  
+  @Override
+  public RasterBoundingBoxValue createEmpty() {
+    return new RasterBoundingBoxValue();
+  }
+  
+  public static class RasterBoundingBoxValue extends BoundingBoxStatisticValue {
+
+    @Override
+    public <T> Envelope getEnvelope(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... row) {
+      if (entry instanceof GridCoverage) {
+        final org.opengis.geometry.Envelope indexedEnvelope = ((GridCoverage) entry).getEnvelope();
+        final org.opengis.geometry.Envelope originalEnvelope;
+        if (entry instanceof FitToIndexGridCoverage) {
+          originalEnvelope = ((FitToIndexGridCoverage) entry).getOriginalEnvelope();
+        } else {
+          originalEnvelope = null;
+        }
+        // we don't want to accumulate the envelope outside of the original if
+        // it is fit to the index, so compute the intersection with the original
+        // envelope
+        final org.opengis.geometry.Envelope resultingEnvelope =
+            getIntersection(originalEnvelope, indexedEnvelope);
+        if (resultingEnvelope != null) {
+          return new Envelope(
+              resultingEnvelope.getMinimum(0),
+              resultingEnvelope.getMaximum(0),
+              resultingEnvelope.getMinimum(1),
+              resultingEnvelope.getMaximum(1));
+        }
+      }
+      return null;
     }
-    // we don't want to accumulate the envelope outside of the original if
-    // it is fit to the index, so compute the intersection with the original
-    // envelope
-    final org.opengis.geometry.Envelope resultingEnvelope =
-        getIntersection(originalEnvelope, indexedEnvelope);
-    if (resultingEnvelope != null) {
-      return new Envelope(
-          resultingEnvelope.getMinimum(0),
-          resultingEnvelope.getMaximum(0),
-          resultingEnvelope.getMinimum(1),
-          resultingEnvelope.getMaximum(1));
-    }
-    return null;
+    
   }
 
   private static org.opengis.geometry.Envelope getIntersection(

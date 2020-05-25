@@ -20,6 +20,7 @@ import org.locationtech.geowave.core.store.entities.GeoWaveKeyImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
 
 public class PartitionStatisticsTest {
   static final long base = 7l;
@@ -36,7 +37,7 @@ public class PartitionStatisticsTest {
 
   @Test
   public void testIngest() {
-    final PartitionStatistics<Integer> stats = new PartitionStatistics<>((short) 20030, "20030");
+    final PartitionsStatistic<Integer> stats = new PartitionsStatistic<>((short) 20030, "20030");
 
     for (long i = 0; i < 10000; i++) {
       final GeoWaveRow row = new GeoWaveRowImpl(genKey(i), new GeoWaveValue[] {});

@@ -8,12 +8,14 @@
  */
 package org.locationtech.geowave.core.store.adapter.statistics;
 
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+
 public class FieldStatisticsQueryBuilder<R> extends
     StatisticsQueryBuilderImpl<R, FieldStatisticsQueryBuilder<R>> {
   private String fieldName;
 
   public FieldStatisticsQueryBuilder(
-      final StatisticsType<R, FieldStatisticsQueryBuilder<R>> statsType) {
+      final StatisticType<R, FieldStatisticsQueryBuilder<R>> statsType) {
     this.statsType = statsType;
   }
 

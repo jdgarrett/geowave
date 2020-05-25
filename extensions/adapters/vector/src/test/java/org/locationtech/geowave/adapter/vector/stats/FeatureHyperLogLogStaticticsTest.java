@@ -90,15 +90,15 @@ public class FeatureHyperLogLogStaticticsTest {
 
     final Set<String> firstSet = new HashSet<>();
     final Set<String> secondSet = new HashSet<>();
-    final FeatureHyperLogLogStatistics stat =
-        new FeatureHyperLogLogStatistics((short) -1, "pid", 16);
+    final HyperLogLogStatistics stat =
+        new HyperLogLogStatistics((short) -1, "pid", 16);
 
     for (int i = 0; i < 10000; i++) {
       stat.entryIngested(create(pidSetOne, firstSet));
     }
 
-    final FeatureHyperLogLogStatistics stat2 =
-        new FeatureHyperLogLogStatistics((short) -1, "pid", 16);
+    final HyperLogLogStatistics stat2 =
+        new HyperLogLogStatistics((short) -1, "pid", 16);
 
     for (int i = 0; i < 10000; i++) {
       stat2.entryIngested(create(pidSetTwo, secondSet));

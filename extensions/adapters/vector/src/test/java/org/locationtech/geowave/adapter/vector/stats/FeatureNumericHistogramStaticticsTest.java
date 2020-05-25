@@ -71,8 +71,8 @@ public class FeatureNumericHistogramStaticticsTest {
   @Test
   public void testPositive() {
 
-    final FeatureNumericHistogramStatistics stat =
-        new FeatureNumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistics stat =
+        new NumericHistogramStatistics((short) -1, "pop");
 
     final Random rand = new Random(7777);
 
@@ -86,8 +86,8 @@ public class FeatureNumericHistogramStaticticsTest {
       stat.entryIngested(create(next));
     }
 
-    final FeatureNumericHistogramStatistics stat2 =
-        new FeatureNumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistics stat2 =
+        new NumericHistogramStatistics((short) -1, "pop");
 
     final double start2 = next;
 
@@ -126,8 +126,8 @@ public class FeatureNumericHistogramStaticticsTest {
   @Test
   public void testRapidIncreaseInRange() {
 
-    final FeatureNumericHistogramStatistics stat1 =
-        new FeatureNumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistics stat1 =
+        new NumericHistogramStatistics((short) -1, "pop");
 
     final Random rand = new Random(7777);
     double next = 1;
@@ -137,8 +137,8 @@ public class FeatureNumericHistogramStaticticsTest {
     }
 
     for (long i = 0; i < 100; i++) {
-      final FeatureNumericHistogramStatistics stat2 =
-          new FeatureNumericHistogramStatistics((short) -1, "pop");
+      final NumericHistogramStatistics stat2 =
+          new NumericHistogramStatistics((short) -1, "pop");
       for (int j = 0; j < 100; j++) {
         stat2.entryIngested(create(4839000434.547854578 * rand.nextDouble() * rand.nextGaussian()));
       }
@@ -155,8 +155,8 @@ public class FeatureNumericHistogramStaticticsTest {
   @Test
   public void testNegative() {
 
-    final FeatureNumericHistogramStatistics stat =
-        new FeatureNumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistics stat =
+        new NumericHistogramStatistics((short) -1, "pop");
 
     final Random rand = new Random(7777);
 
@@ -170,8 +170,8 @@ public class FeatureNumericHistogramStaticticsTest {
       stat.entryIngested(create(next));
     }
 
-    final FeatureNumericHistogramStatistics stat2 =
-        new FeatureNumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistics stat2 =
+        new NumericHistogramStatistics((short) -1, "pop");
 
     final double start2 = next;
 
@@ -210,8 +210,8 @@ public class FeatureNumericHistogramStaticticsTest {
   @Test
   public void testMix() {
 
-    final FeatureNumericHistogramStatistics stat =
-        new FeatureNumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistics stat =
+        new NumericHistogramStatistics((short) -1, "pop");
 
     final Random rand = new Random(7777);
 
@@ -220,8 +220,8 @@ public class FeatureNumericHistogramStaticticsTest {
 
     double next = 0;
     for (int i = 1; i < 300; i++) {
-      final FeatureNumericHistogramStatistics stat2 =
-          new FeatureNumericHistogramStatistics((short) -1, "pop");
+      final NumericHistogramStatistics stat2 =
+          new NumericHistogramStatistics((short) -1, "pop");
       final double m = 10000.0 * Math.pow(10.0, ((i / 100) + 1));
       if (i == 50) {
         System.out.println("1");
