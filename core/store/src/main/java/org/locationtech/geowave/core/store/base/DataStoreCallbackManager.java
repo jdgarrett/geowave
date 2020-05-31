@@ -14,10 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.locationtech.geowave.core.store.DataStoreStatisticsProvider;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
-import org.locationtech.geowave.core.store.adapter.statistics.StatsCompositionTool;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.callback.DeleteCallback;
 import org.locationtech.geowave.core.store.callback.DeleteCallbackList;
@@ -47,12 +45,9 @@ public class DataStoreCallbackManager {
       final InternalDataAdapter<T> writableAdapter,
       final Index index) {
     if (!icache.containsKey(writableAdapter.getAdapterId())) {
-      final DataStoreStatisticsProvider<T> statsProvider =
-          new DataStoreStatisticsProvider<>(writableAdapter, index, captureAdapterStats);
       final List<IngestCallback<T>> callbackList = new ArrayList<>();
-      if ((writableAdapter.getAdapter() instanceof StatisticsProvider) && persistStats) {
-        callbackList.add(
-            new StatsCompositionTool<>(statsProvider, statsStore, index, writableAdapter));
+      if (persistStats) {
+        callbackList.add(statsStore.getUpdateCallback(writableAdapter, index));
       }
       icache.put(writableAdapter.getAdapterId(), new IngestCallbackList<>(callbackList));
     }
@@ -67,12 +62,9 @@ public class DataStoreCallbackManager {
       final InternalDataAdapter<T> writableAdapter,
       final Index index) {
     if (!dcache.containsKey(writableAdapter.getAdapterId())) {
-      final DataStoreStatisticsProvider<T> statsProvider =
-          new DataStoreStatisticsProvider<>(writableAdapter, index, captureAdapterStats);
       final List<DeleteCallback<T, GeoWaveRow>> callbackList = new ArrayList<>();
       if ((writableAdapter.getAdapter() instanceof StatisticsProvider) && persistStats) {
-        callbackList.add(
-            new StatsCompositionTool<>(statsProvider, statsStore, index, writableAdapter));
+        callbackList.add(statsStore.getUpdateCallback(writableAdapter, index));
       }
       dcache.put(writableAdapter.getAdapterId(), new DeleteCallbackList<>(callbackList));
     }

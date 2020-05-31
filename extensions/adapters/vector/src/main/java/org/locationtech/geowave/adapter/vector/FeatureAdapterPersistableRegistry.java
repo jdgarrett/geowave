@@ -26,18 +26,15 @@ import org.locationtech.geowave.adapter.vector.render.DistributedRenderResult;
 import org.locationtech.geowave.adapter.vector.render.DistributedRenderResult.CompositeGroupResult;
 import org.locationtech.geowave.adapter.vector.render.PersistableComposite;
 import org.locationtech.geowave.adapter.vector.render.PersistableRenderedImage;
-import org.locationtech.geowave.adapter.vector.stats.FeatureCountMinSketchStatistics;
-import org.locationtech.geowave.adapter.vector.stats.FeatureCountMinSketchStatistics.FeatureCountMinSketchConfig;
-import org.locationtech.geowave.adapter.vector.stats.FeatureFixedBinNumericStatistics;
-import org.locationtech.geowave.adapter.vector.stats.FeatureFixedBinNumericStatistics.FeatureFixedBinConfig;
 import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistics;
-import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistics.FeatureHyperLogLogConfig;
 import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistics;
-import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistics.FeatureNumericHistogramConfig;
-import org.locationtech.geowave.adapter.vector.stats.FeatureNumericRangeStatistics;
-import org.locationtech.geowave.adapter.vector.stats.FeatureNumericRangeStatistics.FeatureNumericRangeConfig;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection.SimpleFeatureStatsConfigurationCollection;
+import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureCountMinSketchConfig;
+import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureFixedBinConfig;
+import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureHyperLogLogConfig;
+import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureNumericHistogramConfig;
+import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureNumericRangeConfig;
 import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigurationSet;
 import org.locationtech.geowave.core.geotime.store.query.ExplicitCQLQuery;
 import org.locationtech.geowave.core.geotime.store.query.filter.CQLQueryFilter;
@@ -67,11 +64,8 @@ public class FeatureAdapterPersistableRegistry implements PersistableRegistrySpi
         new PersistableIdAndConstructor((short) 512, PersistableComposite::new),
         new PersistableIdAndConstructor((short) 513, PersistableRenderedImage::new),
         new PersistableIdAndConstructor((short) 514, FeatureBoundingBoxStatistics::new),
-        new PersistableIdAndConstructor((short) 515, FeatureCountMinSketchStatistics::new),
-        new PersistableIdAndConstructor((short) 516, FeatureFixedBinNumericStatistics::new),
         new PersistableIdAndConstructor((short) 517, HyperLogLogStatistics::new),
         new PersistableIdAndConstructor((short) 518, NumericHistogramStatistics::new),
-        new PersistableIdAndConstructor((short) 519, FeatureNumericRangeStatistics::new),
         new PersistableIdAndConstructor((short) 520, FeatureTimeRangeStatistics::new),
         new PersistableIdAndConstructor((short) 521, DistributedRenderAggregation::new),
         new PersistableIdAndConstructor((short) 522, SimpleFeatureUserDataConfigurationSet::new),

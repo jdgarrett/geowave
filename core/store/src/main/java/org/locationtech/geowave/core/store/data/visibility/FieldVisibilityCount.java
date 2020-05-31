@@ -9,21 +9,17 @@
 package org.locationtech.geowave.core.store.data.visibility;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
-import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
-import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
@@ -36,7 +32,7 @@ import com.google.common.collect.Sets;
 // visibility.
 public class FieldVisibilityCount extends
     IndexStatistic<FieldVisibilityCount.FieldVisibilityCountValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("FIELD_VISIBILITY_COUNT");
+  public static final StatisticType<FieldVisibilityCountValue> STATS_TYPE = new StatisticType<>("FIELD_VISIBILITY_COUNT");
 
   public FieldVisibilityCount() {
     super(STATS_TYPE);
@@ -46,10 +42,6 @@ public class FieldVisibilityCount extends
     super(STATS_TYPE, indexName);
   }
 
-  public FieldVisibilityCount(final String indexName, final String typeName) {
-    super(STATS_TYPE, typeName);
-  }
-
   @Override
   public String getDescription() {
     return "Counts the number of entries for each field visibility.";
@@ -57,14 +49,18 @@ public class FieldVisibilityCount extends
 
   @Override
   public FieldVisibilityCountValue createEmpty() {
-    return new FieldVisibilityCountValue();
+    return new FieldVisibilityCountValue(this);
   }
 
-  public static class FieldVisibilityCountValue implements
-      StatisticValue<Map<ByteArray, Long>>,
+  public static class FieldVisibilityCountValue extends
+      StatisticValue<Map<ByteArray, Long>> implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
     private final Map<ByteArray, Long> countsPerVisibility = Maps.newHashMap();
+    
+    private FieldVisibilityCountValue(final Statistic<?> statistic) {
+      super(statistic);
+    }
 
     public boolean isAuthorizationsLimiting(final String... authorizations) {
       final Set<String> set = Sets.newHashSet(authorizations);
@@ -80,7 +76,7 @@ public class FieldVisibilityCount extends
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Map<ByteArray, Long>> merge) {
       if ((merge != null) && (merge instanceof FieldVisibilityCountValue)) {
         final Map<ByteArray, Long> otherCounts =
             ((FieldVisibilityCountValue) merge).countsPerVisibility;
@@ -166,27 +162,5 @@ public class FieldVisibilityCount extends
         }
       }
     }
-  }
-
-  public static FieldVisibilityCountValue getVisibilityCounts(
-      final Index index,
-      final Collection<Short> adapterIdsToQuery,
-      final PersistentAdapterStore adapterStore,
-      final DataStatisticsStore statisticsStore,
-      final String... authorizations) {
-    FieldVisibilityCountValue combinedVisibilityCount = null;
-    for (final short adapterId : adapterIdsToQuery) {
-      DataTypeAdapter<?> adapter = adapterStore.getAdapter(adapterId);
-      FieldVisibilityCountValue value =
-          statisticsStore.getStatisticValue(
-              new FieldVisibilityCount(index.getName(), adapter.getTypeName()),
-              authorizations);
-      if (combinedVisibilityCount == null) {
-        combinedVisibilityCount = value;
-      } else {
-        combinedVisibilityCount.merge(value);
-      }
-    }
-    return combinedVisibilityCount;
   }
 }

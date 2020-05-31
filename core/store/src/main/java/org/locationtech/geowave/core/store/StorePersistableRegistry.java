@@ -12,10 +12,6 @@ import org.locationtech.geowave.core.index.persist.PersistableRegistrySpi;
 import org.locationtech.geowave.core.store.adapter.BinaryDataAdapter;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapterWrapper;
 import org.locationtech.geowave.core.store.adapter.SimpleRowTransform;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.IndexStatisticsType;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatisticsSet;
 import org.locationtech.geowave.core.store.api.AggregationQuery;
 import org.locationtech.geowave.core.store.api.Query;
 import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
@@ -59,6 +55,7 @@ import org.locationtech.geowave.core.store.query.options.QueryAllIndices;
 import org.locationtech.geowave.core.store.query.options.QueryAllTypes;
 import org.locationtech.geowave.core.store.query.options.QuerySingleIndex;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.MaxDuplicatesStatistic;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
@@ -73,6 +70,7 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 201, CountStatistic::new),
         new PersistableIdAndConstructor((short) 202, DuplicateEntryCountStatistic::new),
         new PersistableIdAndConstructor((short) 203, MaxDuplicatesStatistic::new),
+        new PersistableIdAndConstructor((short) 204, NumericRangeStatistic::new),
         new PersistableIdAndConstructor((short) 205, RowRangeHistogramStatistic::new),
         new PersistableIdAndConstructor((short) 206, DifferingFieldVisibilityEntryCount::new),
         new PersistableIdAndConstructor((short) 207, FieldVisibilityCount::new),
@@ -100,15 +98,10 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 236, PartitionsStatistic::new),
         new PersistableIdAndConstructor((short) 237, FilterByTypeQueryOptions::new),
         new PersistableIdAndConstructor((short) 238, QueryAllIndices::new),
-        new PersistableIdAndConstructor((short) 239, IndexStatisticsType::new),
-        new PersistableIdAndConstructor((short) 240, BaseStatisticsType::new),
         new PersistableIdAndConstructor((short) 241, AggregateTypeQueryOptions::new),
         new PersistableIdAndConstructor((short) 242, AdapterMapping::new),
-        new PersistableIdAndConstructor((short) 243, RowRangeHistogramStatisticsSet::new),
         new PersistableIdAndConstructor((short) 244, Query::new),
         new PersistableIdAndConstructor((short) 245, AggregationQuery::new),
-        new PersistableIdAndConstructor((short) 246, PartitionStatisticsType::new),
-        new PersistableIdAndConstructor((short) 247, FieldStatisticsType::new),
         new PersistableIdAndConstructor((short) 248, QuerySingleIndex::new),
         new PersistableIdAndConstructor((short) 249, QueryAllTypes::new),
         new PersistableIdAndConstructor((short) 250, FilterList::new),

@@ -6,15 +6,15 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import org.locationtech.geowave.core.geotime.store.query.TemporalRange;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.locationtech.geowave.core.store.statistics.BaseStatisticValue;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.threeten.extra.Interval;
 
-public abstract class TimeRangeStatisticValue implements StatisticValue<Interval>, StatisticsIngestCallback {
+public abstract class TimeRangeStatisticValue extends BaseStatisticValue<Interval> implements StatisticsIngestCallback {
   private long min = Long.MAX_VALUE;
   private long max = Long.MIN_VALUE;
 
@@ -80,7 +80,7 @@ public abstract class TimeRangeStatisticValue implements StatisticValue<Interval
   protected abstract <T> Interval getInterval(final DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows);
 
   @Override
-  public void merge(final Mergeable merge) {
+  public void merge(final StatisticValue<Interval> merge) {
     if ((merge != null) && (merge instanceof TimeRangeStatisticValue)) {
       final TimeRangeStatisticValue stats = (TimeRangeStatisticValue) merge;
       if (stats.isSet()) {

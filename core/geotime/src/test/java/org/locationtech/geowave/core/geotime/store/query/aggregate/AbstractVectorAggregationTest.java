@@ -17,7 +17,7 @@ import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.query.aggregate.AbstractAggregationTest;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 import org.opengis.feature.simple.SimpleFeature;
 import com.google.common.collect.Lists;
 

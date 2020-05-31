@@ -97,4 +97,29 @@ public class InternalDataAdapterWrapper<T> implements InternalDataAdapter<T> {
   public DataTypeAdapter<T> getAdapter() {
     return adapter;
   }
+
+  @Override
+  public int getFieldCount() {
+    return adapter.getFieldCount();
+  }
+
+  @Override
+  public Class<?> getFieldClass(int fieldIndex) {
+    return adapter.getFieldClass(fieldIndex);
+  }
+
+  @Override
+  public String getFieldName(int fieldIndex) {
+    return adapter.getFieldName(fieldIndex);
+  }
+
+  @Override
+  public Object getFieldValue(T entry, String fieldName) {
+    return adapter.getFieldValue(entry, fieldName);
+  }
+
+  @Override
+  public Class<T> getDataClass() {
+    return adapter.getDataClass();
+  }
 }

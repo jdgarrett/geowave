@@ -52,11 +52,8 @@ public class CompactStatsCommand extends DefaultOperation implements Command {
       inputStoreOptions = inputStoreLoader.getDataStorePlugin();
     }
 
-    // Get all statistics, remove all statistics, then re-add
     final DataStatisticsStore statsStore = inputStoreOptions.createDataStatisticsStore();
-    final InternalAdapterStore internalAdapterStore =
-        inputStoreOptions.createInternalAdapterStore();
-    inputStoreOptions.createDataStoreOperations().mergeStats(statsStore, internalAdapterStore);
+    statsStore.mergeStats();
   }
 
   public List<String> getParameters() {

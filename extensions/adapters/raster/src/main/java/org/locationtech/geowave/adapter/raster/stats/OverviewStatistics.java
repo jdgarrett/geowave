@@ -17,10 +17,10 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -29,7 +29,7 @@ import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.opengis.coverage.grid.GridCoverage;
 
 public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.OverviewValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("RASTER_OVERVIEW");
+  public static final StatisticType<OverviewValue> STATS_TYPE = new StatisticType<>("RASTER_OVERVIEW");
 
 
   public OverviewStatistics() {
@@ -53,11 +53,15 @@ public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.Over
 
   @Override
   public OverviewValue createEmpty() {
-    return new OverviewValue();
+    return new OverviewValue(this);
   }
   
-  public static class OverviewValue implements StatisticValue<Resolution[]>, StatisticsIngestCallback {
+  public static class OverviewValue extends StatisticValue<Resolution[]> implements StatisticsIngestCallback {
     private Resolution[] resolutions = new Resolution[] {};
+    
+    private OverviewValue(final Statistic<?> statistic) {
+      super(statistic);
+    }
     
     public Resolution[] getResolutions() {
       synchronized (this) {
@@ -85,7 +89,7 @@ public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.Over
     }
     
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Resolution[]> merge) {
       if (merge instanceof OverviewValue) {
         synchronized (this) {
           resolutions =

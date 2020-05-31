@@ -18,7 +18,7 @@ import org.locationtech.geowave.core.index.persist.Persistable;
  *
  * @param <R> The type of statistic
  */
-public class StatisticType extends ByteArray implements Persistable {
+public class StatisticType<V> extends ByteArray {
   private static final long serialVersionUID = 1L;
 
   public StatisticType() {
@@ -31,16 +31,6 @@ public class StatisticType extends ByteArray implements Persistable {
 
   public StatisticType(final String id) {
     super(id);
-  }
-
-  @Override
-  public byte[] toBinary() {
-    return bytes;
-  }
-
-  @Override
-  public void fromBinary(final byte[] bytes) {
-    this.bytes = bytes;
   }
 
   @Override
@@ -58,7 +48,7 @@ public class StatisticType extends ByteArray implements Persistable {
     if (!(obj instanceof StatisticType)) {
       return false;
     }
-    final StatisticType other = (StatisticType) obj;
+    final StatisticType<?> other = (StatisticType<?>) obj;
     return Arrays.equals(bytes, other.getBytes());
   }
 }

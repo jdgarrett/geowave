@@ -10,9 +10,9 @@ package org.locationtech.geowave.adapter.vector.plugin.transaction;
 
 import java.io.IOException;
 import java.util.Map;
+import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 
@@ -44,7 +44,7 @@ public interface GeoWaveTransaction {
 
   public String composeVisibility();
 
-  public Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> getDataStatistics();
+  public Map<ByteArray, Statistic<?>> getDataStatistics();
 
   public CloseableIterator<SimpleFeature> interweaveTransaction(
       final Integer limit,

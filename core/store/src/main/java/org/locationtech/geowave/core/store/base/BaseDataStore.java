@@ -46,7 +46,6 @@ import org.locationtech.geowave.core.store.api.Query;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.api.StatisticsQuery;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.base.dataidx.DataIndexUtils;
 import org.locationtech.geowave.core.store.callback.DeleteCallbackList;
@@ -55,15 +54,12 @@ import org.locationtech.geowave.core.store.callback.DuplicateDeletionCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallbackList;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
 import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
 import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.FieldVisibilityCountValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowIteratorTransformer;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowMergingTransform;
-import org.locationtech.geowave.core.store.index.IndexMetaDataSet;
 import org.locationtech.geowave.core.store.index.IndexStore;
 import org.locationtech.geowave.core.store.index.writer.IndependentAdapterIndexWriter;
 import org.locationtech.geowave.core.store.index.writer.IndexCompositeWriter;
@@ -89,7 +85,8 @@ import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.query.constraints.TypeConstraintQuery;
 import org.locationtech.geowave.core.store.query.filter.DedupeFilter;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
+import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
+import org.locationtech.geowave.core.store.statistics.query.StatisticsQuery;
 import org.locationtech.geowave.core.store.util.NativeEntryIteratorWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -831,7 +828,7 @@ public class BaseDataStore implements DataStore {
       final Index index,
       final String... additionalAuthorizations) throws IOException {
     statisticsStore.removeStatistics(
-        statisticsStore.getAdapterStatistics(adapter.getAdapter(), null));
+        statisticsStore.getAdapterStatistics(adapter.getAdapter(), null, null));
 
     // cannot delete because authorizations are not used
     // this.indexMappingStore.remove(adapter.getAdapterId());
@@ -861,24 +858,25 @@ public class BaseDataStore implements DataStore {
             sanitizedQueryOptions.getScanCallback(),
             sanitizedQueryOptions.getAggregation(),
             sanitizedQueryOptions.getFieldIdsAdapterPair(),
-            IndexMetaDataSet.getIndexMetadata(
-                index,
-                adapterIdsToQuery,
-                statisticsStore,
-                sanitizedQueryOptions.getAuthorizations()),
-            DuplicateEntryCountStatistic.getDuplicateCounts(
+            InternalStatisticsHelper.getIndexMetadata(
                 index,
                 adapterIdsToQuery,
                 tempAdapterStore,
                 statisticsStore,
                 sanitizedQueryOptions.getAuthorizations()),
-            DifferingFieldVisibilityEntryCount.getVisibilityCounts(
+            InternalStatisticsHelper.getDuplicateCounts(
                 index,
                 adapterIdsToQuery,
                 tempAdapterStore,
                 statisticsStore,
                 sanitizedQueryOptions.getAuthorizations()),
-            FieldVisibilityCount.getVisibilityCounts(
+            InternalStatisticsHelper.getDifferingVisibilityCounts(
+                index,
+                adapterIdsToQuery,
+                tempAdapterStore,
+                statisticsStore,
+                sanitizedQueryOptions.getAuthorizations()),
+            InternalStatisticsHelper.getVisibilityCounts(
                 index,
                 adapterIdsToQuery,
                 tempAdapterStore,
@@ -923,13 +921,13 @@ public class BaseDataStore implements DataStore {
             partitionKey,
             sortPrefix,
             (ScanCallback<Object, ?>) sanitizedQueryOptions.getScanCallback(),
-            DifferingFieldVisibilityEntryCount.getVisibilityCounts(
+            InternalStatisticsHelper.getDifferingVisibilityCounts(
                 index,
                 adapterIds,
                 tempAdapterStore,
                 statisticsStore,
                 sanitizedQueryOptions.getAuthorizations()),
-            FieldVisibilityCount.getVisibilityCounts(
+            InternalStatisticsHelper.getVisibilityCounts(
                 index,
                 adapterIds,
                 tempAdapterStore,
@@ -967,14 +965,14 @@ public class BaseDataStore implements DataStore {
       final PersistentAdapterStore tempAdapterStore,
       final boolean delete) {
     final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts =
-        DifferingFieldVisibilityEntryCount.getVisibilityCounts(
+        InternalStatisticsHelper.getDifferingVisibilityCounts(
             index,
             Collections.singletonList(adapter.getAdapterId()),
             tempAdapterStore,
             statisticsStore,
             sanitizedQueryOptions.getAuthorizations());
     final FieldVisibilityCountValue visibilityCounts =
-        FieldVisibilityCount.getVisibilityCounts(
+        InternalStatisticsHelper.getVisibilityCounts(
             index,
             Collections.singletonList(adapter.getAdapterId()),
             tempAdapterStore,
@@ -1267,19 +1265,19 @@ public class BaseDataStore implements DataStore {
     }
   }
 
-  protected <R> CloseableIterator<StatisticValue<R>> internalQueryStatistics(
-      final StatisticsQuery<R> query) {
+  protected <V extends StatisticValue<R>, R> CloseableIterator<StatisticValue<R>> internalQueryStatistics(
+      final StatisticsQuery<V, R> query) {
     // sanity check, although using the builders should disallow this type
     // of query
-    if ((query.getStatsType() == null)
-        && (query.getExtendedId() != null)
-        && (query.getExtendedId().length() > 0)) {
-      LOGGER.error(
-          "Cannot query by extended ID '"
-              + query.getExtendedId()
-              + "' if statistic type is not provided");
-      return new CloseableIterator.Empty<>();
-    }
+//    if ((query.getStatsType() == null)
+//        && (query.getExtendedId() != null)
+//        && (query.getExtendedId().length() > 0)) {
+//      LOGGER.error(
+//          "Cannot query by extended ID '"
+//              + query.getExtendedId()
+//              + "' if statistic type is not provided");
+//      return new CloseableIterator.Empty<>();
+//    }
     CloseableIterator<StatisticValue<R>> it = null;
     // TODO_STATS: Query implementation.
     // if ((query.getTypeName() != null) && (query.getTypeName().length() > 0)) {
@@ -1332,7 +1330,7 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public <R> StatisticValue<R>[] queryStatistics(final StatisticsQuery<R> query) {
+  public <V extends StatisticValue<R>, R> CloseableIterator<V> queryStatistics(final StatisticsQuery<V, R> query) {
     // STATS_TODO: Stat queries
     return null;
     // try (CloseableIterator<StatisticValue<R>> it = internalQueryStatistics(query)) {
@@ -1342,18 +1340,20 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public <R> R aggregateStatistics(final StatisticsQuery<R> query) {
-    if (query.getStatsType() == null) {
-      LOGGER.error("Statistic Type must be provided for a statistical aggregation");
-      return null;
-    }
-    try (CloseableIterator<StatisticValue<R>> it = internalQueryStatistics(query)) {
-      if (it.hasNext()) {
-        return it.next().getValue();
-      }
-      LOGGER.warn("No statistics found matching query criteria for statistical aggregation");
-      return null;
-    }
+  public <V extends StatisticValue<R>, R> V aggregateStatistics(final StatisticsQuery<V, R> query) {
+    return null;
+    // STATS_TODO: stat aggregation
+//    if (query.getStatsType() == null) {
+//      LOGGER.error("Statistic Type must be provided for a statistical aggregation");
+//      return null;
+//    }
+//    try (CloseableIterator<StatisticValue<R>> it = internalQueryStatistics(query)) {
+//      if (it.hasNext()) {
+//        return it.next().getValue();
+//      }
+//      LOGGER.warn("No statistics found matching query criteria for statistical aggregation");
+//      return null;
+//    }
   }
 
   @Override
@@ -1681,12 +1681,12 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public void addStatistic(Statistic<?> statistic) {
+  public void addStatistic(Statistic<? extends StatisticValue<?>> statistic) {
     addStatistic(statistic, true);
   }
 
   @Override
-  public void addStatistic(Statistic<?> statistic, boolean calculateStat) {
+  public void addStatistic(Statistic<? extends StatisticValue<?>> statistic, boolean calculateStat) {
     if (statisticsStore.exists(statistic)) {
       throw new IllegalArgumentException("The statistic already exists.");
     }
@@ -1697,7 +1697,7 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public void removeStatistic(Statistic<?> statistic) {
+  public void removeStatistic(Statistic<? extends StatisticValue<?>> statistic) {
     boolean removed = statisticsStore.removeStatistic(statistic);
     if (!removed) {
       throw new IllegalArgumentException(
@@ -1706,15 +1706,15 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public CloseableIterator<Statistic<?>> getTypeStatistics(String typeName) {
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(String typeName) {
     short adapterId = internalAdapterStore.getAdapterId(typeName);
-    return statisticsStore.getAdapterStatistics(adapterStore.getAdapter(adapterId), null);
+    return statisticsStore.getAdapterStatistics(adapterStore.getAdapter(adapterId), null, null);
   }
 
   @Override
   public <T> void addType(
       DataTypeAdapter<T> dataTypeAdapter,
-      List<Statistic<?>> statistics,
+      List<Statistic<? extends StatisticValue<?>>> statistics,
       Index... initialIndices) {
     addType(dataTypeAdapter, initialIndices);
     statistics.stream().forEach(stat -> statisticsStore.addStatistic(stat));

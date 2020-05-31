@@ -91,10 +91,9 @@ public class RocksDBOperations implements MapReduceDataStoreOperations, Closeabl
 
   @Override
   public boolean mergeStats(
-      final DataStatisticsStore statsStore,
-      final InternalAdapterStore internalAdapterStore) {
+      final DataStatisticsStore statsStore) {
     final boolean retVal =
-        MapReduceDataStoreOperations.super.mergeStats(statsStore, internalAdapterStore);
+        MapReduceDataStoreOperations.super.mergeStats(statsStore);
     client.mergeMetadata();
     return retVal;
   }

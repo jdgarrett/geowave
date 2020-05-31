@@ -129,4 +129,29 @@ public class ImageChipDataAdapter implements DataTypeAdapter<ImageChip> {
     }
     return null;
   }
+
+  @Override
+  public int getFieldCount() {
+    return 1;
+  }
+
+  @Override
+  public Class<?> getFieldClass(int fieldIndex) {
+    return byte[].class;
+  }
+
+  @Override
+  public String getFieldName(int fieldIndex) {
+    return IMAGE_FIELD_NAME;
+  }
+
+  @Override
+  public Object getFieldValue(ImageChip entry, String fieldName) {
+    return entry.getImageBinary();
+  }
+
+  @Override
+  public Class<ImageChip> getDataClass() {
+    return ImageChip.class;
+  }
 }

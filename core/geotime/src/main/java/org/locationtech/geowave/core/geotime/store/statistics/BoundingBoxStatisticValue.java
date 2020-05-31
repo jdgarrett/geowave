@@ -5,10 +5,10 @@ import java.util.HashMap;
 import java.util.Map;
 import org.locationtech.geowave.core.geotime.index.dimension.LatitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.LongitudeDefinition;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.dimension.NumericDimensionDefinition;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintData;
@@ -16,11 +16,15 @@ import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.C
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.jts.geom.Envelope;
 
-public abstract class BoundingBoxStatisticValue implements StatisticValue<Envelope>, StatisticsIngestCallback {
+public abstract class BoundingBoxStatisticValue extends StatisticValue<Envelope> implements StatisticsIngestCallback {
   protected double minX = Double.MAX_VALUE;
   protected double minY = Double.MAX_VALUE;
   protected double maxX = -Double.MAX_VALUE;
   protected double maxY = -Double.MAX_VALUE;
+  
+  protected BoundingBoxStatisticValue(final Statistic<?> statistic) {
+    super(statistic);
+  }
   
   public boolean isSet() {
     if ((minX == Double.MAX_VALUE)
@@ -75,7 +79,7 @@ public abstract class BoundingBoxStatisticValue implements StatisticValue<Envelo
   }
   
   @Override
-  public void merge(Mergeable merge) {
+  public void merge(StatisticValue<Envelope> merge) {
     if ((merge != null) && (merge instanceof BoundingBoxStatisticValue)) {
       final BoundingBoxStatisticValue bboxStats = (BoundingBoxStatisticValue) merge;
       if (bboxStats.isSet()) {

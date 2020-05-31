@@ -21,6 +21,7 @@ import org.locationtech.geowave.core.cli.utils.ConsolePrinter;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
@@ -80,11 +81,11 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
       throw new ParameterException("Unrecognized type name: " + typeName);
     }
 
-    List<Statistic<?>> indexStats = statsStore.getRegisteredIndexStatistics();
+    List<? extends Statistic<? extends StatisticValue<?>>> indexStats = statsStore.getRegisteredIndexStatistics();
 
     ConsolePrinter printer = new ConsolePrinter(0, Integer.MAX_VALUE);
-    Map<String, List<Statistic<?>>> adapterStats = Maps.newHashMap();
-    Map<String, Map<String, List<Statistic<?>>>> fieldStats = Maps.newHashMap();
+    Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> adapterStats = Maps.newHashMap();
+    Map<String, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>>> fieldStats = Maps.newHashMap();
     if (adapter == null) {
       DataTypeAdapter<?>[] adapters = dataStore.getTypes();
       for (DataTypeAdapter<?> dataAdapter : adapters) {
@@ -111,7 +112,7 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
     return null;
   }
 
-  private void displayIndexStats(ConsolePrinter printer, List<Statistic<?>> stats) {
+  private void displayIndexStats(ConsolePrinter printer, List<? extends Statistic<? extends StatisticValue<?>>> stats) {
     JCommander.getConsole().println("General index statistics: ");
     List<List<Object>> rows = Lists.newArrayListWithCapacity(stats.size());
 
@@ -121,10 +122,10 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
     printer.print(Arrays.asList("Statistic", "Description"), rows);
   }
 
-  private void displayAdapterStats(ConsolePrinter printer, Map<String, List<Statistic<?>>> stats) {
+  private void displayAdapterStats(ConsolePrinter printer, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> stats) {
     JCommander.getConsole().println("General data type statistics: ");
     List<List<Object>> rows = Lists.newArrayListWithCapacity(stats.size());
-    for (Entry<String, List<Statistic<?>>> adapterStats : stats.entrySet()) {
+    for (Entry<String, List<? extends Statistic<? extends StatisticValue<?>>>> adapterStats : stats.entrySet()) {
       boolean first = true;
       for (Statistic<?> o : adapterStats.getValue()) {
         rows.add(
@@ -140,12 +141,12 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
 
   private void displayFieldStats(
       ConsolePrinter printer,
-      Map<String, Map<String, List<Statistic<?>>>> stats) {
+      Map<String, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>>> stats) {
     JCommander.getConsole().println("Compatible field statistics: ");
     List<List<Object>> rows = Lists.newArrayListWithCapacity(stats.size());
-    for (Entry<String, Map<String, List<Statistic<?>>>> adapterStats : stats.entrySet()) {
+    for (Entry<String, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>>> adapterStats : stats.entrySet()) {
       boolean firstAdapter = true;
-      for (Entry<String, List<Statistic<?>>> fieldStats : adapterStats.getValue().entrySet()) {
+      for (Entry<String, List<? extends Statistic<? extends StatisticValue<?>>>> fieldStats : adapterStats.getValue().entrySet()) {
         boolean firstField = true;
         for (Statistic<?> o : fieldStats.getValue()) {
           rows.add(

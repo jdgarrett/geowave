@@ -13,8 +13,8 @@ import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
 import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.core.geotime.util.TWKBReader;
 import org.locationtech.geowave.core.geotime.util.TWKBWriter;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 public class RasterFootprintStatistics extends
     AdapterStatistic<RasterFootprintStatistics.RasterFootprintValue> {
   private static final Logger LOGGER = LoggerFactory.getLogger(RasterFootprintStatistics.class);
-  public static final StatisticType STATS_TYPE = new StatisticType("RASTER_FOOTPRINT");
+  public static final StatisticType<RasterFootprintValue> STATS_TYPE = new StatisticType<>("RASTER_FOOTPRINT");
 
   public RasterFootprintStatistics() {
     super(STATS_TYPE);
@@ -51,15 +51,19 @@ public class RasterFootprintStatistics extends
 
   @Override
   public RasterFootprintValue createEmpty() {
-    return new RasterFootprintValue();
+    return new RasterFootprintValue(this);
   }
   
-  public static class RasterFootprintValue implements StatisticValue<Geometry>, StatisticsIngestCallback {
+  public static class RasterFootprintValue extends StatisticValue<Geometry> implements StatisticsIngestCallback {
+
+    private RasterFootprintValue(final Statistic<?> statistic) {
+      super(statistic);
+    }
 
     private Geometry footprint = null;
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Geometry> merge) {
       if (merge instanceof RasterFootprintValue) {
         footprint =
             RasterUtils.combineIntoOneGeometry(

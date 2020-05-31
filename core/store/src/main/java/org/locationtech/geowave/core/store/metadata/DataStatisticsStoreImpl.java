@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.locationtech.geowave.core.index.ByteArray;
-import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.DataStoreOptions;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -15,51 +13,53 @@ import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
+import org.locationtech.geowave.core.store.operations.MetadataDeleter;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataType;
+import org.locationtech.geowave.core.store.statistics.BinnedStatisticValue;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.FieldStatisticId;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.StatisticUpdateCallback;
+import org.locationtech.geowave.core.store.statistics.StatisticValueReader;
+import org.locationtech.geowave.core.store.statistics.StatisticValueWriter;
 import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
-import org.locationtech.geowave.core.store.statistics.StatisticsProviderSPI.ProvidedStatistic;
-import org.locationtech.geowave.core.store.statistics.StatisticsProviderSPI.StatisticContext;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistrySPI.RegisteredStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
-import com.google.common.primitives.Bytes;
 
-public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statistic<?>> implements
+public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statistic<? extends StatisticValue<?>>> implements
     DataStatisticsStore {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataStatisticsStoreImpl.class);
+  //this is fairly arbitrary at the moment because it is the only custom
+  // server op added
+  public static final int STATS_COMBINER_PRIORITY = 10;
+  public static final String STATISTICS_COMBINER_NAME = "STATS_COMBINER";
+ 
   public DataStatisticsStoreImpl(DataStoreOperations operations, DataStoreOptions options) {
-    super(operations, options, MetadataType.STAT_OPTIONS);
+    super(operations, options, MetadataType.STATS);
   }
 
   @Override
-  protected ByteArray getPrimaryId(Statistic<?> persistedObject) {
-    return getPrimaryId(persistedObject.getStatisticType(), persistedObject.getUniqueId());
-  }
-
-  public static ByteArray getPrimaryId(final StatisticType type, final String extendedId) {
-    if ((extendedId != null) && (extendedId.length() > 0)) {
-      return new ByteArray(
-          Bytes.concat(
-              type.getBytes(),
-              new byte[] {(byte) Statistic.UNIQUE_ID_SEPARATOR},
-              StringUtils.stringToBinary(extendedId)));
-    }
-    return type;
+  protected ByteArray getPrimaryId(Statistic<? extends StatisticValue<?>> persistedObject) {
+    return persistedObject.getId().getUniqueId();
   }
 
   @Override
-  protected ByteArray getSecondaryId(Statistic<?> persistedObject) {
+  protected ByteArray getSecondaryId(Statistic<? extends StatisticValue<?>> persistedObject) {
     if (persistedObject instanceof IndexStatistic) {
       return indexStatisticSecondaryId(((IndexStatistic<?>) persistedObject).getIndexName());
     } else if (persistedObject instanceof AdapterStatistic) {
-      return new ByteArray(
-          ("A" + ((AdapterStatistic<?>) persistedObject).getTypeName()).getBytes());
+      return adapterStatisticSecondaryId(((AdapterStatistic<?>) persistedObject).getTypeName());
     } else if (persistedObject instanceof FieldStatistic) {
-      return new ByteArray(("F" + ((FieldStatistic<?>) persistedObject).getTypeName()).getBytes());
+      return fieldStatisticSecondaryId(((FieldStatistic<?>) persistedObject).getTypeName());
     }
     return null;
   }
@@ -77,30 +77,30 @@ public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statisti
   }
 
   @Override
-  public List<Statistic<?>> getRegisteredIndexStatistics() {
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics() {
     return StatisticsRegistry.instance().getStatistics().values().stream().filter(
-        ProvidedStatistic::isIndexStatistic).map(s -> s.getOptionsConstructor().get()).collect(
+        RegisteredStatistic::isIndexStatistic).map(s -> s.getOptionsConstructor().get()).collect(
             Collectors.toList());
   }
 
   @Override
-  public List<Statistic<?>> getRegisteredAdapterStatistics(Class<?> adapterDataClass) {
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(Class<?> adapterDataClass) {
     return StatisticsRegistry.instance().getStatistics().values().stream().filter(
         s -> s.isAdapterStatistic() && s.isCompatibleWith(adapterDataClass)).map(
             s -> s.getOptionsConstructor().get()).collect(Collectors.toList());
   }
 
   @Override
-  public Map<String, List<Statistic<?>>> getRegisteredFieldStatistics(
+  public Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> getRegisteredFieldStatistics(
       DataTypeAdapter<?> type,
       String fieldName) {
-    Map<String, List<Statistic<?>>> statistics = Maps.newHashMap();
+    Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> statistics = Maps.newHashMap();
     final int fieldCount = type.getFieldCount();
     for (int i = 0; i < fieldCount; i++) {
       String name = type.getFieldName(i);
       Class<?> fieldClass = type.getFieldClass(i);
       if (fieldName == null || fieldName.equals(name)) {
-        List<Statistic<?>> fieldOptions =
+        List<Statistic<StatisticValue<Object>>> fieldOptions =
             StatisticsRegistry.instance().getStatistics().values().stream().filter(
                 s -> s.isFieldStatistic() && s.isCompatibleWith(fieldClass)).map(
                     s -> s.getOptionsConstructor().get()).collect(Collectors.toList());
@@ -111,25 +111,26 @@ public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statisti
   }
 
   @Override
-  public boolean exists(Statistic<?> statistic) {
+  public boolean exists(Statistic<? extends StatisticValue<?>> statistic) {
     return getObject(getPrimaryId(statistic), getSecondaryId(statistic)) != null;
   }
 
   @Override
-  public void addStatistic(Statistic<?> statistic) {
+  public void addStatistic(Statistic<? extends StatisticValue<?>> statistic) {
+    // STATS_TODO: There needs to be a way to validate the statistic (maybe a statistic.validate() function that throws an exception)
     this.addObject(statistic);
   }
 
   @Override
-  public boolean removeStatistic(Statistic<?> statistic) {
+  public boolean removeStatistic(Statistic<? extends StatisticValue<?>> statistic) {
     return deleteObject(getPrimaryId(statistic), getSecondaryId(statistic));
   }
 
   @Override
-  public boolean removeStatistics(Iterator<Statistic<?>> statistics) {
+  public boolean removeStatistics(Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics) {
     boolean deleted = false;
     while (statistics.hasNext()) {
-      Statistic<?> statistic = statistics.next();
+      Statistic<? extends StatisticValue<?>> statistic = statistics.next();
       deleted = deleted || deleteObject(getPrimaryId(statistic), getSecondaryId(statistic));
     }
     return deleted;
@@ -142,24 +143,13 @@ public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statisti
 
   @Override
   public boolean removeStatistics(final DataTypeAdapter<?> type) {
-    boolean removed = removeStatistics(getAdapterStatistics(type, null));
-    // STATS_TODO: Remove all index statistics with this type name
+    boolean removed = removeStatistics(getAdapterStatistics(type, null, null));
+    // STATS_TODO: Remove all bins for this type for index statistics that are binned by adapter.
     return removed;
   }
 
-  @Override
-  public void setStatistic(Statistic<?> statistic) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void incorporateStatistic(Statistic<?> statistic) {
-    // TODO Auto-generated method stub
-
-  }
-
-  protected CloseableIterator<Statistic<?>> getCachedObject(
+  @SuppressWarnings("unchecked")
+  protected CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getCachedObject(
       ByteArray primaryId,
       ByteArray secondaryId) {
     final Object cacheResult = getObjectFromCache(primaryId, secondaryId);
@@ -167,108 +157,358 @@ public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statisti
     // if there's an exact match in the cache return a singleton
     if (cacheResult != null) {
       return new CloseableIterator.Wrapper<>(
-          Iterators.singletonIterator((Statistic<?>) cacheResult));
+          Iterators.singletonIterator((Statistic<StatisticValue<Object>>) cacheResult));
     }
     return internalGetObjects(new MetadataQuery(primaryId.getBytes(), secondaryId.getBytes()));
   }
-
-  @Override
-  public CloseableIterator<Statistic<?>> getIndexStatistics(
-      final Index index,
-      final @Nullable StatisticType statisticType,
-      final @Nullable String typeName) {
-    final ByteArray secondaryId = indexStatisticSecondaryId(index.getName());
+  
+  protected CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getBasicStatisticsInternal(
+      final ByteArray secondaryId,
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
+      final @Nullable String name) {
     if (statisticType == null) {
-      CloseableIterator<Statistic<?>> stats = getAllObjectsWithSecondaryId(secondaryId);
-      if (typeName == null) {
+      CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats = getAllObjectsWithSecondaryId(secondaryId);
+      if (name == null) {
         return stats;
       }
-      return new SuffixPrimaryIdFilter(stats, typeName.getBytes());
-    } else if (typeName == null) {
+      return new NameFilter(stats, name);
+    } else if (name == null) {
       return internalGetObjects(
           new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes()));
     }
-    return getCachedObject(getPrimaryId(statisticType, typeName), secondaryId);
-
+    return getCachedObject(StatisticId.generateUniqueId(statisticType, name), secondaryId);
   }
-
-  @Override
-  public CloseableIterator<Statistic<?>> getAdapterStatistics(
-      final DataTypeAdapter<?> type,
-      final @Nullable StatisticType statisticType) {
-    final ByteArray secondaryId = adapterStatisticSecondaryId(type.getTypeName());
-    if (statisticType == null) {
-      return getAllObjectsWithSecondaryId(secondaryId);
-    }
-    return getCachedObject(statisticType, secondaryId);
-  }
-
-  @Override
-  public CloseableIterator<Statistic<?>> getFieldStatistics(
-      final DataTypeAdapter<?> type,
-      final @Nullable StatisticType statisticType,
-      final @Nullable String fieldName) {
-    final ByteArray secondaryId = fieldStatisticSecondaryId(type.getTypeName());
-    if (statisticType == null) {
-      CloseableIterator<Statistic<?>> stats = getAllObjectsWithSecondaryId(secondaryId);
-      if (fieldName == null) {
-        return stats;
+  
+  protected CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getFieldStatisticsInternal(
+      final ByteArray secondaryId,
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
+      final @Nullable String fieldName,
+      final @Nullable String name) {
+    if (statisticType != null) {
+      if (fieldName != null) {
+        ByteArray primaryId = FieldStatisticId.generateUniqueId(statisticType, fieldName, name);
+        if (name != null) {
+          return getCachedObject(primaryId, secondaryId);
+        } else {
+          return internalGetObjects(
+              new MetadataQuery(primaryId.getBytes(), secondaryId.getBytes()));
+        }
+      } else {
+        if (name != null) {
+          return new NameFilter(internalGetObjects(
+              new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes())), name);
+        } else {
+          return internalGetObjects(
+              new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes()));
+        }
       }
-      return new SuffixPrimaryIdFilter(stats, fieldName.getBytes());
-    } else if (fieldName == null) {
-      return internalGetObjects(
-          new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes()));
     }
-    return getCachedObject(getPrimaryId(statisticType, fieldName), secondaryId);
+    return new FieldStatisticFilter(getAllObjectsWithSecondaryId(secondaryId), fieldName, name);
   }
-
-  @Override
-  public CloseableIterator<Statistic<?>> getAllStatistics(
-      final @Nullable StatisticType statisticType) {
+  
+  protected CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAllStatisticsInternal(
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType) {
     return internalGetObjects(
         new MetadataQuery(statisticType == null ? null : statisticType.getBytes(), null));
   }
 
   @Override
-  public CloseableIterator<StatisticValue<?>> getStatisticValues(
-      Iterator<Statistic<?>> statistics,
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getIndexStatistics(
+      final Index index,
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
+      final @Nullable String name) {
+    return getBasicStatisticsInternal(
+        indexStatisticSecondaryId(index.getName()),
+        statisticType,
+        name);
+  }
+
+  @Override
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAdapterStatistics(
+      final DataTypeAdapter<?> type,
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
+      final @Nullable String name) {
+    return getBasicStatisticsInternal(
+        adapterStatisticSecondaryId(type.getTypeName()),
+        statisticType,
+        name);
+  }
+
+  @Override
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getFieldStatistics(
+      final DataTypeAdapter<?> type,
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
+      final @Nullable String fieldName,
+      final @Nullable String name) {
+    return getFieldStatisticsInternal(
+        fieldStatisticSecondaryId(type.getTypeName()),
+        statisticType,
+        fieldName,
+        name);
+
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAllStatistics(
+      final @Nullable StatisticType<? extends StatisticValue<?>> statisticType) {
+    return (CloseableIterator<Statistic<StatisticValue<Object>>>) getAllStatisticsInternal(statisticType);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <V extends StatisticValue<R>, R> Statistic<V> getStatisticById(StatisticId<V> statisticId) {
+    try(CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> iterator = getCachedObject(statisticId.getUniqueId(), statisticId.getGroupId())) {
+      if (iterator.hasNext()) {
+        return (Statistic<V>) iterator.next();
+      }
+    }
+    return null;
+  }
+  
+
+  @Override
+  public <V extends StatisticValue<R>, R> void setStatisticValue(
+      Statistic<V> statistic,
+      V value) {
+    if (statistic.getBinningStrategy() != null) {
+      throw new UnsupportedOperationException("The given statistic uses a binning strategy, but no bin was specified.");
+    }
+    removeStatisticValue(statistic);
+    incorporateStatisticValue(statistic, value);
+  }
+  
+  @Override
+  public <V extends StatisticValue<R>, R> void setStatisticValue(
+      Statistic<V> statistic,
+      V value,
+      ByteArray bin) {
+    if (statistic.getBinningStrategy() == null) {
+      throw new UnsupportedOperationException("The given statistic does not use a binning strategy, but a bin was specified.");
+    }
+    removeStatisticValue(statistic, bin);
+    incorporateStatisticValue(statistic, value, bin);
+  }
+
+  @Override
+  public <V extends StatisticValue<R>, R> void incorporateStatisticValue(
+      Statistic<V> statistic,
+      V value) {
+    if (statistic.getBinningStrategy() != null) {
+      throw new UnsupportedOperationException("The given statistic uses a binning strategy, but no bin was specified.");
+    }
+    try (StatisticValueWriter<V> writer = createStatisticValueWriter(statistic)) {
+      writer.writeStatisticValue(null, null, value);
+    } catch (Exception e) {
+      LOGGER.error("Unable to write statistic value", e);
+    }
+  }
+  
+  @Override
+  public <V extends StatisticValue<R>, R> void incorporateStatisticValue(
+      Statistic<V> statistic,
+      V value,
+      ByteArray bin) {
+    if (statistic.getBinningStrategy() == null) {
+      throw new UnsupportedOperationException("The given statistic does not use a binning strategy, but a bin was specified.");
+    }
+    try (StatisticValueWriter<V> writer = createStatisticValueWriter(statistic)) {
+      writer.writeStatisticValue(bin.getBytes(), null, value);
+    } catch (Exception e) {
+      LOGGER.error("Unable to write statistic value", e);
+    }
+  }
+  
+
+  @Override
+  public <V extends StatisticValue<R>, R> StatisticValueWriter<V> createStatisticValueWriter(Statistic<V> statistic) {
+    return new StatisticValueWriter<>(operations.createMetadataWriter(MetadataType.STAT_VALUES), statistic);
+  }
+  
+  public <V extends StatisticValue<R>, R> StatisticValueReader<V, R> createStatisticValueReader(Statistic<V> statistic, ByteArray bin) {
+    MetadataQuery query = new MetadataQuery(StatisticValue.getValueId(statistic.getId(), bin), statistic.getId().getGroupId().getBytes());
+    return new StatisticValueReader<>(operations.createMetadataReader(MetadataType.STAT_VALUES).query(query), statistic);
+  }
+
+  @Override
+  public <V extends StatisticValue<R>, R> boolean removeStatisticValue(Statistic<V> statistic) {
+    if (statistic.getBinningStrategy() != null) {
+      throw new UnsupportedOperationException("The given statistic uses a binning strategy, but no bin was specified.");
+    }
+    boolean deleted = false;
+    try (MetadataDeleter deleter = operations.createMetadataDeleter(MetadataType.STAT_VALUES)) {
+      deleted = deleter.delete(
+          new MetadataQuery(
+              StatisticValue.getValueId(statistic.getId(), null),
+              statistic.getId().getGroupId().getBytes()));
+    } catch (Exception e) {
+      LOGGER.error("Unable to remove value for statistic", e);
+    }
+    return deleted;
+  }
+  
+  @Override
+  public <V extends StatisticValue<R>, R> boolean removeStatisticValue(Statistic<V> statistic, ByteArray bin) {
+    if (statistic.getBinningStrategy() == null) {
+      throw new UnsupportedOperationException("The given statistic does not use a binning strategy, but a bin was specified.");
+    }
+    boolean deleted = false;
+    try (MetadataDeleter deleter = operations.createMetadataDeleter(MetadataType.STAT_VALUES)) {
+      deleted = deleter.delete(
+          new MetadataQuery(
+              StatisticValue.getValueId(statistic.getId(), bin),
+              statistic.getId().getGroupId().getBytes()));
+    } catch (Exception e) {
+      LOGGER.error("Unable to remove value for statistic", e);
+    }
+    return deleted;
+  }
+  
+  @Override
+  public <V extends StatisticValue<R>, R> boolean removeStatisticValues(Statistic<V> statistic) {
+    boolean deleted = false;
+    try (MetadataDeleter deleter = operations.createMetadataDeleter(MetadataType.STAT_VALUES)) {
+      deleted = deleter.delete(
+          new MetadataQuery(
+              StatisticValue.getValueId(statistic.getId(), null),
+              statistic.getId().getGroupId().getBytes()));
+    } catch (Exception e) {
+      LOGGER.error("Unable to remove values for statistic", e);
+    }
+    return deleted;
+  }
+
+  @Override
+  public CloseableIterator<? extends StatisticValue<?>> getStatisticValues(
+      Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics,
       String... authorizations) {
-    // TODO Auto-generated method stub
+    return new CloseableIterator<StatisticValue<?>>() {
+      private CloseableIterator<? extends StatisticValue<?>> current = null;
+
+      private StatisticValue<?> next = null;
+      
+      @SuppressWarnings("unchecked")
+      private void computeNext() {
+        if (next == null) {
+          if (current != null && !current.hasNext()) {
+            current.close();
+            current = null;
+          }
+          while ((current == null || !current.hasNext()) && statistics.hasNext()) {
+            Statistic<StatisticValue<Object>> nextStat = (Statistic<StatisticValue<Object>>) statistics.next();
+            if (nextStat.getBinningStrategy() != null) {
+              current = getBinnedStatisticValues(nextStat, authorizations);
+            } else {
+              StatisticValue<Object> value = getStatisticValue(nextStat, authorizations);
+              if (value != null) {
+                current = new CloseableIterator.Wrapper<>(Iterators.singletonIterator(value)); 
+              }
+            }
+          }
+          if (current != null && current.hasNext()) {
+            next = current.next();
+          }
+        }
+      }
+      
+      @Override
+      public boolean hasNext() {
+        if (next == null) {
+          computeNext();
+        }
+        return next != null;
+      }
+
+      @Override
+      public StatisticValue<?> next() {
+        if (next == null) {
+          computeNext();
+        }
+        StatisticValue<?> retVal = next;
+        next = null;
+        return retVal;
+      }
+
+      @Override
+      public void close() {
+      }
+    };
+  }
+  
+  @Override
+  public <V extends StatisticValue<R>, R> V getStatisticValue(Statistic<V> statistic, String... authorizations) {
+    if (statistic.getBinningStrategy() != null) {
+      throw new UnsupportedOperationException("The given statistic uses a binning strategy, but no bin was specified.");
+    }
+    try (StatisticValueReader<V, R> reader = createStatisticValueReader(statistic, null)) {
+      if (reader.hasNext()) {
+        return reader.next();
+      }
+    }
     return null;
   }
 
   @Override
-  public <T> StatisticValue<T> getStatisticValue(Statistic<T> statistic, String... authorizations) {
+  public <V extends StatisticValue<R>, R> V getStatisticValue(Statistic<V> statistic, ByteArray bin, String... authorizations) {
+    if (statistic.getBinningStrategy() == null) {
+      throw new UnsupportedOperationException("The given statistic does not use a binning strategy, but a bin was specified.");
+    }
+    try (StatisticValueReader<V, R> reader = createStatisticValueReader(statistic, bin)) {
+      if (reader.hasNext()) {
+        return reader.next();
+      }
+    }
+    return null;
+  }
+  
+  @Override
+  public <V extends StatisticValue<R>, R> CloseableIterator<BinnedStatisticValue<R>> getBinnedStatisticValues(Statistic<V> statistic, String... authorizations) {
     // TODO Auto-generated method stub
     return null;
+  }
+  
+  @Override
+  public <T> StatisticUpdateCallback<T> getUpdateCallback(DataTypeAdapter<T> adapter, Index index) {
+    List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayList();
+    try(CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> indexStats = getIndexStatistics(index, null, null)) {
+      while (indexStats.hasNext()) {
+        statistics.add(indexStats.next());
+      }
+    }
+    try(CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> adapterStats = getAdapterStatistics(adapter, null, null)) {
+      while (adapterStats.hasNext()) {
+        statistics.add(adapterStats.next());
+      }
+    }
+    return new StatisticUpdateCallback<>(statistics, this, index, adapter);
   }
 
   @Override
   public void removeAll() {
     super.removeAll();
   }
+  
+  @Override
+  public boolean mergeStats() {
+    return true;
+  }
 
-  // STATS_TODO: This needs to be a little more complex, for example, a statistic might have a
-  // primary id of STAT_TYPE_fieldName_extended. Find a way to isolate the part of the primaryId
-  // that we want.. Maybe some kind of separator for the extended part...
-  public static class SuffixPrimaryIdFilter implements CloseableIterator<Statistic<?>> {
+  public static class NameFilter implements CloseableIterator<Statistic<? extends StatisticValue<?>>> {
 
-    private final CloseableIterator<Statistic<?>> source;
-    private final byte[] suffix;
+    private final CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> source;
+    private final String name;
 
-    private Statistic<?> next = null;
+    private Statistic<? extends StatisticValue<?>> next = null;
 
-    public SuffixPrimaryIdFilter(CloseableIterator<Statistic<?>> source, byte[] suffix) {
+    public NameFilter(CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> source, String name) {
       this.source = source;
-      this.suffix = suffix;
+      this.name = name;
     }
 
     private void computeNext() {
       while (source.hasNext()) {
-        Statistic<?> possibleNext = source.next();
-        ByteArray primaryId =
-            getPrimaryId(possibleNext.getStatisticType(), possibleNext.getUniqueId());
-        if (ByteArrayUtils.endsWith(primaryId.getBytes(), suffix)) {
+        Statistic<? extends StatisticValue<?>> possibleNext = source.next();
+        if (name.equals(possibleNext.getId().getName())) {
           next = possibleNext;
           break;
         }
@@ -284,11 +524,64 @@ public class DataStatisticsStoreImpl extends AbstractGeoWavePersistence<Statisti
     }
 
     @Override
-    public Statistic<?> next() {
+    public Statistic<? extends StatisticValue<?>> next() {
       if (next == null) {
         computeNext();
       }
-      Statistic<?> nextValue = next;
+      Statistic<? extends StatisticValue<?>> nextValue = next;
+      next = null;
+      return nextValue;
+    }
+
+    @Override
+    public void close() {
+      source.close();
+    }
+
+  }
+  
+  public static class FieldStatisticFilter implements CloseableIterator<Statistic<? extends StatisticValue<?>>> {
+
+    private final CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> source;
+    private final String fieldName;
+    private final String name;
+
+    private Statistic<? extends StatisticValue<?>> next = null;
+
+    public FieldStatisticFilter(CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> source, String fieldName, String name) {
+      this.source = source;
+      this.fieldName = fieldName;
+      this.name = name;
+    }
+
+    private void computeNext() {
+      while (source.hasNext()) {
+        Statistic<? extends StatisticValue<?>> possibleNext = source.next();
+        if (possibleNext.getId() instanceof FieldStatisticId) {
+          FieldStatisticId<? extends StatisticValue<?>> statisticId = (FieldStatisticId<? extends StatisticValue<?>>) possibleNext.getId();
+          if ((name == null || statisticId.getName().equals(name)) &&
+              (fieldName == null || statisticId.getFieldName().equals(fieldName))) {
+            next = possibleNext;
+            break;
+          }
+        }
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (next == null) {
+        computeNext();
+      }
+      return next != null;
+    }
+
+    @Override
+    public Statistic<? extends StatisticValue<?>> next() {
+      if (next == null) {
+        computeNext();
+      }
+      Statistic<? extends StatisticValue<?>> nextValue = next;
       next = null;
       return nextValue;
     }

@@ -13,8 +13,8 @@ import java.util.HashSet;
 import java.util.Set;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -27,7 +27,7 @@ import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
  * @param <T> The type of the row to keep statistics on
  */
 public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.PartitionsValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("PARTITIONS");
+  public static final StatisticType<PartitionsValue> STATS_TYPE = new StatisticType<>("PARTITIONS");
 
   public PartitionsStatistic() {
     super(STATS_TYPE);
@@ -37,10 +37,6 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
     super(STATS_TYPE, indexName);
   }
 
-  public PartitionsStatistic(final String indexName, final String typeName) {
-    super(STATS_TYPE, indexName, typeName);
-  }
-
   @Override
   public String getDescription() {
     return "Maintains a set of all unique partition IDs.";
@@ -48,16 +44,20 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
 
   @Override
   public PartitionsValue createEmpty() {
-    return new PartitionsValue();
+    return new PartitionsValue(this);
   }
 
-  public static class PartitionsValue implements
-      StatisticValue<Set<ByteArray>>,
+  public static class PartitionsValue extends StatisticValue<Set<ByteArray>> implements
       StatisticsIngestCallback {
+
     private Set<ByteArray> partitions = new HashSet<>();
+    
+    private PartitionsValue(Statistic<?> statistic) {
+      super(statistic);
+    }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Set<ByteArray>> merge) {
       if (merge instanceof PartitionsValue) {
         partitions.addAll(((PartitionsValue) merge).partitions);
       }
@@ -123,11 +123,7 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
   @Override
   public String toString() {
     final StringBuffer buffer = new StringBuffer();
-    buffer.append("partitions[index=").append(getIndexName());
-    if (getTypeName() != null) {
-      buffer.append(", type=").append(getTypeName());
-    }
-    buffer.append("]");
+    buffer.append("partitions[index=").append(getIndexName()).append("]");
     return buffer.toString();
   }
 }

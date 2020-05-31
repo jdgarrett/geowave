@@ -25,6 +25,7 @@ import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintSet;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.opengis.feature.simple.SimpleFeature;
@@ -54,7 +55,7 @@ public class QueryIndexHelper {
    * Clip the provided constraints using the statistics, if available.
    */
   public static TemporalConstraintsSet clipIndexedTemporalConstraints(
-      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap,
+      final DataStatisticsStore statisticsStore,
       final TimeDescriptors timeDescriptors,
       final TemporalConstraintsSet constraintsSet) {
     if ((timeDescriptors.getEndRange() != null) && (timeDescriptors.getStartRange() != null)) {
@@ -99,9 +100,9 @@ public class QueryIndexHelper {
    * Clip the provided bounded box with the statistics for the index
    */
   public static Geometry clipIndexedBBOXConstraints(
+      final DataStatisticsStore statisticsStore,
       final SimpleFeatureType featureType,
-      final Geometry bbox,
-      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap) {
+      final Geometry bbox) {
 
     final String geoAttrName = featureType.getGeometryDescriptor().getLocalName();
 

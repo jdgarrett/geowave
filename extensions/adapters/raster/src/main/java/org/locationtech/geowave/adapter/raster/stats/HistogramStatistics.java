@@ -31,10 +31,10 @@ import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.adapter.raster.plugin.GeoWaveGTRasterFormat;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.RasterHistogramValue> {
   private static final Logger LOGGER = LoggerFactory.getLogger(HistogramStatistics.class);
-  public static final StatisticType STATS_TYPE = new StatisticType("RASTER_HISTOGRAM");
+  public static final StatisticType<RasterHistogramValue> STATS_TYPE = new StatisticType<>("RASTER_HISTOGRAM");
 
   // STATS_TODO: How can we initialize this?
   private HistogramConfig histogramConfig;
@@ -81,7 +81,7 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
 
   @Override
   public RasterHistogramValue createEmpty() {
-    return new RasterHistogramValue(histogramConfig);
+    return new RasterHistogramValue(this, histogramConfig);
   }
   
   // Cache this so we don't have to serialize the histogram multiple times
@@ -97,6 +97,7 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
   
   @Override
   protected void writeBytes(ByteBuffer buffer) {
+    super.writeBytes(buffer);
     VarintUtils.writeUnsignedInt(histogramConfigBytes.length);
     buffer.put(histogramConfigBytes);
     histogramConfigBytes = null;
@@ -104,15 +105,17 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
   
   @Override
   protected void readBytes(ByteBuffer buffer) {
+    super.readBytes(buffer);
     final byte[] configBinary = ByteArrayUtils.safeRead(buffer, VarintUtils.readUnsignedInt(buffer));
     histogramConfig = (HistogramConfig) PersistenceUtils.fromBinary(configBinary);
   }
   
-  public static class RasterHistogramValue implements StatisticValue<Map<Resolution, javax.media.jai.Histogram>>, StatisticsIngestCallback {
+  public static class RasterHistogramValue extends StatisticValue<Map<Resolution, javax.media.jai.Histogram>> implements StatisticsIngestCallback {
     private final Map<Resolution, javax.media.jai.Histogram> histograms = new HashMap<>();
     private final HistogramConfig histogramConfig;
     
-    public RasterHistogramValue(final HistogramConfig histogramConfig) {
+    private RasterHistogramValue(final Statistic<?> statistic, final HistogramConfig histogramConfig) {
+      super (statistic);
       this.histogramConfig = histogramConfig;
     }
     
@@ -125,7 +128,7 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Map<Resolution, javax.media.jai.Histogram>> merge) {
       if ((merge != null) && (merge instanceof RasterHistogramValue)) {
         final Set<Resolution> resolutions = new HashSet<>(getResolutions());
         resolutions.addAll(((RasterHistogramValue) merge).getResolutions());

@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -27,17 +26,14 @@ import org.apache.log4j.Logger;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.ByteArrayRange;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.SinglePartitionQueryRanges;
 import org.locationtech.geowave.core.index.StringUtils;
-import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.BaseDataStoreOptions;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.DataStoreOptions;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.data.DeferredReadCommonIndexedPersistenceEncoding;
 import org.locationtech.geowave.core.store.data.MultiFieldPersistentDataset;
@@ -66,7 +62,6 @@ import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.PeekingIterator;
 import com.google.common.primitives.UnsignedBytes;
 
 public class MemoryDataStoreOperations implements DataStoreOperations {
@@ -206,7 +201,7 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
         }
       }
     }
-    return new MyIndexReader(Iterators.filter(retVal.iterator(), new Predicate<MemoryStoreEntry>() {
+    return new MyIndexReader<>(Iterators.filter(retVal.iterator(), new Predicate<MemoryStoreEntry>() {
       @Override
       public boolean apply(final MemoryStoreEntry input) {
         if ((readerParams.getFilter() != null) && options.isServerSideLibraryEnabled()) {
@@ -498,51 +493,52 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
                   input.metadata.getVisibility(),
                   input.metadata.getValue(),
                   input.uuidBytes));
-      if (MetadataType.STATS.equals(type)) {
-        return new CloseableIterator.Wrapper(new Iterator<GeoWaveMetadata>() {
-          final PeekingIterator<GeoWaveMetadata> peekingIt =
-              Iterators.peekingIterator(itTransformed);
-
-          @Override
-          public boolean hasNext() {
-            return peekingIt.hasNext();
-          }
-
-          @Override
-          public GeoWaveMetadata next() {
-            DataStatistics currentStat = null;
-            GeoWaveMetadata currentMetadata = null;
-            byte[] vis = null;
-            while (peekingIt.hasNext()) {
-              currentMetadata = peekingIt.next();
-              vis = currentMetadata.getVisibility();
-              if (!peekingIt.hasNext()) {
-                break;
-              }
-              final GeoWaveMetadata next = peekingIt.peek();
-              if (Objects.deepEquals(currentMetadata.getPrimaryId(), next.getPrimaryId())
-                  && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
-                if (currentStat == null) {
-                  currentStat =
-                      (DataStatistics) PersistenceUtils.fromBinary(currentMetadata.getValue());
-                }
-                currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));
-                vis = combineVisibilities(vis, next.getVisibility());
-              } else {
-                break;
-              }
-            }
-            if (currentStat == null) {
-              return currentMetadata;
-            }
-            return new GeoWaveMetadata(
-                currentMetadata.getPrimaryId(),
-                currentMetadata.getSecondaryId(),
-                vis,
-                PersistenceUtils.toBinary(currentStat));
-          }
-        });
-      }
+      // STATS_TODO: I don't think this is necessary anymore.
+//      if (MetadataType.STATS.equals(type)) {
+//        return new CloseableIterator.Wrapper(new Iterator<GeoWaveMetadata>() {
+//          final PeekingIterator<GeoWaveMetadata> peekingIt =
+//              Iterators.peekingIterator(itTransformed);
+//
+//          @Override
+//          public boolean hasNext() {
+//            return peekingIt.hasNext();
+//          }
+//
+//          @Override
+//          public GeoWaveMetadata next() {
+//            DataStatistics currentStat = null;
+//            GeoWaveMetadata currentMetadata = null;
+//            byte[] vis = null;
+//            while (peekingIt.hasNext()) {
+//              currentMetadata = peekingIt.next();
+//              vis = currentMetadata.getVisibility();
+//              if (!peekingIt.hasNext()) {
+//                break;
+//              }
+//              final GeoWaveMetadata next = peekingIt.peek();
+//              if (Objects.deepEquals(currentMetadata.getPrimaryId(), next.getPrimaryId())
+//                  && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
+//                if (currentStat == null) {
+//                  currentStat =
+//                      (DataStatistics) PersistenceUtils.fromBinary(currentMetadata.getValue());
+//                }
+//                currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));
+//                vis = combineVisibilities(vis, next.getVisibility());
+//              } else {
+//                break;
+//              }
+//            }
+//            if (currentStat == null) {
+//              return currentMetadata;
+//            }
+//            return new GeoWaveMetadata(
+//                currentMetadata.getPrimaryId(),
+//                currentMetadata.getSecondaryId(),
+//                vis,
+//                PersistenceUtils.toBinary(currentStat));
+//          }
+//        });
+//      }
       // convert to and from array just to avoid concurrent modification
       // issues on the iterator that is linked back to the metadataStore
       // sortedSet (basically clone the iterator, so for example deletes

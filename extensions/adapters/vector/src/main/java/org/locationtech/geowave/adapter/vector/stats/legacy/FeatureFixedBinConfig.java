@@ -1,7 +1,6 @@
 package org.locationtech.geowave.adapter.vector.stats.legacy;
 
 import java.nio.ByteBuffer;
-import org.locationtech.geowave.adapter.vector.stats.FeatureFixedBinNumericStatistics;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfig;
 import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.FixedBinNumericHistogram;

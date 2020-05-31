@@ -308,10 +308,11 @@ public class GeoWaveFeatureCollection extends DataFeatureCollection {
       final org.opengis.feature.FeatureVisitor visitor,
       final org.opengis.util.ProgressListener progress) throws IOException {
     if (!GeoWaveGTPluginUtils.accepts(
+        reader.getComponents().getStatsStore(),
+        reader.getComponents().getAdapter(),
         visitor,
         progress,
-        reader.getFeatureType(),
-        reader.getTransaction().getDataStatistics())) {
+        reader.getFeatureType())) {
       DataUtilities.visit(this, visitor, progress);
     }
   }

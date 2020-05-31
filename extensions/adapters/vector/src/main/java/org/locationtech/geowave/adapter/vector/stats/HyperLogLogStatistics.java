@@ -9,24 +9,13 @@
 package org.locationtech.geowave.adapter.vector.stats;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import org.locationtech.geowave.core.geotime.store.statistics.FieldNameStatistic;
-import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.Mergeable;
-import org.locationtech.geowave.core.index.VarintUtils;
-import org.locationtech.geowave.core.store.adapter.statistics.AbstractDataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsType;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
-import org.opengis.feature.simple.SimpleFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;

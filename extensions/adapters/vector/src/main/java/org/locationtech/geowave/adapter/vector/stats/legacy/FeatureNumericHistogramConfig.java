@@ -1,8 +1,7 @@
-import org.HdrHistogram.DoubleHistogram;
-import org.apache.commons.lang3.tuple.Pair;
+package org.locationtech.geowave.adapter.vector.stats.legacy;
+
 import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistics;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfig;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.opengis.feature.simple.SimpleFeature;
 

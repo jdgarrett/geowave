@@ -81,7 +81,6 @@ import org.locationtech.geowave.adapter.raster.stats.HistogramConfig;
 import org.locationtech.geowave.adapter.raster.stats.HistogramStatistics;
 import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics;
 import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistics;
-import org.locationtech.geowave.adapter.raster.stats.RasterFootprintStatistics;
 import org.locationtech.geowave.adapter.raster.util.SampleModelPersistenceUtils;
 import org.locationtech.geowave.core.geotime.index.dimension.LatitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.LongitudeDefinition;
@@ -100,17 +99,14 @@ import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.index.sfc.data.BasicNumericDataset;
 import org.locationtech.geowave.core.index.sfc.data.MultiDimensionalNumericData;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
-import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.adapter.AdapterPersistenceEncoding;
 import org.locationtech.geowave.core.store.adapter.FitToIndexPersistenceEncoding;
 import org.locationtech.geowave.core.store.adapter.IndexDependentDataAdapter;
 import org.locationtech.geowave.core.store.adapter.IndexedAdapterPersistenceEncoding;
 import org.locationtech.geowave.core.store.adapter.RowMergingDataAdapter;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
-import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.data.MultiFieldPersistentDataset;
 import org.locationtech.geowave.core.store.data.PersistentDataset;
 import org.locationtech.geowave.core.store.data.SingleFieldPersistentDataset;
@@ -119,9 +115,7 @@ import org.locationtech.geowave.core.store.data.field.FieldWriter;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
-import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
-import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
+import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
 import org.locationtech.geowave.core.store.util.CompoundHierarchicalIndexStrategyWrapper;
 import org.locationtech.geowave.core.store.util.IteratorWrapper;
 import org.locationtech.geowave.core.store.util.IteratorWrapper.Converter;
@@ -143,12 +137,14 @@ import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.InternationalString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.beust.jcommander.internal.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class RasterDataAdapter implements
     IndexDependentDataAdapter<GridCoverage>,
     HadoopDataAdapter<GridCoverage, GridCoverageWritable>,
-    RowMergingDataAdapter<GridCoverage, RasterTile<?>> {
+    RowMergingDataAdapter<GridCoverage, RasterTile<?>>,
+    DefaultStatisticsProvider {
   // Moved static initialization to constructor (staticInit)
 
   public static final String TILE_METADATA_PROPERTY_KEY = "TILE_METADATA";
@@ -176,8 +172,6 @@ public class RasterDataAdapter implements
   private String[] namesPerBand;
   private double[] backgroundValuesPerBand;
   private boolean buildPyramid;
-  private StatisticsId[] supportedStats;
-  private EntryVisibilityHandler<GridCoverage> visibilityHandler;
   private RasterTileMergeStrategy<?> mergeStrategy;
   private boolean equalizeHistogram;
   private Interpolation interpolation;
@@ -282,7 +276,6 @@ public class RasterDataAdapter implements
 
     this.buildPyramid = buildPyramid;
     this.mergeStrategy = mergeStrategy;
-    init();
   }
 
   public RasterDataAdapter(
@@ -424,7 +417,6 @@ public class RasterDataAdapter implements
     this.equalizeHistogram = equalizeHistogram;
     interpolation = Interpolation.getInstance(interpolationType);
     this.mergeStrategy = mergeStrategy;
-    init();
   }
 
   @SuppressFBWarnings
@@ -446,23 +438,6 @@ public class RasterDataAdapter implements
         }
       }
     }
-  }
-
-  private void init() {
-    int supportedStatsLength = 2;
-
-    if (histogramConfig != null) {
-      supportedStatsLength++;
-    }
-
-    supportedStats = new StatisticsId[supportedStatsLength];
-    supportedStats[0] = OverviewStatistics.STATS_TYPE.newBuilder().build().getId();
-    supportedStats[1] = RasterBoundingBoxStatistics.STATS_TYPE.newBuilder().build().getId();
-
-    if (histogramConfig != null) {
-      supportedStats[2] = HistogramStatistics.STATS_TYPE.newBuilder().build().getId();
-    }
-    visibilityHandler = new DefaultFieldStatisticVisibility<>();
   }
 
   @Override
@@ -1475,7 +1450,6 @@ public class RasterDataAdapter implements
     buildPyramid = (buf.get() != 0);
     equalizeHistogram = (buf.get() != 0);
     interpolation = Interpolation.getInstance(buf.get());
-    init();
   }
 
   @Override
@@ -1484,32 +1458,6 @@ public class RasterDataAdapter implements
       return (FieldWriter) new RasterTileWriter();
     }
     return null;
-  }
-
-  @Override
-  public DataStatistics<GridCoverage, ?, ?> createDataStatistics(
-      final StatisticsId statisticsId) {
-    DataStatistics<GridCoverage, ?, ?> retVal = null;
-    if (OverviewStatistics.STATS_TYPE.equals(statisticsId.getType())) {
-      retVal = new OverviewStatistics();
-    } else if (RasterBoundingBoxStatistics.STATS_TYPE.equals(statisticsId.getType())) {
-      retVal = new RasterBoundingBoxStatistics();
-    } else if (RasterFootprintStatistics.STATS_TYPE.equals(statisticsId.getType())) {
-      retVal = new RasterFootprintStatistics();
-    } else if (HistogramStatistics.STATS_TYPE.equals(statisticsId.getType())
-        && (histogramConfig != null)) {
-      retVal = new HistogramStatistics(histogramConfig);
-    } else {
-      // HP Fortify "Log Forging" false positive
-      // What Fortify considers "user input" comes only
-      // from users with OS-level access anyway
-      LOGGER.warn(
-          "Unrecognized statistics type "
-              + statisticsId.getType().getString()
-              + " using count statistic");
-      retVal = new CountStatistic<>();
-    }
-    return retVal;
   }
 
   public double[][] getNoDataValuesPerBand() {
@@ -1902,5 +1850,17 @@ public class RasterDataAdapter implements
   @Override
   public Class<GridCoverage> getDataClass() {
     return GridCoverage.class;
+  }
+
+  @Override
+  public List<Statistic<? extends StatisticValue<?>>> getDefaultStatistics() {
+    List<Statistic<?>> statistics = Lists.newArrayList();
+    statistics.add(new OverviewStatistics(getTypeName()));
+    statistics.add(new RasterBoundingBoxStatistics(getTypeName()));
+
+    if (histogramConfig != null) {
+      statistics.add(new HistogramStatistics(getTypeName(), histogramConfig));
+    }
+    return statistics;
   }
 }

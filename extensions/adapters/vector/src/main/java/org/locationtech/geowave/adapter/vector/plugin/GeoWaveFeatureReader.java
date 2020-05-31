@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import org.geotools.data.FeatureReader;
@@ -48,8 +47,6 @@ import org.locationtech.geowave.core.index.dimension.NumericDimensionDefinition;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
@@ -205,12 +202,8 @@ public class GeoWaveFeatureReader implements FeatureReader<SimpleFeatureType, Si
         && (Boolean) this.query.getHints().get(SubsampleProcess.SUBSAMPLE_ENABLED)) {
       spatialOnly = true;
     }
-    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap =
-        getComponents().getGTstore().getIndexQueryStrategy().requiresStats()
-            ? transaction.getDataStatistics()
-            : null;
     try (CloseableIterator<Index> indexIt =
-        getComponents().getIndices(statsMap, query, spatialOnly)) {
+        getComponents().getIndices(query, spatialOnly)) {
       while (indexIt.hasNext()) {
         final Index index = indexIt.next();
 
@@ -524,16 +517,16 @@ public class GeoWaveFeatureReader implements FeatureReader<SimpleFeatureType, Si
   protected TemporalConstraintsSet clipIndexedTemporalConstraints(
       final TemporalConstraintsSet constraintsSet) {
     return QueryIndexHelper.clipIndexedTemporalConstraints(
-        transaction.getDataStatistics(),
+        components.getStatsStore(),
         components.getAdapter().getTimeDescriptors(),
         constraintsSet);
   }
 
   protected Geometry clipIndexedBBOXConstraints(final Geometry bbox) {
     return QueryIndexHelper.clipIndexedBBOXConstraints(
+        components.getStatsStore(),
         getFeatureType(),
-        bbox,
-        transaction.getDataStatistics());
+        bbox);
   }
 
   private boolean subsetRequested() {

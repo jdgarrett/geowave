@@ -19,6 +19,7 @@ import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic.RowRangeHistogramValue;
 
 public class RowHistogramDataStatisticsTest {
   static final long base = 7l;
@@ -33,41 +34,38 @@ public class RowHistogramDataStatisticsTest {
 
   @Test
   public void testIngest() {
-    final RowRangeHistogramStatistic<Integer> stats =
-        new RowRangeHistogramStatistic<>((short) -1, "20030", null);
+    final RowRangeHistogramStatistic stats = new RowRangeHistogramStatistic("indexName");
+    final RowRangeHistogramValue value = stats.createEmpty();
 
     for (long i = 0; i < 10000; i++) {
       final GeoWaveRow row = new GeoWaveRowImpl(genKey(i), new GeoWaveValue[] {});
-      stats.entryIngested(1, row);
+      value.entryIngested(null, 1, row);
     }
 
     System.out.println(stats.toString());
 
-    assertEquals(1.0, stats.cdf(genKey(10000).getSortKey()), 0.00001);
+    assertEquals(1.0, value.cdf(genKey(10000).getSortKey()), 0.00001);
 
-    assertEquals(0.0, stats.cdf(genKey(0).getSortKey()), 0.00001);
+    assertEquals(0.0, value.cdf(genKey(0).getSortKey()), 0.00001);
 
-    assertEquals(0.5, stats.cdf(genKey(5000).getSortKey()), 0.04);
-
-    final RowRangeHistogramStatistic<Integer> stats2 =
-        new RowRangeHistogramStatistic<>("20030", null);
+    assertEquals(0.5, value.cdf(genKey(5000).getSortKey()), 0.04);
+    
+    final RowRangeHistogramValue value2 = stats.createEmpty();
 
     for (long j = 10000; j < 20000; j++) {
 
       final GeoWaveRow row = new GeoWaveRowImpl(genKey(j), new GeoWaveValue[] {});
-      stats2.entryIngested(1, row);
+      value2.entryIngested(null, 1, row);
     }
 
-    assertEquals(0.0, stats2.cdf(genKey(10000).getSortKey()), 0.00001);
+    assertEquals(0.0, value2.cdf(genKey(10000).getSortKey()), 0.00001);
 
-    stats.merge(stats2);
+    value.merge(value2);
 
-    assertEquals(0.5, stats.cdf(genKey(10000).getSortKey()), 0.15);
+    assertEquals(0.5, value.cdf(genKey(10000).getSortKey()), 0.15);
 
-    stats2.fromBinary(stats.toBinary());
+    value2.fromBinary(value.toBinary());
 
-    assertEquals(0.5, stats.cdf(genKey(10000).getSortKey()), 0.15);
-
-    System.out.println(stats.toString());
+    assertEquals(0.5, value2.cdf(genKey(10000).getSortKey()), 0.15);
   }
 }

@@ -1,19 +1,19 @@
 package org.locationtech.geowave.core.store.statistics.adapter;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.statistics.BaseStatistic;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
 import com.beust.jcommander.Parameter;
-import com.google.common.primitives.Bytes;
 
-public abstract class AdapterStatistic<R extends StatisticValue<?>> extends BaseStatistic<R> {
+public abstract class AdapterStatistic<V extends StatisticValue<?>> extends BaseStatistic<V> {
 
   @Parameter(
       names = "--typeName",
@@ -21,11 +21,11 @@ public abstract class AdapterStatistic<R extends StatisticValue<?>> extends Base
       description = "The data type adapter for the statistic.")
   private String typeName = null;
 
-  public AdapterStatistic(final StatisticType statisticsType) {
+  public AdapterStatistic(final StatisticType<V> statisticsType) {
     super(statisticsType);
   }
 
-  public AdapterStatistic(final StatisticType statisticsType, final String typeName) {
+  public AdapterStatistic(final StatisticType<V> statisticsType, final String typeName) {
     super(statisticsType);
     this.typeName = typeName;
   }
@@ -44,29 +44,11 @@ public abstract class AdapterStatistic<R extends StatisticValue<?>> extends Base
   }
 
   @Override
-  public final byte[] getUniqueId() {
-    if (cachedUniqueId != null) {
-      return cachedUniqueId;
+  public final StatisticId<V> getId() {
+    if (cachedStatisticId == null) {
+      cachedStatisticId = new StatisticId<>(new ByteArray(typeName), getStatisticType(), getName());
     }
-    String uniqueId = internalUniqueId();
-    if (uniqueId != null) {
-      if (getName() == null) {
-        return uniqueId.getBytes();
-      }
-      return Bytes.concat(
-          uniqueId.getBytes(),
-          UNIQUE_ID_SEPARATOR.getBytes(),
-          getName().getBytes());
-    }
-    return getName().getBytes();
-  }
-
-  /**
-   * 
-   * @return
-   */
-  protected String internalUniqueId() {
-    return null;
+    return cachedStatisticId;
   }
 
   @Override

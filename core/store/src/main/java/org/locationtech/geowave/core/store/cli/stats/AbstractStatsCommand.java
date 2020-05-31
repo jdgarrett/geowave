@@ -32,7 +32,7 @@ public abstract class AbstractStatsCommand<T> extends ServiceEnabledCommand<T> {
     return true;
   }
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RecalculateStatsCommand.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractStatsCommand.class);
 
   @ParametersDelegate
   private StatsCommandLineOptions statsOptions = new StatsCommandLineOptions();
@@ -40,10 +40,6 @@ public abstract class AbstractStatsCommand<T> extends ServiceEnabledCommand<T> {
   public void run(final OperationParams params, final List<String> parameters) {
 
     final String storeName = parameters.get(0);
-    String typeName = null;
-    if (parameters.size() > 1) {
-      typeName = parameters.get(1);
-    }
 
     // Attempt to load input store if not already provided (test purposes).
 
@@ -52,39 +48,8 @@ public abstract class AbstractStatsCommand<T> extends ServiceEnabledCommand<T> {
       throw new ParameterException("Cannot find store name: " + inputStoreLoader.getStoreName());
     }
     final DataStorePluginOptions inputStoreOptions = inputStoreLoader.getDataStorePlugin();
-
     try {
-      // Various stores needed
-      final PersistentAdapterStore adapterStore = inputStoreOptions.createAdapterStore();
-
-      if (typeName != null) {
-        final InternalAdapterStore internalAdapterStore =
-            inputStoreOptions.createInternalAdapterStore();
-        final Short adapterId = internalAdapterStore.getAdapterId(typeName);
-        final InternalDataAdapter<?> adapter = adapterStore.getAdapter(adapterId);
-        if (adapter != null) {
-          performStatsCommand(inputStoreOptions, adapter, statsOptions);
-        } else {
-          // If this adapter is not known, provide list of available
-          // adapters
-          LOGGER.error("Unknown type " + typeName);
-          final StringBuffer buffer = new StringBuffer();
-          for (final String t : internalAdapterStore.getTypeNames()) {
-            buffer.append(t).append(' ');
-          }
-          LOGGER.info("Available data types: " + buffer.toString());
-        }
-      } else {
-        // Repeat the Command for every adapter found
-        try (CloseableIterator<InternalDataAdapter<?>> adapterIt = adapterStore.getAdapters()) {
-          while (adapterIt.hasNext()) {
-            final InternalDataAdapter<?> adapter = adapterIt.next();
-            if (!performStatsCommand(inputStoreOptions, adapter, statsOptions)) {
-              LOGGER.info("Unable to calculate statistics for data type: " + adapter.getTypeName());
-            }
-          }
-        }
-      }
+      performStatsCommand(inputStoreOptions, statsOptions);
     } catch (final IOException e) {
       throw new RuntimeException("Unable to parse stats tool arguments", e);
     }
@@ -93,7 +58,6 @@ public abstract class AbstractStatsCommand<T> extends ServiceEnabledCommand<T> {
   /** Abstracted command method to be called when command selected */
   protected abstract boolean performStatsCommand(
       final DataStorePluginOptions options,
-      final InternalDataAdapter<?> adapter,
       final StatsCommandLineOptions statsOptions) throws IOException;
 
   /**

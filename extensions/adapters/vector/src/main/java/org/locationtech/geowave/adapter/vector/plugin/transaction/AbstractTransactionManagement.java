@@ -12,9 +12,12 @@ import java.util.HashMap;
 import java.util.Map;
 import org.locationtech.geowave.adapter.vector.plugin.GeoWaveDataStoreComponents;
 import org.locationtech.geowave.core.geotime.store.GeotoolsFeatureDataAdapter;
+import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.opengis.feature.simple.SimpleFeature;
 
 public abstract class AbstractTransactionManagement implements GeoWaveTransaction {
@@ -28,24 +31,19 @@ public abstract class AbstractTransactionManagement implements GeoWaveTransactio
 
   @Override
   @SuppressWarnings("unchecked")
-  public Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> getDataStatistics() {
-    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats = new HashMap<>();
+  public Map<ByteArray, Statistic<?>> getDataStatistics() {
+    final Map<ByteArray, Statistic<?>> stats = new HashMap<>();
     final GeotoolsFeatureDataAdapter adapter = components.getAdapter();
-    final short internalAdapterId =
-        components.getGTstore().getInternalAdapterStore().getAdapterId(adapter.getTypeName());
 
-    try (CloseableIterator<DataStatistics<?, ?, ?>> it =
-        components.getStatsStore().getDataStatistics(internalAdapterId, composeAuthorizations())) {
-      while (it.hasNext()) {
-        final DataStatistics<?, ?, ?> stat = it.next();
-        stats.put(
-            new StatisticsId(stat.getType(), stat.getExtendedId()),
-            (DataStatistics<SimpleFeature, ?, ?>) stat);
-      }
-
-    } catch (final Exception e) {
-      GeoWaveTransactionManagement.LOGGER.error("Failed to access statistics from data store", e);
-    }
+    DataStatisticsStore statisticsStore = components.getStatsStore();
+    addStats(stats, statisticsStore.getAdapterStatistics(adapter, null));
     return stats;
+  }
+  
+  private void addStats(Map<ByteArray, Statistic<?>> statsMap, CloseableIterator<Statistic<?>> statistics) {
+    while (statistics.hasNext()) {
+      final Statistic<?> stat = statistics.next();
+      statsMap.put(new ByteArray(stat.getId()), stat);
+    }
   }
 }

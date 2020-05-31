@@ -8,80 +8,125 @@
  */
 package org.locationtech.geowave.core.store.statistics;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.locationtech.geowave.core.index.ByteArray;
-import org.locationtech.geowave.core.store.DataStoreStatisticsProvider;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
-import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.callback.DeleteCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallback;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.common.collect.Maps;
 
-public class StatisticUpdateHandler<T, R> implements
+public class StatisticUpdateHandler<T, V extends StatisticValue<R>, R> implements
     IngestCallback<T>,
     DeleteCallback<T, GeoWaveRow>,
     ScanCallback<T, GeoWaveRow> {
-  private final Statistic<?> statistic;
-  private final Map<ByteArray, StatisticUpdater> statisticsMap = new HashMap<>();
+  private static final Logger LOGGER = LoggerFactory.getLogger(StatisticUpdateHandler.class);
+  private final Statistic<V> statistic;
+  private final Map<ByteArray, Map<ByteArray, V>> statisticsMap = new HashMap<>();
   private final EntryVisibilityHandler<T> visibilityHandler;
   private final DataTypeAdapter<T> adapter;
+  private final IngestHandler<T, V, R> ingestHandler;
+  private final DeleteHandler<T, V, R> deleteHandler;
+  
+  private static final ByteArray NO_BIN = new ByteArray(new byte[0]);
 
   public StatisticUpdateHandler(
-      final Statistic<?> statistic,
+      final Statistic<V> statistic,
       final Index index,
       final DataTypeAdapter<T> adapter) {
     this.statistic = statistic;
     this.adapter = adapter;
     this.visibilityHandler =
         statistic.getVisibilityHandler(index != null ? index.getIndexModel() : null, adapter);
+    this.ingestHandler = new IngestHandler<>();
+    this.deleteHandler = new DeleteHandler<>();
   }
-
-  public Map<ByteArray, StatisticUpdater> getStatisticValues() {
-    return this.statisticsMap;
+  
+  protected void handleEntry(final Handler<T, V, R> handler, final T entry, final GeoWaveRow... rows) {
+    final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, rows));
+    Map<ByteArray, V> binnedValues = statisticsMap.get(visibility);
+    if (binnedValues == null) {
+      binnedValues = Maps.newHashMap();
+      statisticsMap.put(visibility, binnedValues);
+    }
+    if (statistic.getBinningStrategy() != null) {
+      ByteArray[] bins = statistic.getBinningStrategy().getBins(adapter, entry, rows);
+      for (ByteArray bin : bins) {
+        handleBin(handler, binnedValues, bin, entry, rows);
+      }
+    } else {
+      handleBin(handler, binnedValues, NO_BIN, entry, rows);
+    }
+  }
+  
+  protected void handleBin(final Handler<T, V, R> handler, Map<ByteArray, V> binnedValues, ByteArray bin, final T entry, final GeoWaveRow... rows) {
+    V value = binnedValues.get(bin);
+    if (value == null) {
+      value = statistic.createEmpty();
+      binnedValues.put(bin, value);
+    }
+    handler.handle(value, adapter, entry, rows);
   }
 
   @Override
-  public void entryIngested(final T entry, final GeoWaveRow... kvs) {
-    final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, kvs));
-    StatisticUpdater updater = statisticsMap.get(visibility);
-    if (updater == null) {
-      updater = statistic.createEmpty();
-      statisticsMap.put(visibility, updater);
-    }
-    if (updater instanceof StatisticsIngestCallback) {
-      ((StatisticsIngestCallback) updater).entryIngested(adapter, entry, kvs);
-    }
+  public void entryIngested(final T entry, final GeoWaveRow... rows) {
+    handleEntry(ingestHandler, entry, rows);
   }
 
   @Override
-  public void entryDeleted(final T entry, final GeoWaveRow... kv) {
-    final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, kv));
-    StatisticUpdater updater = statisticsMap.get(visibility);
-    if (updater == null) {
-      updater = statistic.createEmpty();
-      statisticsMap.put(visibility, updater);
-    }
-    if (updater instanceof StatisticsDeleteCallback) {
-      ((StatisticsDeleteCallback) updater).entryDeleted(adapter, entry, kv);
-    }
+  public void entryDeleted(final T entry, final GeoWaveRow... rows) {
+    handleEntry(deleteHandler, entry, rows);
+
   }
 
   @Override
-  public void entryScanned(final T entry, final GeoWaveRow kv) {
-    final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, kv));
-    StatisticUpdater updater = statisticsMap.get(visibility);
-    if (updater == null) {
-      updater = statistic.createEmpty();
-      statisticsMap.put(visibility, updater);
+  public void entryScanned(final T entry, final GeoWaveRow row) {
+    handleEntry(ingestHandler, entry, row);
+  }
+  
+  public void writeStatistics(final DataStatisticsStore statisticsStore, final boolean overwrite) {
+    if (overwrite) {
+      statisticsStore.removeStatisticValues(statistic);
     }
-    if (updater instanceof StatisticsIngestCallback) {
-      ((StatisticsIngestCallback) updater).entryIngested(adapter, entry, kv);
+    try (StatisticValueWriter<V> statWriter = statisticsStore.createStatisticValueWriter(statistic)) {
+      for (final Entry<ByteArray, Map<ByteArray, V>> visibilityStatistic : statisticsMap.entrySet()) {
+        Map<ByteArray, V> bins = visibilityStatistic.getValue();
+        for (Entry<ByteArray, V> binValue : bins.entrySet()) {
+          statWriter.writeStatisticValue(binValue.getKey().getBytes(), visibilityStatistic.getKey().getBytes(), binValue.getValue());
+        }
+      }
+      statisticsMap.clear();
+    } catch (Exception e) {
+      LOGGER.error("Unable to write statistic value.", e);
+    }
+  }
+  
+  private static interface Handler<T, V extends StatisticValue<R>, R> {
+    public void handle(V value, DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows);
+  }
+  
+  private static class IngestHandler<T, V extends StatisticValue<R>, R> implements Handler<T, V, R> {
+    public void handle(V value, DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows) {
+      if (value instanceof StatisticsIngestCallback) {
+        ((StatisticsIngestCallback) value).entryIngested(adapter, entry, rows);
+      }
+    }
+  }
+  
+  private static class DeleteHandler<T, V extends StatisticValue<R>, R> implements Handler<T, V, R> {
+    public void handle(V value, DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows) {
+      if (value instanceof StatisticsDeleteCallback) {
+        ((StatisticsDeleteCallback) value).entryDeleted(adapter, entry, rows);
+      }
     }
   }
 }

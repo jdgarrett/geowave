@@ -10,8 +10,8 @@ package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Range;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.NumericRangeValue> {
 
-  public static final StatisticType STATS_TYPE = new StatisticType("NUMERIC_RANGE");
+  public static final StatisticType<NumericRangeValue> STATS_TYPE = new StatisticType<>("NUMERIC_RANGE");
 
   public NumericRangeStatistic() {
     super(STATS_TYPE);
@@ -41,18 +41,18 @@ public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.
 
   @Override
   public NumericRangeValue createEmpty() {
-    return new NumericRangeValue(getFieldName());
+    return new NumericRangeValue(this, getFieldName());
   }
 
-  public static class NumericRangeValue implements
-      StatisticValue<Range<Double>>,
+  public static class NumericRangeValue extends StatisticValue<Range<Double>> implements
       StatisticsIngestCallback {
     private final String fieldName;
 
     private double min = Double.MAX_VALUE;
     private double max = -Double.MAX_VALUE;
 
-    private NumericRangeValue(final String fieldName) {
+    private NumericRangeValue(final Statistic<?> statistic, final String fieldName) {
+      super(statistic);
       this.fieldName = fieldName;
     }
 
@@ -76,8 +76,8 @@ public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.
     }
 
     @Override
-    public void merge(Mergeable merge) {
-      if ((merge != null) && (merge instanceof NumericRangeValue)) {
+    public void merge(StatisticValue<Range<Double>> merge) {
+      if (merge != null && merge instanceof NumericRangeValue) {
         final NumericRangeValue other = (NumericRangeValue) merge;
         if (other.isSet()) {
           min = Math.min(min, other.getMin());

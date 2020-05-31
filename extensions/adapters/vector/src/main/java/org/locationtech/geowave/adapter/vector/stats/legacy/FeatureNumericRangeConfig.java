@@ -1,7 +1,6 @@
-import org.apache.commons.lang3.Range;
-import org.locationtech.geowave.adapter.vector.stats.FeatureNumericRangeStatistics;
+package org.locationtech.geowave.adapter.vector.stats.legacy;
+
 import org.locationtech.geowave.adapter.vector.stats.StatsConfig;
-import org.locationtech.geowave.core.store.adapter.statistics.FieldStatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.opengis.feature.simple.SimpleFeature;

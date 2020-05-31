@@ -15,7 +15,6 @@ import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQue
 import org.locationtech.geowave.core.geotime.store.statistics.FeatureTimeRangeStatistics;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.StatisticsQuery;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
@@ -60,40 +59,41 @@ public class DateUtilities {
       Date start = null;
       Date end = null;
 
-      StatisticsQuery<Interval> query =
-          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
-              startField).build();
-      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
-          statisticsStore.getDataStatistics(
-              adapterId,
-              query.getExtendedId(),
-              query.getStatsType(),
-              new String[0])) {
-        if (timeStatIt.hasNext()) {
-          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
-          if (timeStat instanceof FeatureTimeRangeStatistics) {
-            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
-            start = trStats.getMinTime();
-          }
-        }
-      }
-      query =
-          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
-              endField).build();
-      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
-          statisticsStore.getDataStatistics(
-              adapterId,
-              query.getExtendedId(),
-              query.getStatsType(),
-              new String[0])) {
-        if (timeStatIt.hasNext()) {
-          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
-          if (timeStat instanceof FeatureTimeRangeStatistics) {
-            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
-            end = trStats.getMinTime();
-          }
-        }
-      }
+      // STATS_TODO: Query logic
+//      StatisticsQuery<Interval> query =
+//          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
+//              startField).build();
+//      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
+//          statisticsStore.getDataStatistics(
+//              adapterId,
+//              query.getExtendedId(),
+//              query.getStatsType(),
+//              new String[0])) {
+//        if (timeStatIt.hasNext()) {
+//          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
+//          if (timeStat instanceof FeatureTimeRangeStatistics) {
+//            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
+//            start = trStats.getMinTime();
+//          }
+//        }
+//      }
+//      query =
+//          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
+//              endField).build();
+//      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
+//          statisticsStore.getDataStatistics(
+//              adapterId,
+//              query.getExtendedId(),
+//              query.getStatsType(),
+//              new String[0])) {
+//        if (timeStatIt.hasNext()) {
+//          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
+//          if (timeStat instanceof FeatureTimeRangeStatistics) {
+//            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
+//            end = trStats.getMinTime();
+//          }
+//        }
+//      }
 
       if ((start != null) && (end != null)) {
         return new TemporalRange(start, end);
@@ -101,23 +101,24 @@ public class DateUtilities {
     } else {
       // Look up the time range stat for this adapter
 
-      final StatisticsQuery<Interval> query =
-          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
-              timeField).build();
-      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
-          statisticsStore.getDataStatistics(
-              adapterId,
-              query.getExtendedId(),
-              query.getStatsType(),
-              new String[0])) {
-        if (timeStatIt.hasNext()) {
-          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
-          if (timeStat instanceof FeatureTimeRangeStatistics) {
-            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
-            return trStats.asTemporalRange();
-          }
-        }
-      }
+      // STATS_TODO: Query logic
+//      final StatisticsQuery<Interval> query =
+//          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
+//              timeField).build();
+//      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
+//          statisticsStore.getDataStatistics(
+//              adapterId,
+//              query.getExtendedId(),
+//              query.getStatsType(),
+//              new String[0])) {
+//        if (timeStatIt.hasNext()) {
+//          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
+//          if (timeStat instanceof FeatureTimeRangeStatistics) {
+//            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
+//            return trStats.asTemporalRange();
+//          }
+//        }
+//      }
     }
 
     return null;

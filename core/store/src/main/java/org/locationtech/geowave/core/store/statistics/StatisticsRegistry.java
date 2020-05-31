@@ -13,15 +13,17 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
 import org.locationtech.geowave.core.store.api.Statistic;
-import org.locationtech.geowave.core.store.statistics.StatisticsProviderSPI.ProvidedStatistic;
-import org.locationtech.geowave.core.store.statistics.StatisticsProviderSPI.StatisticsTypeAndConstructor;
+import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
+import org.locationtech.geowave.core.store.api.StatisticValue;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistrySPI.RegisteredBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistrySPI.RegisteredStatistic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 /**
  * Singleton registry for all supported statistics. Statistics can be added to the system using
- * {@link StatisticsProviderSPI}.
+ * {@link StatisticsRegistrySPI}.
  */
 public class StatisticsRegistry {
 
@@ -29,17 +31,20 @@ public class StatisticsRegistry {
 
   private static StatisticsRegistry INSTANCE = null;
 
-  private Map<String, ProvidedStatistic> statistics = Maps.newHashMap();
+  private Map<String, RegisteredStatistic> statistics = Maps.newHashMap();
+  
+  private Map<String, Supplier<StatisticBinningStrategy>> binningStrategies = Maps.newHashMap();
 
   private StatisticsRegistry() {
-    final ServiceLoader<StatisticsProviderSPI> serviceLoader =
-        ServiceLoader.load(StatisticsProviderSPI.class);
-    for (final StatisticsProviderSPI providedStats : serviceLoader) {
+    final ServiceLoader<StatisticsRegistrySPI> serviceLoader =
+        ServiceLoader.load(StatisticsRegistrySPI.class);
+    for (final StatisticsRegistrySPI providedStats : serviceLoader) {
       Arrays.stream(providedStats.getProvidedStatistics()).forEach(this::putStat);
+      Arrays.stream(providedStats.getProvidedBinningStrategies()).forEach(this::putBinningStrategy);
     }
   }
 
-  private void putStat(ProvidedStatistic stat) {
+  private void putStat(RegisteredStatistic stat) {
     final String key = stat.getStatisticsType().getString().toLowerCase();
     if (statistics.containsKey(key)) {
       LOGGER.warn(
@@ -48,6 +53,17 @@ public class StatisticsRegistry {
     }
     statistics.put(key, stat);
   }
+  
+  private void putBinningStrategy(RegisteredBinningStrategy strategy) {
+    final String key = strategy.getStrategyName().toLowerCase();
+    if (binningStrategies.containsKey(key)) {
+      LOGGER.warn(
+          "Multiple binning strategies with the same name were found on the classpath. Only the first instance will be loaded!");
+      return;
+    }
+    binningStrategies.put(key, strategy.getConstructor());
+  }
+  
 
   public static StatisticsRegistry instance() {
     if (INSTANCE == null) {
@@ -56,7 +72,7 @@ public class StatisticsRegistry {
     return INSTANCE;
   }
 
-  public Map<String, ProvidedStatistic> getStatistics() {
+  public Map<String, RegisteredStatistic> getStatistics() {
     return statistics;
   }
 
@@ -66,7 +82,7 @@ public class StatisticsRegistry {
    * @param statType the statistics type
    * @return the function that matches the given name, or {@code null} if it could not be found
    */
-  public Statistic<?> getStatisticsOptions(final StatisticType statType) {
+  public Statistic<StatisticValue<Object>> getStatisticsOptions(final StatisticType<?> statType) {
     return getStatisticsOptions(statType.getString());
   }
 
@@ -76,12 +92,29 @@ public class StatisticsRegistry {
    * @param statType the statistics type
    * @return the function that matches the given name, or {@code null} if it could not be found
    */
-  public Statistic<?> getStatisticsOptions(final String statType) {
-    ProvidedStatistic statistic = statistics.get(statType.toLowerCase());
+  public Statistic<StatisticValue<Object>> getStatisticsOptions(final String statType) {
+    RegisteredStatistic statistic = statistics.get(statType.toLowerCase());
     if (statistic == null) {
       return null;
     }
     return statistic.getOptionsConstructor().get();
+  }
+  
+
+  public StatisticType<StatisticValue<Object>> getStatisticType(final String statType) {
+    RegisteredStatistic statistic = statistics.get(statType.toLowerCase());
+    if (statistic == null) {
+      return null;
+    }
+    return statistic.getStatisticsType();
+  }
+  
+  public StatisticBinningStrategy getBinningStrategy(final String binningStrategyType) {
+    Supplier<StatisticBinningStrategy> strategy = binningStrategies.get(binningStrategyType.toLowerCase());
+    if (strategy == null) {
+      return null;
+    }
+    return strategy.get();
   }
 
 }

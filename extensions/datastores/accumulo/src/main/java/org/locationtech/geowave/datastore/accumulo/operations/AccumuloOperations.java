@@ -1425,12 +1425,11 @@ public class AccumuloOperations implements MapReduceDataStoreOperations, ServerS
 
   @Override
   public boolean mergeStats(
-      final DataStatisticsStore statsStore,
-      final InternalAdapterStore internalAdapterStore) {
+      final DataStatisticsStore statsStore) {
     if (options.isServerSideLibraryEnabled()) {
       return compactTable(AbstractGeoWavePersistence.METADATA_TABLE);
     } else {
-      return DataStoreUtils.mergeStats(statsStore, internalAdapterStore);
+      return statsStore.mergeStats();
     }
   }
 

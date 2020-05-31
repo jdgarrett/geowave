@@ -10,14 +10,10 @@ package org.locationtech.geowave.core.store;
 
 import java.util.Arrays;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.RowRangeHistogramStatisticsSet;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
-import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
 import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
@@ -28,6 +24,7 @@ import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.statistics.visibility.EmptyStatisticVisibility;
 
+// STATS_TODO: Default statistics need to be handled.
 public class DataStoreStatisticsProvider<T> implements StatisticsProvider<T> {
   final InternalDataAdapter<T> adapter;
   final boolean includeAdapterStats;
@@ -55,7 +52,7 @@ public class DataStoreStatisticsProvider<T> implements StatisticsProvider<T> {
 
     if (index != null) {
       final StatisticType[] newSet = Arrays.copyOf(typesFromAdapter, typesFromAdapter.length + 6);
-      newSet[typesFromAdapter.length] = RowRangeHistogramStatisticsSet.STATS_TYPE;
+      newSet[typesFromAdapter.length] = RowRangeHistogramStatistic.STATS_TYPE;
       newSet[typesFromAdapter.length + 1] = IndexMetaDataSet.STATS_TYPE;
       newSet[typesFromAdapter.length + 2] = DifferingFieldVisibilityEntryCount.STATS_TYPE;
       newSet[typesFromAdapter.length + 3] = FieldVisibilityCount.STATS_TYPE;

@@ -3,20 +3,20 @@ package org.locationtech.geowave.core.store.api;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
-import org.locationtech.geowave.core.store.statistics.StatisticUpdater;
 
-public interface Statistic<R extends StatisticValue<?>> extends Persistable {
+public interface Statistic<V extends StatisticValue<?>> extends Persistable {
 
   public static String UNIQUE_ID_SEPARATOR = "|";
 
   public String getName();
 
-  public StatisticType getStatisticType();
+  public StatisticType<V> getStatisticType();
 
   public String getDescription();
 
-  public R createEmpty();
+  public V createEmpty();
 
   public <T> EntryVisibilityHandler<T> getVisibilityHandler(
       CommonIndexModel indexModel,
@@ -30,7 +30,7 @@ public interface Statistic<R extends StatisticValue<?>> extends Persistable {
    * 
    * @return
    */
-  public byte[] getUniqueId();
+  public StatisticId<V> getId();
 
   /**
    * 

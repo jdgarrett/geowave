@@ -15,7 +15,8 @@ public class StatsOperationProvider implements CLIOperationProviderSpi {
   private static final Class<?>[] OPERATIONS =
       new Class<?>[] {
           StatsSection.class,
-          CalculateStatCommand.class,
+          AddStatCommand.class,
+          ListStatTypesCommand.class,
           CompactStatsCommand.class,
           ListStatsCommand.class,
           RecalculateStatsCommand.class,

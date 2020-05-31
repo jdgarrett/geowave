@@ -25,11 +25,11 @@ import org.locationtech.geowave.core.geotime.index.dimension.LatitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.LongitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.TemporalBinningStrategy.Unit;
 import org.locationtech.geowave.core.geotime.index.dimension.TimeDefinition;
+import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.sfc.data.NumericData;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
 import org.locationtech.geowave.core.store.index.NullIndex;
@@ -37,7 +37,6 @@ import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintData;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintSet;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
-import org.opengis.feature.simple.SimpleFeature;
 import com.beust.jcommander.internal.Maps;
 
 public class ChooseHeuristicMatchQueryStrategyTest {
@@ -69,7 +68,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(HOUSE, HOUSE, HOUR)),
             strategy);
     assertTrue(it.hasNext());
@@ -84,7 +83,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(HOUSE, HOUSE, DAY)),
             strategy);
     assertTrue(it.hasNext());
@@ -99,7 +98,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(HOUSE, HOUSE, WEEK)),
             strategy);
     assertTrue(it.hasNext());
@@ -114,7 +113,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(BLOCK, BLOCK, HOUR)),
             strategy);
     assertTrue(it.hasNext());
@@ -129,7 +128,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(BLOCK, BLOCK, DAY)),
             strategy);
     assertTrue(it.hasNext());
@@ -144,7 +143,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(BLOCK, BLOCK, WEEK)),
             strategy);
     assertTrue(it.hasNext());
@@ -159,7 +158,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(CITY, CITY, HOUR)),
             strategy);
     assertTrue(it.hasNext());
@@ -174,7 +173,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(CITY, CITY, DAY)),
             strategy);
     assertTrue(it.hasNext());
@@ -189,7 +188,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
 
     final Iterator<Index> it =
         getIndices(
-            new HashMap<StatisticsId, DataStatistics<SimpleFeature, ?, ?>>(),
+            new HashMap<ByteArray, Statistic<?>>(),
             new BasicQueryByClass(createConstraints(CITY, CITY, WEEK)),
             strategy);
     assertTrue(it.hasNext());
@@ -198,7 +197,7 @@ public class ChooseHeuristicMatchQueryStrategyTest {
   }
 
   public Iterator<Index> getIndices(
-      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats,
+      final Map<ByteArray, Statistic<?>> stats,
       final BasicQueryByClass query,
       final ChooseHeuristicMatchIndexQueryStrategy strategy) {
     return strategy.getIndices(

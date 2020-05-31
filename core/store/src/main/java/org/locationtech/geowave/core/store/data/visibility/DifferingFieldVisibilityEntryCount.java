@@ -9,17 +9,13 @@
 package org.locationtech.geowave.core.store.data.visibility;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.HashSet;
 import org.locationtech.geowave.core.index.ByteArray;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
-import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
@@ -27,7 +23,7 @@ import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 
 public class DifferingFieldVisibilityEntryCount extends
     IndexStatistic<DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("DIFFERING_VISIBILITY_COUNT");
+  public static final StatisticType<DifferingFieldVisibilityEntryCountValue> STATS_TYPE = new StatisticType<>("DIFFERING_VISIBILITY_COUNT");
 
 
   public DifferingFieldVisibilityEntryCount() {
@@ -38,10 +34,6 @@ public class DifferingFieldVisibilityEntryCount extends
     super(STATS_TYPE, indexName);
   }
 
-  public DifferingFieldVisibilityEntryCount(final String indexName, final String typeName) {
-    super(STATS_TYPE, indexName, typeName);
-  }
-
   @Override
   public String getDescription() {
     return "Counts the number of differing visibilities in the index.";
@@ -49,22 +41,26 @@ public class DifferingFieldVisibilityEntryCount extends
 
   @Override
   public DifferingFieldVisibilityEntryCountValue createEmpty() {
-    return new DifferingFieldVisibilityEntryCountValue();
+    return new DifferingFieldVisibilityEntryCountValue(this);
   }
 
-  public static class DifferingFieldVisibilityEntryCountValue implements
-      StatisticValue<Long>,
+  public static class DifferingFieldVisibilityEntryCountValue extends
+      StatisticValue<Long> implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
 
     private long entriesWithDifferingFieldVisibilities = 0;
+    
+    private DifferingFieldVisibilityEntryCountValue(Statistic<?> statistic) {
+      super(statistic);
+    }
 
     public boolean isAnyEntryDifferingFieldVisiblity() {
       return entriesWithDifferingFieldVisibilities > 0;
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Long> merge) {
       if ((merge != null) && (merge instanceof DifferingFieldVisibilityEntryCountValue)) {
         entriesWithDifferingFieldVisibilities +=
             ((DifferingFieldVisibilityEntryCountValue) merge).entriesWithDifferingFieldVisibilities;
@@ -121,29 +117,5 @@ public class DifferingFieldVisibilityEntryCount extends
       return true;
     }
     return false;
-  }
-
-  // STATS_TODO: How can we do this in a more robust way? The statistic might exist on a whole index
-  // instead of with the type name specified, what about if the statistic is binned by adapter?
-  public static DifferingFieldVisibilityEntryCountValue getVisibilityCounts(
-      final Index index,
-      final Collection<Short> adapterIdsToQuery,
-      final PersistentAdapterStore adapterStore,
-      final DataStatisticsStore statisticsStore,
-      final String... authorizations) {
-    DifferingFieldVisibilityEntryCountValue combinedVisibilityCount = null;
-    for (final short adapterId : adapterIdsToQuery) {
-      final DataTypeAdapter<?> adapter = adapterStore.getAdapter(adapterId);
-      DifferingFieldVisibilityEntryCountValue value =
-          statisticsStore.getStatisticValue(
-              new DifferingFieldVisibilityEntryCount(index.getName(), adapter.getTypeName()),
-              authorizations);
-      if (combinedVisibilityCount == null) {
-        combinedVisibilityCount = value;
-      } else {
-        combinedVisibilityCount.merge(value);
-      }
-    }
-    return combinedVisibilityCount;
   }
 }

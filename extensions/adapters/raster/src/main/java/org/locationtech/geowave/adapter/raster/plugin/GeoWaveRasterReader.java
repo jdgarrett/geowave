@@ -47,7 +47,9 @@ import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.adapter.raster.adapter.RasterDataAdapter;
 import org.locationtech.geowave.adapter.raster.stats.HistogramStatistics;
 import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics;
+import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics.OverviewValue;
 import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistics;
+import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistics.RasterBoundingBoxValue;
 import org.locationtech.geowave.core.geotime.index.SpatialDimensionalityTypeProvider;
 import org.locationtech.geowave.core.geotime.store.query.IndexOnlySpatialQuery;
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
@@ -64,6 +66,8 @@ import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.index.IndexStore;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
@@ -368,42 +372,47 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public GridEnvelope getOriginalGridRange(final String coverageName) {
-    try (CloseableIterator<DataStatistics<?, ?, ?>> statisticsIt =
-        geowaveStatisticsStore.getDataStatistics(
-            getAdapterId(coverageName),
+    DataTypeAdapter<?> adapter = getAdapter(coverageName);
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statisticsIt =
+        geowaveStatisticsStore.getAdapterStatistics(
+            adapter,
             RasterBoundingBoxStatistics.STATS_TYPE,
-            authorizationSPI.getAuthorizations())) {
+            null)) {
 
       int width = 0;
       int height = 0;
       // try to use both the bounding box and the overview statistics to
       // determine the width and height at the highest resolution
-      DataStatistics<?, ?, ?> statistics = null;
+      Statistic<?> statistics = null;
       if (statisticsIt.hasNext()) {
         statistics = statisticsIt.next();
       }
-      if ((statistics != null) && (statistics instanceof BoundingBoxDataStatistics)) {
-        final BoundingBoxDataStatistics<?, ?> bboxStats =
-            (BoundingBoxDataStatistics<?, ?>) statistics;
-        try (CloseableIterator<DataStatistics<?, ?, ?>> overviewStatisticsIt =
-            geowaveStatisticsStore.getDataStatistics(
-                getAdapterId(coverageName),
-                OverviewStatistics.STATS_TYPE,
-                authorizationSPI.getAuthorizations())) {
+      if ((statistics != null) && (statistics instanceof RasterBoundingBoxStatistics)) {
+        final RasterBoundingBoxValue bboxStats =
+            geowaveStatisticsStore.getStatisticValue(
+                (RasterBoundingBoxStatistics) statistics,
+                authorizationSPI.getAuthorizations());
+        try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> overviewStatisticsIt =
+            geowaveStatisticsStore.getAdapterStatistics(
+                adapter,
+                OverviewStatistics.STATS_TYPE, null)) {
           statistics = null;
           if (overviewStatisticsIt.hasNext()) {
             statistics = overviewStatisticsIt.next();
           }
           if ((statistics != null) && (statistics instanceof OverviewStatistics)) {
-            final OverviewStatistics overviewStats = (OverviewStatistics) statistics;
-            width =
-                (int) Math.ceil(
-                    ((bboxStats.getMaxX() - bboxStats.getMinX())
-                        / overviewStats.getResolutions()[0].getResolution(0)));
-            height =
-                (int) Math.ceil(
-                    ((bboxStats.getMaxY() - bboxStats.getMinY())
-                        / overviewStats.getResolutions()[0].getResolution(1)));
+            final OverviewValue overviewStats = geowaveStatisticsStore.getStatisticValue((OverviewStatistics) statistics, 
+                authorizationSPI.getAuthorizations());
+            if (bboxStats != null && overviewStats!= null) {
+              width =
+                  (int) Math.ceil(
+                      ((bboxStats.getMaxX() - bboxStats.getMinX())
+                          / overviewStats.getResolutions()[0].getResolution(0)));
+              height =
+                  (int) Math.ceil(
+                      ((bboxStats.getMaxY() - bboxStats.getMinY())
+                          / overviewStats.getResolutions()[0].getResolution(1)));
+            }
           }
         }
       }
@@ -989,5 +998,9 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
   private short getAdapterId(final String coverageName) {
 
     return geowaveInternalAdapterStore.getAdapterId(coverageName);
+  }
+  
+  private DataTypeAdapter<?> getAdapter(final String coverageName) {
+    return geowaveAdapterStore.getAdapter(getAdapterId(coverageName));
   }
 }

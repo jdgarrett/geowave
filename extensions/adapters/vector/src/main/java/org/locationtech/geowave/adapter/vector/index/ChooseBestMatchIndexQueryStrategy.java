@@ -11,20 +11,18 @@ package org.locationtech.geowave.adapter.vector.index;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQueryBuilder;
 import org.locationtech.geowave.core.index.IndexUtils;
 import org.locationtech.geowave.core.index.QueryRanges;
 import org.locationtech.geowave.core.index.sfc.data.MultiDimensionalNumericData;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
-import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
-import org.locationtech.geowave.core.store.api.StatisticsQuery;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
-import org.opengis.feature.simple.SimpleFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +38,7 @@ public class ChooseBestMatchIndexQueryStrategy implements IndexQueryStrategySPI 
 
   @Override
   public CloseableIterator<Index> getIndices(
-      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats,
+      final DataStatisticsStore statisticsStore,
       final QueryConstraints query,
       final Index[] indices,
       final DataTypeAdapter<?> adapter,
@@ -61,21 +59,25 @@ public class ChooseBestMatchIndexQueryStrategy implements IndexQueryStrategySPI 
             continue;
           }
           final List<MultiDimensionalNumericData> constraints = query.getIndexConstraints(nextIdx);
-          boolean containsRowRangeHistograms = false;
 
-          final StatisticsQuery<NumericHistogram> query =
-              VectorStatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
-                  nextIdx.getName()).build();
-          for (final StatisticsId statsId : stats.keySet()) {
-            // find out if any partition histograms exist for this
-            // index ID by checking the prefix
-            if (statsId.getType().equals(query.getStatsType())
-                && statsId.getExtendedId().startsWith(query.getExtendedId())) {
-              containsRowRangeHistograms = true;
-              break;
+          RowRangeHistogramStatistic rowRangeHistogramStatistic = null;
+
+          try (CloseableIterator<Statistic<?>> stats =
+              statisticsStore.getIndexStatistics(
+                  nextIdx,
+                  RowRangeHistogramStatistic.STATS_TYPE,
+                  null)) {
+            while (stats.hasNext()) {
+              Statistic<?> statistic = stats.next();
+              if (statistic instanceof RowRangeHistogramStatistic
+                  && statistic.getBinningStrategy() instanceof PartitionBinningStrategy) {
+                rowRangeHistogramStatistic = (RowRangeHistogramStatistic) statistic;
+                break;
+              }
             }
           }
-          if (!containsRowRangeHistograms) {
+
+          if (rowRangeHistogramStatistic == null) {
             LOGGER.warn(
                 "Best Match Heuristic requires statistic RowRangeHistogramStatistics for each index to properly choose an index.");
           }
@@ -101,7 +103,12 @@ public class ChooseBestMatchIndexQueryStrategy implements IndexQueryStrategySPI 
                     nextIdx,
                     null,
                     maxRangeDecomposition);
-            final long temp = DataStoreUtils.cardinality(nextIdx, stats, ranges);
+            final long temp =
+                DataStoreUtils.cardinality(
+                    statisticsStore,
+                    rowRangeHistogramStatistic,
+                    nextIdx,
+                    ranges);
             if (temp < min) {
               bestIdx = nextIdx;
               min = temp;

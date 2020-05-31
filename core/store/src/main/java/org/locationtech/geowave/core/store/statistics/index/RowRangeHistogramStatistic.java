@@ -9,11 +9,11 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.ByteUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.TDigestNumericHistogram;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -24,7 +24,7 @@ import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
  */
 public class RowRangeHistogramStatistic extends
     IndexStatistic<RowRangeHistogramStatistic.RowRangeHistogramValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("ROW_RANGE_HISTOGRAM");
+  public static final StatisticType<RowRangeHistogramValue> STATS_TYPE = new StatisticType<>("ROW_RANGE_HISTOGRAM");
 
   public RowRangeHistogramStatistic() {
     super(STATS_TYPE);
@@ -34,10 +34,6 @@ public class RowRangeHistogramStatistic extends
     super(STATS_TYPE, indexName);
   }
 
-  public RowRangeHistogramStatistic(final String indexName, final String typeName) {
-    super(STATS_TYPE, indexName, typeName);
-  }
-
   @Override
   public String getDescription() {
     return "Provides a histogram of row ranges.";
@@ -45,15 +41,15 @@ public class RowRangeHistogramStatistic extends
 
   @Override
   public RowRangeHistogramValue createEmpty() {
-    return new RowRangeHistogramValue();
+    return new RowRangeHistogramValue(this);
   }
 
-  public static class RowRangeHistogramValue implements
-      StatisticValue<NumericHistogram>,
+  public static class RowRangeHistogramValue extends StatisticValue<NumericHistogram> implements
       StatisticsIngestCallback {
     private NumericHistogram histogram;
 
-    public RowRangeHistogramValue() {
+    private RowRangeHistogramValue(final Statistic<?> statistic) {
+      super(statistic);
       histogram = createHistogram();
     }
 
@@ -90,7 +86,7 @@ public class RowRangeHistogramStatistic extends
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<NumericHistogram> merge) {
       if (merge instanceof RowRangeHistogramValue) {
         final NumericHistogram otherHistogram = ((RowRangeHistogramValue) merge).histogram;
         if (histogram == null) {
@@ -137,11 +133,7 @@ public class RowRangeHistogramStatistic extends
   @Override
   public String toString() {
     final StringBuffer buffer = new StringBuffer();
-    buffer.append("histogram[index=").append(getIndexName());
-    if (getTypeName() != null) {
-      buffer.append(", type=").append(getTypeName());
-    }
-    buffer.append("]");
+    buffer.append("histogram[index=").append(getIndexName()).append("]");
     return buffer.toString();
   }
 }

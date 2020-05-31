@@ -10,6 +10,7 @@ package org.locationtech.geowave.datastore.accumulo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +30,8 @@ import org.locationtech.geowave.core.geotime.index.SpatialOptions;
 import org.locationtech.geowave.core.geotime.store.dimension.GeometryWrapper;
 import org.locationtech.geowave.core.geotime.store.query.ExplicitSpatialQuery;
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
+import org.locationtech.geowave.core.geotime.store.statistics.FeatureBoundingBoxStatistics;
+import org.locationtech.geowave.core.geotime.store.statistics.FeatureBoundingBoxStatistics.FeatureBoundingBoxValue;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
@@ -66,6 +69,7 @@ import org.locationtech.geowave.core.store.metadata.DataStatisticsStoreImpl;
 import org.locationtech.geowave.core.store.metadata.InternalAdapterStoreImpl;
 import org.locationtech.geowave.core.store.query.constraints.DataIdQuery;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
@@ -234,33 +238,27 @@ public class AccumuloDataStoreStatsTest {
                 adapter.getTypeName()).addAuthorization("bbb").build());
     assertEquals(1, count.longValue());
 
-    BoundingBoxDataStatistics<?, ?> bboxStats =
-        (BoundingBoxDataStatistics<?, ?>) statsStore.getDataStatistics(
-            internalAdapterId,
-            GeoBoundingBoxStatistics.STATS_TYPE,
-            new String[] {"aaa"}).next();
+    FeatureBoundingBoxStatistics statistic =
+        (FeatureBoundingBoxStatistics) statsStore.getAdapterStatistics(
+            adapter,
+            FeatureBoundingBoxStatistics.STATS_TYPE,
+            null).next();
+    FeatureBoundingBoxValue bboxStats =
+        statsStore.getStatisticValue(statistic, null, new String[] {"aaa"});
     assertTrue(
         (bboxStats.getMinX() == 25)
             && (bboxStats.getMaxX() == 26)
             && (bboxStats.getMinY() == 32)
             && (bboxStats.getMaxY() == 32));
 
-    bboxStats =
-        (BoundingBoxDataStatistics<?, ?>) statsStore.getDataStatistics(
-            internalAdapterId,
-            GeoBoundingBoxStatistics.STATS_TYPE,
-            new String[] {"bbb"}).next();
+    bboxStats = statsStore.getStatisticValue(statistic,  null, new String[] {"bbb"});
     assertTrue(
         (bboxStats.getMinX() == 27)
             && (bboxStats.getMaxX() == 27)
             && (bboxStats.getMinY() == 32)
             && (bboxStats.getMaxY() == 32));
 
-    bboxStats =
-        (BoundingBoxDataStatistics<?, ?>) statsStore.getDataStatistics(
-            internalAdapterId,
-            GeoBoundingBoxStatistics.STATS_TYPE,
-            new String[] {"aaa", "bbb"}).next();
+    bboxStats = statsStore.getStatisticValue(statistic, null, new String[] {"aaa", "bbb"});
     assertTrue(
         (bboxStats.getMinX() == 25)
             && (bboxStats.getMaxX() == 27)
@@ -334,33 +332,21 @@ public class AccumuloDataStoreStatsTest {
                 adapter.getTypeName()).addAuthorization("bbb").build());
     assertEquals(1, count.longValue());
 
-    bboxStats =
-        (BoundingBoxDataStatistics<?, ?>) statsStore.getDataStatistics(
-            internalAdapterId,
-            GeoBoundingBoxStatistics.STATS_TYPE,
-            new String[] {"aaa"}).next();
+    bboxStats = statsStore.getStatisticValue(statistic, null, new String[] {"aaa"});
     assertTrue(
         (bboxStats.getMinX() == 25)
             && (bboxStats.getMaxX() == 26)
             && (bboxStats.getMinY() == 32)
             && (bboxStats.getMaxY() == 32));
 
-    bboxStats =
-        (BoundingBoxDataStatistics<?, ?>) statsStore.getDataStatistics(
-            internalAdapterId,
-            GeoBoundingBoxStatistics.STATS_TYPE,
-            new String[] {"bbb"}).next();
+    bboxStats = statsStore.getStatisticValue(statistic, null, new String[] {"bbb"});
     assertTrue(
         (bboxStats.getMinX() == 27)
             && (bboxStats.getMaxX() == 27)
             && (bboxStats.getMinY() == 32)
             && (bboxStats.getMaxY() == 32));
 
-    bboxStats =
-        (BoundingBoxDataStatistics<?, ?>) statsStore.getDataStatistics(
-            internalAdapterId,
-            GeoBoundingBoxStatistics.STATS_TYPE,
-            new String[] {"aaa", "bbb"}).next();
+    bboxStats =statsStore.getStatisticValue(statistic, null, new String[] {"aaa", "bbb"});
     assertTrue(
         (bboxStats.getMinX() == 25)
             && (bboxStats.getMaxX() == 27)
@@ -404,11 +390,11 @@ public class AccumuloDataStoreStatsTest {
       assertEquals(0, c);
     }
 
-    assertFalse(
-        statsStore.getDataStatistics(
-            internalAdapterId,
+    // STATS_TODO: All the data was deleted, should the stat still exist with a value of 0? Does the type still exist?
+    assertNull(
+        statsStore.getStatisticValue(statistic,
             CountStatistic.STATS_TYPE,
-            new String[] {"aaa", "bbb"}).hasNext());
+            new String[] {"aaa", "bbb"}));
     mockDataStore.addType(adapter, index);
     try (Writer<TestGeometry> indexWriter = mockDataStore.createWriter(adapter.getTypeName())) {
       indexWriter.write(new TestGeometry(factory.createPoint(new Coordinate(25, 32)), "test_pt_2"));

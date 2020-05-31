@@ -9,35 +9,30 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
-import java.util.List;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
-import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class DuplicateEntryCountStatistic extends
     IndexStatistic<DuplicateEntryCountStatistic.DuplicateEntryCountValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("DUPLICATE_ENTRY_COUNT");
+  public static final StatisticType<DuplicateEntryCountValue> STATS_TYPE = new StatisticType<>("DUPLICATE_ENTRY_COUNT");
 
   public DuplicateEntryCountStatistic() {
     super(STATS_TYPE);
   }
 
-  public DuplicateEntryCountStatistic(final String typeName, final String indexName) {
-    super(STATS_TYPE, indexName, typeName);
+  public DuplicateEntryCountStatistic(final String indexName) {
+    super(STATS_TYPE, indexName);
   }
 
   @Override
   public DuplicateEntryCountValue createEmpty() {
-    return new DuplicateEntryCountValue();
+    return new DuplicateEntryCountValue(this);
   }
 
   @Override
@@ -45,12 +40,15 @@ public class DuplicateEntryCountStatistic extends
     return "Counts the number of entries with duplicates in the index.";
   }
 
-  public static class DuplicateEntryCountValue implements
-      StatisticValue<Long>,
+  public static class DuplicateEntryCountValue extends StatisticValue<Long> implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
 
     private long entriesWithDuplicates = 0L;
+    
+    private DuplicateEntryCountValue(final Statistic<?> statistic) {
+      super(statistic);
+    }
 
     public boolean isAnyEntryHaveDuplicates() {
       return entriesWithDuplicates > 0;
@@ -62,9 +60,9 @@ public class DuplicateEntryCountStatistic extends
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Long> merge) {
       if ((merge != null) && (merge instanceof DuplicateEntryCountValue)) {
-        entriesWithDuplicates += ((DuplicateEntryCountValue) merge).entriesWithDuplicates;
+        entriesWithDuplicates += merge.getValue();
       }
     }
 
@@ -100,27 +98,4 @@ public class DuplicateEntryCountStatistic extends
       return kv.getNumberOfDuplicates() > 0;
     }
   }
-
-  public static DuplicateEntryCountValue getDuplicateCounts(
-      final Index index,
-      final List<Short> adapterIdsToQuery,
-      final PersistentAdapterStore adapterStore,
-      final DataStatisticsStore statisticsStore,
-      final String... authorizations) {
-    DuplicateEntryCountValue combinedDuplicateCount = null;
-    for (final short adapterId : adapterIdsToQuery) {
-      final DataTypeAdapter<?> adapter = adapterStore.getAdapter(adapterId);
-      DuplicateEntryCountValue value =
-          statisticsStore.getStatisticValue(
-              new DuplicateEntryCountStatistic(index.getName(), adapter.getTypeName()),
-              authorizations);
-      if (combinedDuplicateCount == null) {
-        combinedDuplicateCount = value;
-      } else {
-        combinedDuplicateCount.merge(value);
-      }
-    }
-    return combinedDuplicateCount;
-  }
-
 }

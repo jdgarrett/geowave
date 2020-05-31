@@ -8,48 +8,49 @@
  */
 package org.locationtech.geowave.core.store.query.aggregate;
 
-import org.locationtech.geowave.core.index.persist.PersistenceUtils;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.Aggregation;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
+import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
+// STATS_TODO: This is a cool idea, but this is a worthless class as it's currently implemented, because it doesn't take binning strategy/visibility into account
 public class DataStatisticsAggregation<T> implements
-    Aggregation<DataStatistics<T, ?, ?>, DataStatistics<T, ?, ?>, T> {
-  private DataStatistics<T, ?, ?> statisticsParam;
+    Aggregation<Statistic<?>, StatisticValue<?>, T> {
+  private Statistic<?> statisticsParam;
 
-  private DataStatistics<T, ?, ?> statisticsResult;
-  private byte[] defaultResultBinary;
+  private StatisticValue<?> statisticsResult;
 
   public DataStatisticsAggregation() {}
 
-  public DataStatisticsAggregation(final DataStatistics<T, ?, ?> statistics) {
-    this.statisticsResult = statistics;
-    this.defaultResultBinary = PersistenceUtils.toBinary(statisticsResult);
+  public DataStatisticsAggregation(final Statistic<?> statistics) {
+    this.statisticsResult = statistics.createEmpty();
     this.statisticsParam = statistics;
   }
 
   @Override
   public void aggregate(final T entry) {
-    statisticsResult.entryIngested(entry);
+    if (statisticsResult instanceof StatisticsIngestCallback) {
+      ((StatisticsIngestCallback) statisticsResult).entryIngested(null, entry);
+    }
   }
 
   @Override
-  public DataStatistics<T, ?, ?> getParameters() {
+  public Statistic<?> getParameters() {
     return statisticsParam;
   }
 
   @Override
-  public void setParameters(final DataStatistics<T, ?, ?> parameters) {
+  public void setParameters(final Statistic<?> parameters) {
     this.statisticsParam = parameters;
   }
 
   @Override
   public void clearResult() {
-    this.statisticsResult =
-        (DataStatistics<T, ?, ?>) PersistenceUtils.fromBinary(defaultResultBinary);
+    this.statisticsResult = statisticsParam.createEmpty();
   }
 
   @Override
-  public DataStatistics<T, ?, ?> getResult() {
+  public StatisticValue<?> getResult() {
     return statisticsResult;
   }
 
@@ -62,12 +63,14 @@ public class DataStatisticsAggregation<T> implements
   public void fromBinary(final byte[] bytes) {}
 
   @Override
-  public byte[] resultToBinary(final DataStatistics<T, ?, ?> result) {
-    return PersistenceUtils.toBinary(result);
+  public byte[] resultToBinary(final StatisticValue<?> result) {
+    return result.toBinary();
   }
 
   @Override
-  public DataStatistics<T, ?, ?> resultFromBinary(final byte[] binary) {
-    return (DataStatistics<T, ?, ?>) PersistenceUtils.fromBinary(binary);
+  public StatisticValue<?> resultFromBinary(final byte[] binary) {
+    StatisticValue<?> value = statisticsParam.createEmpty();
+    value.fromBinary(binary);
+    return value;
   }
 }

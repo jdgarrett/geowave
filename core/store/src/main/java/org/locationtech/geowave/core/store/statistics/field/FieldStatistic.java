@@ -1,22 +1,20 @@
 package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.statistics.BaseStatistic;
+import org.locationtech.geowave.core.store.statistics.FieldStatisticId;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.visibility.FieldNameStatisticVisibility;
 import com.beust.jcommander.Parameter;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Bytes;
 
-public abstract class FieldStatistic<R extends StatisticValue<?>> extends BaseStatistic<R> {
+public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseStatistic<V> {
 
   @Parameter(
       names = "--typeName",
@@ -30,12 +28,12 @@ public abstract class FieldStatistic<R extends StatisticValue<?>> extends BaseSt
       description = "The field name to use for statistics.")
   private String fieldName = null;
 
-  public FieldStatistic(final StatisticType statisticsType) {
+  public FieldStatistic(final StatisticType<V> statisticsType) {
     this(statisticsType, null, null);
   }
 
   public FieldStatistic(
-      final StatisticType statisticsType,
+      final StatisticType<V> statisticsType,
       final String typeName,
       final String fieldName) {
     super(statisticsType);
@@ -53,7 +51,6 @@ public abstract class FieldStatistic<R extends StatisticValue<?>> extends BaseSt
 
   public void setFieldName(final String fieldName) {
     this.fieldName = fieldName;
-    this.cachedUniqueId = null;
   }
 
   public String getFieldName() {
@@ -64,21 +61,11 @@ public abstract class FieldStatistic<R extends StatisticValue<?>> extends BaseSt
   public abstract boolean isCompatibleWith(Class<?> fieldClass);
 
   @Override
-  public final byte[] getUniqueId() {
-    if (cachedUniqueId != null) {
-      return cachedUniqueId;
+  public final StatisticId<V> getId() {
+    if (cachedStatisticId == null) {
+      cachedStatisticId = new FieldStatisticId<>(new ByteArray(typeName), getStatisticType(), fieldName, getName());
     }
-    List<String> parts = Lists.newArrayList();
-    parts.add(fieldName);
-    String uniqueId = internalUniqueId();
-    if (uniqueId != null) {
-      parts.add(uniqueId);
-    }
-    String name = getName();
-    if (name != null) {
-      parts.add(name);
-    }
-    return String.join(UNIQUE_ID_SEPARATOR, parts).getBytes();
+    return cachedStatisticId;
   }
 
   /**

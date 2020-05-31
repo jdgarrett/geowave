@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import org.junit.Test;
@@ -23,7 +24,7 @@ import org.locationtech.geowave.core.geotime.index.api.SpatialTemporalIndexBuild
 import org.locationtech.geowave.core.geotime.index.dimension.LatitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.LongitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.TimeDefinition;
-import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQueryBuilder;
+import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.InsertionIds;
 import org.locationtech.geowave.core.index.NumericIndexStrategy;
 import org.locationtech.geowave.core.index.SinglePartitionInsertionIds;
@@ -31,9 +32,11 @@ import org.locationtech.geowave.core.index.sfc.data.BasicNumericDataset;
 import org.locationtech.geowave.core.index.sfc.data.NumericData;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.index.sfc.data.NumericValue;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
+import org.locationtech.geowave.core.store.CloseableIterator;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.entities.GeoWaveKeyImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowImpl;
@@ -44,8 +47,18 @@ import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintData;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintSet;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
+import org.locationtech.geowave.core.store.statistics.BinnedStatisticValue;
+import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.StatisticValueWriter;
+import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
-import org.opengis.feature.simple.SimpleFeature;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic.RowRangeHistogramValue;
+import org.spark_project.guava.collect.Iterators;
+import com.beust.jcommander.internal.Lists;
 import com.beust.jcommander.internal.Maps;
 
 public class ChooseBestMatchIndexQueryStrategyTest {
@@ -59,21 +72,15 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     final Index temporalindex = new SpatialTemporalIndexBuilder().createIndex();
     final Index spatialIndex = new SpatialIndexBuilder().createIndex();
 
-    final RowRangeHistogramStatistic<SimpleFeature> rangeTempStats =
-        new RowRangeHistogramStatistic<>(null, temporalindex.getName(), null);
+    final RowRangeHistogramStatistic rangeTempStats =
+        new RowRangeHistogramStatistic(temporalindex.getName());
+    rangeTempStats.setBinningStrategy(new PartitionBinningStrategy());
 
-    final RowRangeHistogramStatistic<SimpleFeature> rangeStats =
-        new RowRangeHistogramStatistic<>(null, spatialIndex.getName(), null);
+    final RowRangeHistogramStatistic rangeStats =
+        new RowRangeHistogramStatistic(spatialIndex.getName());
+    rangeStats.setBinningStrategy(new PartitionBinningStrategy());
 
-    final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> statsMap = new HashMap<>();
-    statsMap.put(
-        VectorStatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
-            spatialIndex.getName()).build().getId(),
-        rangeStats);
-    statsMap.put(
-        VectorStatisticsQueryBuilder.newBuilder().factory().rowHistogram().indexName(
-            temporalindex.getName()).build().getId(),
-        rangeTempStats);
+    final Map<StatisticId<?>, Map<ByteArray, StatisticValue<?>>> statsMap = new HashMap<>();
 
     final ChooseBestMatchIndexQueryStrategy strategy = new ChooseBestMatchIndexQueryStrategy();
 
@@ -111,7 +118,18 @@ public class ChooseBestMatchIndexQueryStrategyTest {
                       new NumericValue(y),
                       new NumericValue(t)}));
       for (final SinglePartitionInsertionIds range : id.getPartitionKeys()) {
-        rangeTempStats.entryIngested(
+        Map<ByteArray, StatisticValue<?>> binValues = statsMap.get(rangeTempStats.getId());
+        if (binValues == null) {
+          binValues = Maps.newHashMap();
+          statsMap.put(rangeTempStats.getId(), binValues);
+        }
+        RowRangeHistogramValue value = (RowRangeHistogramValue) binValues.get(new ByteArray(range.getPartitionKey()));
+        if (value == null) {
+          value = rangeTempStats.createEmpty();
+          binValues.put(new ByteArray(range.getPartitionKey()), value);
+        }
+        ((StatisticsIngestCallback) value).entryIngested(
+            null,
             null,
             new GeoWaveRowImpl(
                 new GeoWaveKeyImpl(
@@ -138,7 +156,18 @@ public class ChooseBestMatchIndexQueryStrategyTest {
                       new NumericValue(y),
                       new NumericValue(t)}));
       for (final SinglePartitionInsertionIds range : id.getPartitionKeys()) {
-        rangeStats.entryIngested(
+        Map<ByteArray, StatisticValue<?>> binValues = statsMap.get(rangeStats.getId());
+        if (binValues == null) {
+          binValues = Maps.newHashMap();
+          statsMap.put(rangeStats.getId(), binValues);
+        }
+        RowRangeHistogramValue value = (RowRangeHistogramValue) binValues.get(new ByteArray(range.getPartitionKey()));
+        if (value == null) {
+          value = rangeStats.createEmpty();
+          binValues.put(new ByteArray(range.getPartitionKey()), value);
+        }
+        ((StatisticsIngestCallback) value).entryIngested(
+            null,
             null,
             new GeoWaveRowImpl(
                 new GeoWaveKeyImpl(
@@ -151,18 +180,18 @@ public class ChooseBestMatchIndexQueryStrategyTest {
       }
     }
 
-    final Iterator<Index> it = getIndices(statsMap, query, strategy);
+    final Iterator<Index> it = getIndices(new TestDataStatisticsStore(Lists.newArrayList(rangeStats, rangeTempStats), statsMap), query, strategy);
     assertTrue(it.hasNext());
     assertEquals(temporalindex.getName(), it.next().getName());
     assertFalse(it.hasNext());
   }
 
   public Iterator<Index> getIndices(
-      final Map<StatisticsId, DataStatistics<SimpleFeature, ?, ?>> stats,
+      final DataStatisticsStore statisticsStore,
       final BasicQueryByClass query,
       final ChooseBestMatchIndexQueryStrategy strategy) {
     return strategy.getIndices(
-        stats,
+        statisticsStore,
         query,
         new Index[] {
             IMAGE_CHIP_INDEX1,
@@ -195,5 +224,202 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     public boolean overlaps(final NumericDimensionField[] field, final NumericData[] rangeData) {
       return false;
     }
+  }
+  
+  public static class TestDataStatisticsStore implements DataStatisticsStore {
+    
+    private List<Statistic<?>> statistics;
+    private Map<StatisticId<?>, Map<ByteArray, StatisticValue<?>>> statisticValues;
+    
+    public TestDataStatisticsStore(List<Statistic<?>> statistics, Map<StatisticId<?>, Map<ByteArray, StatisticValue<?>>> statisticValues) {
+      this.statistics = statistics;
+      this.statisticValues = statisticValues;
+    }
+
+    @Override
+    public List<Statistic<?>> getRegisteredIndexStatistics() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<Statistic<?>> getRegisteredAdapterStatistics(Class<?> adapterDataClass) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Map<String, List<Statistic<?>>> getRegisteredFieldStatistics(
+        DataTypeAdapter<?> type,
+        String fieldName) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean exists(Statistic<?> statistic) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addStatistic(Statistic<?> statistic) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeStatistic(Statistic<?> statistic) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeStatistics(Iterator<Statistic<?>> statistics) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeStatistics(Index index) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeStatistics(DataTypeAdapter<?> type) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CloseableIterator<Statistic<?>> getIndexStatistics(
+        Index index,
+        StatisticType<?> statisticType,
+        String name) {
+      return new CloseableIterator.Wrapper<>(
+          statistics.stream().filter(
+              stat -> stat instanceof IndexStatistic
+                  && ((IndexStatistic<?>) stat).getIndexName().equals(index.getName())
+                  && (statisticType == null || statisticType.equals(stat.getStatisticType()))
+                  && (name == null || name.equals(stat.getName()))).iterator());
+    }
+
+    @Override
+    public CloseableIterator<Statistic<?>> getAdapterStatistics(
+        DataTypeAdapter<?> type,
+        StatisticType<?> statisticType,
+        String name) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CloseableIterator<Statistic<?>> getFieldStatistics(
+        DataTypeAdapter<?> type,
+        StatisticType<?> statisticType,
+        String fieldName,
+        String name) {
+      throw new UnsupportedOperationException();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <V extends StatisticValue<?>> Statistic<V> getStatisticById(StatisticId<V> statisticId) {
+      return (Statistic<V>) statistics.stream().filter(s -> s.getId().equals(statisticId)).findFirst().orElse(null);
+    }
+
+    @Override
+    public CloseableIterator<Statistic<?>> getAllStatistics(StatisticType<?> statisticType) {
+      return new CloseableIterator.Wrapper<>(statistics.stream().filter(stat -> stat.getStatisticType().equals(statisticType)).iterator());
+    }
+
+    @Override
+    public CloseableIterator<? extends StatisticValue<?>> getStatisticValues(
+        Iterator<Statistic<?>> statistics,
+        String... authorizations) {
+      throw new UnsupportedOperationException();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <R extends StatisticValue<?>> R getStatisticValue(
+        Statistic<R> statistic,
+        ByteArray bin,
+        String... authorizations) {
+      Map<ByteArray, StatisticValue<?>> values = statisticValues.get(statistic.getId());
+      if (values != null) {
+        return (R) values.get(bin);
+      }
+      return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <V extends StatisticValue<R>, R> CloseableIterator<BinnedStatisticValue<R>> getBinnedStatisticValues(
+        Statistic<V> statistic,
+        String... authorizations) {
+      Map<ByteArray, StatisticValue<?>> values = statisticValues.get(statistic.getId());
+      if (values != null) {
+        return new CloseableIterator.Wrapper<>(
+            Iterators.transform(
+                values.entrySet().iterator(),
+                kv -> new BinnedStatisticValue<>((V) kv.getValue(), kv.getKey())));
+      }
+      return new CloseableIterator.Empty<>();
+    }
+
+    @Override
+    public <R extends StatisticValue<?>> R getStatisticValue(
+        Statistic<R> statistic,
+        String... authorizations) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeAll() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <V extends StatisticValue<?>> void setStatisticValue(Statistic<V> statistic, V value) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <V extends StatisticValue<?>> void setStatisticValue(
+        Statistic<V> statistic,
+        V value,
+        ByteArray bin) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <V extends StatisticValue<?>> void incorporateStatisticValue(
+        Statistic<V> statistic,
+        V value) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <V extends StatisticValue<?>> void incorporateStatisticValue(
+        Statistic<V> statistic,
+        V value,
+        ByteArray bin) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeStatisticValue(Statistic<?> statistic) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean removeStatisticValue(Statistic<?> statistic, ByteArray bin) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public <V extends StatisticValue<?>> StatisticValueWriter<V> createStatisticValueWriter(
+        Statistic<V> statistic) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean mergeStats() {
+      // TODO Auto-generated method stub
+      return false;
+    }
+    
   }
 }

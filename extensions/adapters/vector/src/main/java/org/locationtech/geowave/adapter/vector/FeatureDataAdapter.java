@@ -21,7 +21,6 @@ import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.referencing.CRS;
 import org.locationtech.geowave.adapter.vector.plugin.visibility.VisibilityConfiguration;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection.SimpleFeatureStatsConfigurationCollection;
-import org.locationtech.geowave.adapter.vector.stats.StatsManager;
 import org.locationtech.geowave.adapter.vector.util.FeatureDataUtils;
 import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigurationSet;
 import org.locationtech.geowave.core.geotime.store.GeotoolsFeatureDataAdapter;
@@ -34,7 +33,6 @@ import org.locationtech.geowave.core.geotime.util.TimeUtils;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.VarintUtils;
-import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.adapter.AbstractDataAdapter;
 import org.locationtech.geowave.core.store.adapter.AdapterPersistenceEncoding;
 import org.locationtech.geowave.core.store.adapter.IndexFieldHandler;
@@ -42,13 +40,7 @@ import org.locationtech.geowave.core.store.adapter.InitializeWithIndicesDataAdap
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
 import org.locationtech.geowave.core.store.adapter.PersistentIndexFieldHandler;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
-import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
-import org.locationtech.geowave.core.store.api.Statistic;
-import org.locationtech.geowave.core.store.api.StatisticsQueryBuilder;
 import org.locationtech.geowave.core.store.data.field.FieldReader;
 import org.locationtech.geowave.core.store.data.field.FieldUtils;
 import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
@@ -97,7 +89,6 @@ import com.google.common.collect.HashBiMap;
  */
 public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> implements
     GeotoolsFeatureDataAdapter<SimpleFeature>,
-    StatisticsProvider<SimpleFeature>,
     HadoopDataAdapter<SimpleFeature, FeatureWritable>,
     InitializeWithIndicesDataAdapter<SimpleFeature> {
   private static final Logger LOGGER = LoggerFactory.getLogger(FeatureDataAdapter.class);
@@ -110,7 +101,6 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
   // from the data adapter should match in CRS
   private SimpleFeatureType reprojectedFeatureType;
   private MathTransform transform;
-  private StatsManager statsManager;
   private TimeDescriptors timeDescriptors = null;
 
   // -----------------------------------------------------------------------------------
@@ -281,8 +271,6 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
         LOGGER.warn("Unable to create coordinate reference system transform", e);
       }
     }
-
-    statsManager = new StatsManager(this, persistedFeatureType, reprojectedFeatureType, transform);
   }
 
   /** Helper method for establishing a visibility manager in the constructor */
@@ -748,26 +736,6 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
           indexModel);
     }
     return super.encode(entry, indexModel);
-  }
-
-  @Override
-  public StatisticsId[] getSupportedStatistics() {
-    return statsManager.getSupportedStatistics();
-  }
-
-  @Override
-  public <R, B extends StatisticsQueryBuilder<R, B>> DataStatistics<SimpleFeature, R, B> createDataStatistics(
-      final StatisticsId statisticsId) {
-    return (DataStatistics<SimpleFeature, R, B>) statsManager.createDataStatistics(
-        statisticsId);
-  }
-
-  @Override
-  public EntryVisibilityHandler<SimpleFeature> getVisibilityHandler(
-      final CommonIndexModel indexModel,
-      final DataTypeAdapter<SimpleFeature> adapter,
-      final Statistic statistic) {
-    return statsManager.getVisibilityHandler(indexModel, adapter, statisticsId);
   }
 
   @Override

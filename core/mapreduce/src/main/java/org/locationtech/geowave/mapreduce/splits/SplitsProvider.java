@@ -138,6 +138,7 @@ public class SplitsProvider {
             IndexMetaDataSet.getIndexMetadata(
                 indexAdapterIdPair.getLeft(),
                 indexAdapterIdPair.getRight(),
+                adapterStore,
                 statsStore,
                 commonOptions.getAuthorizations());
       } else {

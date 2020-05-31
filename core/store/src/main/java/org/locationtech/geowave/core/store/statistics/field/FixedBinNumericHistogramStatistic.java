@@ -9,13 +9,7 @@
 package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.FixedBinNumericHistogram;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -40,7 +34,7 @@ import com.beust.jcommander.Parameter;
 public class FixedBinNumericHistogramStatistic extends
     FieldStatistic<FixedBinNumericHistogramStatistic.FixedBinNumericHistogramValue> {
 
-  public static final StatisticType STATS_TYPE = new StatisticType("FIXED_BIN_NUMERIC_HISTOGRAM");
+  public static final StatisticType<FixedBinNumericHistogramValue> STATS_TYPE = new StatisticType<>("FIXED_BIN_NUMERIC_HISTOGRAM");
 
   @Parameter(names = "--numBins", description = "The number of bins for the histogram.")
   private int numBins = 1024;
@@ -96,37 +90,38 @@ public class FixedBinNumericHistogramStatistic extends
   @Override
   public FixedBinNumericHistogramValue createEmpty() {
     if (minValue == null || maxValue == null) {
-      return new FixedBinNumericHistogramValue(getFieldName(), numBins);
+      return new FixedBinNumericHistogramValue(this, getFieldName(), numBins);
     }
-    return new FixedBinNumericHistogramValue(getFieldName(), numBins, minValue, maxValue);
+    return new FixedBinNumericHistogramValue(this, getFieldName(), numBins, minValue, maxValue);
   }
 
-  public static class FixedBinNumericHistogramValue implements
-      StatisticValue<FixedBinNumericHistogram>,
+  public static class FixedBinNumericHistogramValue extends StatisticValue<FixedBinNumericHistogram> implements
       StatisticsIngestCallback {
 
     private final String fieldName;
     private FixedBinNumericHistogram histogram;
 
-    private FixedBinNumericHistogramValue(String fieldName, int bins) {
+    private FixedBinNumericHistogramValue(Statistic<?> statistic, String fieldName, int bins) {
+      super(statistic);
       this.fieldName = fieldName;
       histogram = new FixedBinNumericHistogram(bins);
     }
 
     private FixedBinNumericHistogramValue(
+        Statistic<?> statistic,
         String fieldName,
         int bins,
         double minValue,
         double maxValue) {
+      super(statistic);
       this.fieldName = fieldName;
       histogram = new FixedBinNumericHistogram(bins, minValue, maxValue);
     }
 
     @Override
-    public void merge(Mergeable merge) {
-      if (merge instanceof FixedBinNumericHistogramValue) {
-        final FixedBinNumericHistogramValue tobeMerged = (FixedBinNumericHistogramValue) merge;
-        histogram.merge(tobeMerged.histogram);
+    public void merge(StatisticValue<FixedBinNumericHistogram> merge) {
+      if (merge != null && merge instanceof FixedBinNumericHistogramValue) {
+        histogram.merge(merge.getValue());
       }
     }
 
@@ -198,29 +193,4 @@ public class FixedBinNumericHistogramStatistic extends
     buffer.append("]");
     return buffer.toString();
   }
-
-  // @Override
-  // protected String resultsName() {
-  // return "histogram";
-  // }
-  //
-  // @Override
-  // protected Object resultsValue() {
-  // final Map<String, Object> value = new HashMap<>();
-  //
-  // value.put("range_min", histogram.getMinValue());
-  // value.put("range_max", histogram.getMaxValue());
-  // final Collection<Double> binsArray = new ArrayList<>();
-  // for (final double v : this.quantile(10)) {
-  // binsArray.add(v);
-  // }
-  // value.put("bins", binsArray);
-  //
-  // final Collection<Long> countsArray = new ArrayList<>();
-  // for (final long v : count(10)) {
-  // countsArray.add(v);
-  // }
-  // value.put("counts", countsArray);
-  // return value;
-  // }
 }

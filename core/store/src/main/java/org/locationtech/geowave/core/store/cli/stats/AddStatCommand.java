@@ -15,10 +15,11 @@ import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.OperationParams;
 import org.locationtech.geowave.core.cli.api.ServiceEnabledCommand;
 import org.locationtech.geowave.core.store.api.DataStore;
-import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
+import org.locationtech.geowave.core.store.statistics.BaseStatistic;
 import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -31,6 +32,9 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
 
   @Parameter(description = "<store name> <stat type>")
   private final List<String> parameters = new ArrayList<>();
+  
+  @Parameter(names = "--binningStrategy", description = "If specified, statistics will be binned using the given strategy.")
+  private String binningStrategyName = null;
 
   @Parameter(
       names = "--skipCalculation",
@@ -41,6 +45,9 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
 
   @ParametersDelegate
   Statistic<?> statOptions;
+  
+  @ParametersDelegate
+  StatisticBinningStrategy binningStrategy = null;
 
   @Override
   public boolean prepare(final OperationParams params) {
@@ -56,6 +63,13 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
     statOptions = StatisticsRegistry.instance().getStatisticsOptions(statType);
     if (statOptions == null) {
       throw new ParameterException("Unrecognized stat type: " + statType);
+    }
+    
+    if (binningStrategyName != null) {
+      binningStrategy = StatisticsRegistry.instance().getBinningStrategy(binningStrategyName);
+      if (binningStrategy == null) {
+        throw new ParameterException("Unrecognized binning strategy: " + binningStrategyName);
+      }
     }
 
     return true;
@@ -80,7 +94,11 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
     final DataStorePluginOptions storeOptions = inputStoreLoader.getDataStorePlugin();
 
     final DataStore dataStore = storeOptions.createDataStore();
-
+    
+    if (binningStrategy != null && statOptions instanceof BaseStatistic<?>) {
+      ((BaseStatistic<?>) statOptions).setBinningStrategy(binningStrategy);
+    }
+    
     dataStore.addStatistic(statOptions, !skipCalculation);
 
     return null;

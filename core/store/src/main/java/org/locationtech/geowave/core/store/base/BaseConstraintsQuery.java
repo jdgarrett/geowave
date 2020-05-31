@@ -33,6 +33,7 @@ import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowIteratorTransformer;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
+import org.locationtech.geowave.core.store.index.IndexMetaDataSet.IndexMetaDataSetValue;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.operations.RowReader;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
@@ -65,7 +66,7 @@ public class BaseConstraintsQuery extends BaseFilteredIndexQuery {
       final ScanCallback<?, ?> scanCallback,
       final Pair<InternalDataAdapter<?>, Aggregation<?, ?, ?>> aggregation,
       final Pair<String[], InternalDataAdapter<?>> fieldIdsAdapterPair,
-      final IndexMetaData[] indexMetaData,
+      final IndexMetaDataSetValue indexMetaData,
       final DuplicateEntryCountValue duplicateCounts,
       final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts,
       final FieldVisibilityCountValue visibilityCounts,
@@ -97,7 +98,7 @@ public class BaseConstraintsQuery extends BaseFilteredIndexQuery {
       final ScanCallback<?, ?> scanCallback,
       final Pair<InternalDataAdapter<?>, Aggregation<?, ?, ?>> aggregation,
       final Pair<String[], InternalDataAdapter<?>> fieldIdsAdapterPair,
-      final IndexMetaData[] indexMetaData,
+      final IndexMetaDataSetValue indexMetaData,
       final DuplicateEntryCountValue duplicateCounts,
       final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts,
       final FieldVisibilityCountValue visibilityCounts,
@@ -114,7 +115,7 @@ public class BaseConstraintsQuery extends BaseFilteredIndexQuery {
         authorizations);
     this.constraints = constraints;
     this.aggregation = aggregation;
-    this.indexMetaData = indexMetaData != null ? indexMetaData : new IndexMetaData[] {};
+    this.indexMetaData = indexMetaData != null ? indexMetaData.toArray() : new IndexMetaData[] {};
     this.index = index;
     if ((duplicateCounts != null) && !duplicateCounts.isAnyEntryHaveDuplicates()) {
       clientDedupeFilter = null;

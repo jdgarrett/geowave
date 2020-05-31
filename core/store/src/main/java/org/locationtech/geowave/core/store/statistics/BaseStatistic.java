@@ -8,26 +8,23 @@ import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import com.beust.jcommander.Parameter;
 
-public abstract class BaseStatistic<R extends StatisticValue<?>> implements Statistic<R> {
-
-  public static String UNIQUE_ID_SEPARATOR = "|";
+public abstract class BaseStatistic<V extends StatisticValue<?>> implements Statistic<V> {
 
   @Parameter(names = "--name", description = "The name of the statistic.")
   private String name = null;
 
-  private final StatisticType statisticType;
+  private final StatisticType<V> statisticType;
 
   private StatisticBinningStrategy binningStrategy = null;
+  
+  protected StatisticId<V> cachedStatisticId = null;
 
-  protected byte[] cachedUniqueId = null;
-
-  public BaseStatistic(final StatisticType statisticType) {
+  public BaseStatistic(final StatisticType<V> statisticType) {
     this.statisticType = statisticType;
   }
 
   public void setName(final String name) {
     this.name = name;
-    this.cachedUniqueId = null;
   }
 
   @Override
@@ -45,23 +42,35 @@ public abstract class BaseStatistic<R extends StatisticValue<?>> implements Stat
   }
 
   @Override
-  public final StatisticType getStatisticType() {
+  public final StatisticType<V> getStatisticType() {
     return statisticType;
   }
 
   protected int byteLength() {
+    if (name == null) {
+      return VarintUtils.unsignedShortByteLength((short) 0);
+    }
     return VarintUtils.unsignedShortByteLength((short) name.getBytes().length)
         + name.getBytes().length;
   }
 
   protected void writeBytes(ByteBuffer buffer) {
-    VarintUtils.writeUnsignedShort((short) name.getBytes().length, buffer);
-    buffer.put(name.getBytes());
+    if (name == null) {
+      VarintUtils.writeUnsignedShort((short) 0, buffer);
+    } else {
+      VarintUtils.writeUnsignedShort((short) name.getBytes().length, buffer);
+      buffer.put(name.getBytes());
+    }
   }
 
   protected void readBytes(ByteBuffer buffer) {
-    byte[] nameBytes = new byte[VarintUtils.readUnsignedShort(buffer)];
-    name = new String(nameBytes);
+    short length = VarintUtils.readUnsignedShort(buffer);
+    if (length > 0) {
+      byte[] nameBytes = new byte[length];
+      name = new String(nameBytes);
+    } else {
+      name = null;
+    }
   }
 
   @Override

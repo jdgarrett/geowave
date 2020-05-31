@@ -19,7 +19,7 @@ import org.threeten.extra.Interval;
 
 public class FeatureTimeRangeStatistics extends
     FieldStatistic<FeatureTimeRangeStatistics.FeatureTimeRangeValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("TIME_RANGE");
+  public static final StatisticType<FeatureTimeRangeValue> STATS_TYPE = new StatisticType<>("TIME_RANGE");
 
   public FeatureTimeRangeStatistics() {
     super(STATS_TYPE);

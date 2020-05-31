@@ -9,9 +9,9 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
@@ -19,7 +19,7 @@ import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class MaxDuplicatesStatistic extends
     IndexStatistic<MaxDuplicatesStatistic.MaxDuplicatesValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("MAX_DUPLICATES");
+  public static final StatisticType<MaxDuplicatesValue> STATS_TYPE = new StatisticType<>("MAX_DUPLICATES");
 
   public MaxDuplicatesStatistic() {
     super(STATS_TYPE);
@@ -29,10 +29,6 @@ public class MaxDuplicatesStatistic extends
     super(STATS_TYPE, indexName);
   }
 
-  public MaxDuplicatesStatistic(final String indexName, final String typeName) {
-    super(STATS_TYPE, indexName, typeName);
-  }
-
   @Override
   public String getDescription() {
     return "Maintains the maximum number of duplicates for an entry in the data set.";
@@ -40,12 +36,16 @@ public class MaxDuplicatesStatistic extends
 
   @Override
   public MaxDuplicatesValue createEmpty() {
-    return new MaxDuplicatesValue();
+    return new MaxDuplicatesValue(this);
   }
 
-  public static class MaxDuplicatesValue implements
-      StatisticValue<Integer>,
+  public static class MaxDuplicatesValue extends StatisticValue<Integer> implements
       StatisticsIngestCallback {
+    
+    private MaxDuplicatesValue(Statistic<?> statistic) {
+      super(statistic);
+    }
+
     private int maxDuplicates = 0;
 
     public int getEntriesWithDifferingFieldVisibilities() {
@@ -53,9 +53,9 @@ public class MaxDuplicatesStatistic extends
     }
 
     @Override
-    public void merge(Mergeable merge) {
-      if ((merge != null) && (merge instanceof MaxDuplicatesValue)) {
-        maxDuplicates = Math.max(maxDuplicates, ((MaxDuplicatesValue) merge).maxDuplicates);
+    public void merge(StatisticValue<Integer> merge) {
+      if (merge != null && merge instanceof MaxDuplicatesValue) {
+        maxDuplicates = Math.max(maxDuplicates, merge.getValue());
       }
     }
 

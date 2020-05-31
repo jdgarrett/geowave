@@ -9,7 +9,6 @@
 package org.locationtech.geowave.core.store.statistics.adapter;
 
 import java.nio.ByteBuffer;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -20,10 +19,14 @@ import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("COUNT");
+  public static final StatisticType<CountValue> STATS_TYPE = new StatisticType<>("COUNT");
 
   public CountStatistic() {
     super(STATS_TYPE);
+  }
+  
+  public CountStatistic(final String typeName) {
+    super(STATS_TYPE, typeName);
   }
 
   @Override
@@ -33,7 +36,7 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
 
   @Override
   public CountValue createEmpty() {
-    return new CountValue();
+    return new CountValue(this);
   }
 
   @Override
@@ -44,10 +47,13 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
     return buffer.toString();
   }
 
-  public static class CountValue implements
-      StatisticValue<Long>,
+  public static class CountValue extends StatisticValue<Long> implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
+
+    private CountValue(Statistic<?> statistic) {
+      super(statistic);
+    }
 
     private long count = 0L;
 
@@ -77,9 +83,9 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
     }
 
     @Override
-    public void merge(Mergeable other) {
-      if (other instanceof CountValue) {
-        count = count + ((CountValue) other).count;
+    public void merge(StatisticValue<Long> merge) {
+      if (merge != null && merge instanceof CountValue) {
+        count = count + merge.getValue();
       }
     }
 

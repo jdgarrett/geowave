@@ -11,6 +11,7 @@ package org.locationtech.geowave.core.store.api;
 import java.util.List;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.CloseableIterator;
+import org.locationtech.geowave.core.store.statistics.query.StatisticsQuery;
 
 /**
  * A DataStore can both ingest and query data based on persisted indices and data type adapters.
@@ -114,7 +115,7 @@ public interface DataStore {
    * 
    * @param statistic the statistic to add
    */
-  void addStatistic(Statistic<?> statistic);
+  void addStatistic(Statistic<? extends StatisticValue<?>> statistic);
 
   /**
    * Add a statistic to the data store.
@@ -123,14 +124,14 @@ public interface DataStore {
    * @param calculateStat if {@code true} the initial value of the statistic will be calculated
    *        after being added
    */
-  void addStatistic(Statistic<?> statistic, boolean calculateStat);
+  void addStatistic(Statistic<? extends StatisticValue<?>> statistic, boolean calculateStat);
 
   /**
    * Remove a statistic from the data store.
    * 
    * @param statistic the statistic to remove
    */
-  void removeStatistic(final Statistic<?> statistic);
+  void removeStatistic(final Statistic<? extends StatisticValue<?>> statistic);
 
   /**
    * Gets all of the statistics that are being tracked on the provided data type adapter.
@@ -139,7 +140,7 @@ public interface DataStore {
    * @return An iterator of all the statistics that are being tracked on the provided data type
    *         adapter.
    */
-  CloseableIterator<Statistic<?>> getTypeStatistics(final String typeName);
+  CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(final String typeName);
 
   /**
    * Get data statistics that match the given query criteria
@@ -148,7 +149,7 @@ public interface DataStore {
    *        interested in a particular common statistics type use StatisticsQueryBuilder.factory()
    * @return An array of statistics that result from the query
    */
-  <R> StatisticValue<R>[] queryStatistics(StatisticsQuery<R> query);
+  <V extends StatisticValue<R>, R> CloseableIterator<V> queryStatistics(StatisticsQuery<V, R> query);
 
   /**
    * Get a single statistical result that matches the given query criteria
@@ -159,7 +160,7 @@ public interface DataStore {
    *         only makes sense within a single type, otherwise aggregates the results of the query
    *         into a single result that is returned
    */
-  <R> R aggregateStatistics(StatisticsQuery<R> query);
+  <V extends StatisticValue<R>, R> V aggregateStatistics(StatisticsQuery<V, R> query);
 
   /**
    * Add an index to the data store.

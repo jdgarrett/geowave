@@ -10,6 +10,7 @@ package org.locationtech.geowave.core.store.adapter.statistics;
 
 import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
+import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 import org.locationtech.geowave.core.index.ByteArray;
@@ -20,7 +21,12 @@ import org.locationtech.geowave.core.store.entities.GeoWaveKeyImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowImpl;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
+import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic.PartitionsValue;
+import com.google.common.collect.Maps;
 
 public class PartitionStatisticsTest {
   static final long base = 7l;
@@ -37,18 +43,17 @@ public class PartitionStatisticsTest {
 
   @Test
   public void testIngest() {
-    final PartitionsStatistic<Integer> stats = new PartitionsStatistic<>((short) 20030, "20030");
+    final PartitionsStatistic statistic = new PartitionsStatistic();
+    final PartitionsValue value = statistic.createEmpty();
 
     for (long i = 0; i < 10000; i++) {
       final GeoWaveRow row = new GeoWaveRowImpl(genKey(i), new GeoWaveValue[] {});
-      stats.entryIngested(1, row);
+      value.entryIngested(null, 1, row);
     }
 
-    System.out.println(stats.toString());
-
-    assertEquals(32, stats.getPartitionKeys().size());
+    assertEquals(32, value.getValue().size());
     for (byte i = 0; i < 32; i++) {
-      Assert.assertTrue(stats.getPartitionKeys().contains(new ByteArray(new byte[] {i})));
+      Assert.assertTrue(value.getValue().contains(new ByteArray(new byte[] {i})));
     }
   }
 }

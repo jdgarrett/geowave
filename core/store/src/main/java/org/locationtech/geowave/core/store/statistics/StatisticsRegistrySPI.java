@@ -2,18 +2,24 @@ package org.locationtech.geowave.core.store.statistics;
 
 import java.util.function.Supplier;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 
-public interface StatisticsProviderSPI {
+public interface StatisticsRegistrySPI {
 
+  public RegisteredStatistic[] getProvidedStatistics();
+  
+  public RegisteredBinningStrategy[] getProvidedBinningStrategies();
+  
   /**
    * Associates a {@link StatisticType} with its options.
    */
-  public static class ProvidedStatistic {
-    private final StatisticType statType;
-    private final Supplier<Statistic<?>> optionsConstructor;
+  public static class RegisteredStatistic {
+    private final StatisticType<StatisticValue<Object>> statType;
+    private final Supplier<Statistic<StatisticValue<Object>>> optionsConstructor;
 
     private Statistic<?> prototype = null;
 
@@ -21,24 +27,25 @@ public interface StatisticsProviderSPI {
      * @param statType the statistics type
      * @param optionsConstructor the options constructor
      */
-    public ProvidedStatistic(
-        final StatisticType statType,
-        final Supplier<Statistic<?>> optionsConstructor) {
-      this.statType = statType;
-      this.optionsConstructor = optionsConstructor;
+    @SuppressWarnings("unchecked")
+    public RegisteredStatistic(
+        final StatisticType<? extends StatisticValue<?>> statType,
+        final Supplier<? extends Statistic<? extends StatisticValue<?>>> optionsConstructor) {
+      this.statType = (StatisticType<StatisticValue<Object>>) statType;
+      this.optionsConstructor = (Supplier<Statistic<StatisticValue<Object>>>) optionsConstructor;
     }
 
     /**
      * @return the statistics type
      */
-    public StatisticType getStatisticsType() {
+    public StatisticType<StatisticValue<Object>> getStatisticsType() {
       return statType;
     }
 
     /**
      * @return the options constructor
      */
-    public Supplier<Statistic<?>> getOptionsConstructor() {
+    public Supplier<Statistic<StatisticValue<Object>>> getOptionsConstructor() {
       return optionsConstructor;
     }
 
@@ -73,7 +80,23 @@ public interface StatisticsProviderSPI {
       return prototype.isCompatibleWith(clazz);
     }
   }
-
-  public ProvidedStatistic[] getProvidedStatistics();
+  
+  public static class RegisteredBinningStrategy {
+    private final String strategyName;
+    private final Supplier<StatisticBinningStrategy> constructor;
+    
+    public RegisteredBinningStrategy(final String strategyName, Supplier<StatisticBinningStrategy> constructor) {
+      this.strategyName = strategyName;
+      this.constructor = constructor;
+    }
+    
+    public String getStrategyName() {
+      return strategyName;
+    }
+    
+    public Supplier<StatisticBinningStrategy> getConstructor() {
+      return constructor;
+    }
+  }
 
 }

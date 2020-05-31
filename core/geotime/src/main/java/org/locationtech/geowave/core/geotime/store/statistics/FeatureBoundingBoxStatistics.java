@@ -17,7 +17,7 @@ import org.locationtech.jts.geom.Geometry;
 
 public class FeatureBoundingBoxStatistics extends
     FieldStatistic<FeatureBoundingBoxStatistics.FeatureBoundingBoxValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("BOUNDING_BOX");
+  public static final StatisticType<FeatureBoundingBoxValue> STATS_TYPE = new StatisticType<>("BOUNDING_BOX");
 
   public FeatureBoundingBoxStatistics() {
     super(STATS_TYPE);

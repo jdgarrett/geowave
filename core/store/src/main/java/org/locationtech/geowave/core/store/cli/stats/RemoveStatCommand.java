@@ -13,25 +13,29 @@ import java.util.ArrayList;
 import java.util.List;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.OperationParams;
-import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
-import org.locationtech.geowave.core.store.adapter.statistics.BaseStatisticsType;
+import org.locationtech.geowave.core.store.CloseableIterator;
+import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
+import org.locationtech.geowave.core.store.index.IndexStore;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.clearspring.analytics.util.Lists;
 
 @GeowaveOperation(name = "rm", parentOperation = StatsSection.class)
 @Parameters(commandDescription = "Remove a statistic from a data store")
 public class RemoveStatCommand extends AbstractStatsCommand<Void> {
 
-  @Parameter(description = "<store name> <datatype name> <stat type>")
+  @Parameter(description = "<store name> <stat type>")
   private final List<String> parameters = new ArrayList<>();
-
-  @Parameter(
-      names = {"--fieldName"},
-      description = "If the statistic is maintained per field, optionally provide a field name")
-  private String fieldName;
+  
+  @Parameter(names = "--all", description = "If specified, all matching statistics will be removed.")
+  private boolean all = false;
 
   private String statType = null;
 
@@ -43,18 +47,49 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
   @Override
   protected boolean performStatsCommand(
       final DataStorePluginOptions storeOptions,
-      final InternalDataAdapter<?> adapter,
       final StatsCommandLineOptions statsOptions) throws IOException {
 
     // Remove the stat
     final DataStatisticsStore statStore = storeOptions.createDataStatisticsStore();
-    final String[] authorizations = getAuthorizations(statsOptions.getAuthorizations());
+    
+    StatisticType<StatisticValue<Object>> statisticType = StatisticsRegistry.instance().getStatisticType(statType);
+    
+    if (statisticType == null) {
+      throw new ParameterException("Unrecognized statistic type: " + statType);
+    }
+    
+    List<Statistic<? extends StatisticValue<?>>> toRemove = Lists.newArrayList();
+    
+    if (statsOptions.getIndexName() != null) {
+      if (statsOptions.getTypeName() != null || statsOptions.getFieldName() != null) {
+        throw new ParameterException(
+            "Unable to supply both an index and a type/field when removing a statistic.  If removing an index statistic, supply an index name, otherwise, supply a type name.");
+      }
+      final IndexStore indexStore = storeOptions.createIndexStore();
+      final Index index = indexStore.getIndex(statsOptions.getIndexName());
+      if (index == null) {
+        throw new ParameterException("Unable to find an index named: " + statsOptions.getIndexName());
+      }
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats = statStore.getIndexStatistics(index, statisticType, statsOptions.getName())) {
+        while(stats.hasNext()) {
+          toRemove.add(stats.next());
+        }
+      }
+    } else if (statsOptions.getTypeName() != null) {
+      if (statsOptions.getFieldName() != null) {
+        // remove field statistics that match the given name (if supplied)
+      }
+    }
+    
+    if (toRemove.isEmpty()) {
+      throw new ParameterException("A matching statistic could not be found");
+    }
 
-    if (!statStore.removeStatistics(
-        adapter.getAdapterId(),
-        fieldName,
-        new BaseStatisticsType<>(statType),
-        authorizations)) {
+    if (!all && toRemove.size() > 1) {
+      throw new ParameterException("Multiple statistics matched the given parameters, if this is intentional, please supply the --all option.");
+    }
+
+    if (!statStore.removeStatistics(toRemove.iterator())) {
       throw new RuntimeException("Unable to remove statistic: " + statType);
     }
 
@@ -64,11 +99,11 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
   @Override
   public Void computeResults(final OperationParams params) {
     // Ensure we have all the required arguments
-    if (parameters.size() != 3) {
-      throw new ParameterException("Requires arguments: <store name> <datatype name> <stat type>");
+    if (parameters.size() != 2) {
+      throw new ParameterException("Requires arguments: <store name> <stat type>");
     }
 
-    statType = parameters.get(2);
+    statType = parameters.get(1);
 
     super.run(params, parameters);
     return null;
