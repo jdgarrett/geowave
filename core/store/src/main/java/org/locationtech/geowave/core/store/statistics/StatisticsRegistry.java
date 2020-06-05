@@ -32,7 +32,7 @@ public class StatisticsRegistry {
   private static StatisticsRegistry INSTANCE = null;
 
   private Map<String, RegisteredStatistic> statistics = Maps.newHashMap();
-  
+
   private Map<String, Supplier<StatisticBinningStrategy>> binningStrategies = Maps.newHashMap();
 
   private StatisticsRegistry() {
@@ -53,7 +53,7 @@ public class StatisticsRegistry {
     }
     statistics.put(key, stat);
   }
-  
+
   private void putBinningStrategy(RegisteredBinningStrategy strategy) {
     final String key = strategy.getStrategyName().toLowerCase();
     if (binningStrategies.containsKey(key)) {
@@ -63,7 +63,7 @@ public class StatisticsRegistry {
     }
     binningStrategies.put(key, strategy.getConstructor());
   }
-  
+
 
   public static StatisticsRegistry instance() {
     if (INSTANCE == null) {
@@ -99,7 +99,7 @@ public class StatisticsRegistry {
     }
     return statistic.getOptionsConstructor().get();
   }
-  
+
 
   public StatisticType<StatisticValue<Object>> getStatisticType(final String statType) {
     RegisteredStatistic statistic = statistics.get(statType.toLowerCase());
@@ -108,9 +108,10 @@ public class StatisticsRegistry {
     }
     return statistic.getStatisticsType();
   }
-  
+
   public StatisticBinningStrategy getBinningStrategy(final String binningStrategyType) {
-    Supplier<StatisticBinningStrategy> strategy = binningStrategies.get(binningStrategyType.toLowerCase());
+    Supplier<StatisticBinningStrategy> strategy =
+        binningStrategies.get(binningStrategyType.toLowerCase());
     if (strategy == null) {
       return null;
     }

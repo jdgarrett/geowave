@@ -28,7 +28,6 @@ import org.locationtech.geowave.service.grpc.protobuf.AnalyticMapreduceGrpc.Anal
 import org.locationtech.geowave.service.grpc.protobuf.AnalyticSparkGrpc;
 import org.locationtech.geowave.service.grpc.protobuf.AnalyticSparkGrpc.AnalyticSparkBlockingStub;
 import org.locationtech.geowave.service.grpc.protobuf.CQLQueryParametersProtos;
-import org.locationtech.geowave.service.grpc.protobuf.CalculateStatCommandParametersProtos;
 import org.locationtech.geowave.service.grpc.protobuf.ClearStoreCommandParametersProtos;
 import org.locationtech.geowave.service.grpc.protobuf.CliGeoserverGrpc;
 import org.locationtech.geowave.service.grpc.protobuf.CliGeoserverGrpc.CliGeoserverBlockingStub;
@@ -541,18 +540,6 @@ public class GeoWaveGrpcTestClient {
         RemoveStatCommandParametersProtos.newBuilder().addAllParameters(params).setFieldName(
             "geometry").build();
     coreStoreBlockingStub.removeStatCommand(request);
-    return true;
-  }
-
-  public boolean CalculateStatCommand() {
-    final ArrayList<String> params = new ArrayList<>();
-    params.add(GeoWaveGrpcTestUtils.storeName);
-    params.add(GeoWaveGrpcTestUtils.typeName);
-    params.add("BOUNDING_BOX");
-    final CalculateStatCommandParametersProtos request =
-        CalculateStatCommandParametersProtos.newBuilder().addAllParameters(params).setFieldName(
-            "geometry").build();
-    coreStoreBlockingStub.calculateStatCommand(request);
     return true;
   }
 

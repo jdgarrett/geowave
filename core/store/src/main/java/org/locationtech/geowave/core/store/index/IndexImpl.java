@@ -9,17 +9,30 @@
 package org.locationtech.geowave.core.store.index;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.NumericIndexStrategy;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
+import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
+import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
+import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
+import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
+import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
+import com.google.common.collect.Lists;
 
 /**
  * This class fully describes everything necessary to index data within GeoWave. The key components
  * are the indexing strategy and the common index model.
  */
-public class IndexImpl implements Index {
+public class IndexImpl implements Index, DefaultStatisticsProvider {
   protected NumericIndexStrategy indexStrategy;
   protected CommonIndexModel indexModel;
 
@@ -91,5 +104,43 @@ public class IndexImpl implements Index {
     final byte[] indexModelBinary = new byte[buf.remaining()];
     buf.get(indexModelBinary);
     indexModel = (CommonIndexModel) PersistenceUtils.fromBinary(indexModelBinary);
+  }
+
+  @Override
+  public List<Statistic<? extends StatisticValue<?>>> getDefaultStatistics() {
+    List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayListWithCapacity(6);
+    IndexMetaDataSet metadata = new IndexMetaDataSet(getName(), indexStrategy.createMetaData());
+    metadata.setBinningStrategy(new AdapterBinningStrategy());
+    metadata.setInternal();
+    statistics.add(metadata);
+
+    DuplicateEntryCountStatistic duplicateCounts = new DuplicateEntryCountStatistic(getName());
+    duplicateCounts.setBinningStrategy(new AdapterBinningStrategy());
+    duplicateCounts.setInternal();
+    statistics.add(duplicateCounts);
+
+    PartitionsStatistic partitions = new PartitionsStatistic(getName());
+    partitions.setBinningStrategy(new AdapterBinningStrategy());
+    partitions.setInternal();
+    statistics.add(partitions);
+
+    DifferingFieldVisibilityEntryCount differingFieldVisibility =
+        new DifferingFieldVisibilityEntryCount(getName());
+    differingFieldVisibility.setBinningStrategy(new AdapterBinningStrategy());
+    differingFieldVisibility.setInternal();
+    statistics.add(differingFieldVisibility);
+
+    FieldVisibilityCount fieldVisibilityCount = new FieldVisibilityCount(getName());
+    fieldVisibilityCount.setBinningStrategy(new AdapterBinningStrategy());
+    fieldVisibilityCount.setInternal();
+    statistics.add(fieldVisibilityCount);
+
+    RowRangeHistogramStatistic rowRangeHistogram = new RowRangeHistogramStatistic(getName());
+    rowRangeHistogram.setBinningStrategy(
+        new CompositeBinningStrategy(new AdapterBinningStrategy(), new PartitionBinningStrategy()));
+    rowRangeHistogram.setInternal();
+    statistics.add(rowRangeHistogram);
+
+    return statistics;
   }
 }

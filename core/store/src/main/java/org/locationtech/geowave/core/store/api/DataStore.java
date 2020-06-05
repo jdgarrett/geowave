@@ -11,7 +11,6 @@ package org.locationtech.geowave.core.store.api;
 import java.util.List;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.statistics.query.StatisticsQuery;
 
 /**
  * A DataStore can both ingest and query data based on persisted indices and data type adapters.
@@ -140,7 +139,8 @@ public interface DataStore {
    * @return An iterator of all the statistics that are being tracked on the provided data type
    *         adapter.
    */
-  CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(final String typeName);
+  CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(
+      final String typeName);
 
   /**
    * Get data statistics that match the given query criteria
@@ -149,7 +149,7 @@ public interface DataStore {
    *        interested in a particular common statistics type use StatisticsQueryBuilder.factory()
    * @return An array of statistics that result from the query
    */
-  <V extends StatisticValue<R>, R> CloseableIterator<V> queryStatistics(StatisticsQuery<V, R> query);
+  <V extends StatisticValue<R>, R> CloseableIterator<V> queryStatistics(StatisticQuery<V, R> query);
 
   /**
    * Get a single statistical result that matches the given query criteria
@@ -160,7 +160,7 @@ public interface DataStore {
    *         only makes sense within a single type, otherwise aggregates the results of the query
    *         into a single result that is returned
    */
-  <V extends StatisticValue<R>, R> V aggregateStatistics(StatisticsQuery<V, R> query);
+  <V extends StatisticValue<R>, R> V aggregateStatistics(StatisticQuery<V, R> query);
 
   /**
    * Add an index to the data store.

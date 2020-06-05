@@ -14,8 +14,8 @@ import java.util.List;
 import org.bouncycastle.util.Arrays;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.adapter.raster.adapter.RasterDataAdapter;
-import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics;
-import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics.OverviewValue;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic.OverviewValue;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.Command;
 import org.locationtech.geowave.core.cli.api.DefaultOperation;
@@ -150,11 +150,11 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
       boolean overviewStatsFound = false;
       boolean partitionStatsFound = false;
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> it =
-          statsStore.getAdapterStatistics(adapter, OverviewStatistics.STATS_TYPE, null)) {
+          statsStore.getAdapterStatistics(adapter, RasterOverviewStatistic.STATS_TYPE, null)) {
         while (it.hasNext()) {
           final Statistic<? extends StatisticValue<?>> next = it.next();
-          if (next instanceof OverviewStatistics && next.getBinningStrategy() == null) {
-            OverviewStatistics statistic = (OverviewStatistics) next;
+          if (next instanceof RasterOverviewStatistic && next.getBinningStrategy() == null) {
+            RasterOverviewStatistic statistic = (RasterOverviewStatistic) next;
             OverviewValue value = statsStore.getStatisticValue(statistic);
             if (!value.removeResolution(res)) {
               LOGGER.error("Unable to remove resolution for pyramid level " + level);
@@ -174,17 +174,27 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
         while (it.hasNext()) {
           final Statistic<? extends StatisticValue<?>> next = it.next();
           if (next instanceof PartitionsStatistic) {
-            if (next.getBinningStrategy() != null && next.getBinningStrategy() instanceof AdapterBinningStrategy) {
+            if (next.getBinningStrategy() != null
+                && next.getBinningStrategy() instanceof AdapterBinningStrategy) {
               PartitionsStatistic statistic = (PartitionsStatistic) next;
-              PartitionsValue value = statsStore.getStatisticValue((PartitionsStatistic) next, AdapterBinningStrategy.getBin(adapter));
+              PartitionsValue value =
+                  statsStore.getStatisticValue(
+                      (PartitionsStatistic) next,
+                      AdapterBinningStrategy.getBin(adapter));
               for (final ByteArray p : partitions) {
                 if (!value.getValue().remove(p)) {
                   LOGGER.error(
-                      "Unable to remove partition " + p.getHexString() + " for pyramid level " + level);
+                      "Unable to remove partition "
+                          + p.getHexString()
+                          + " for pyramid level "
+                          + level);
                   return;
                 }
               }
-              statsStore.setStatisticValue(statistic, value, AdapterBinningStrategy.getBin(adapter));
+              statsStore.setStatisticValue(
+                  statistic,
+                  value,
+                  AdapterBinningStrategy.getBin(adapter));
               partitionStatsFound = true;
             }
           }

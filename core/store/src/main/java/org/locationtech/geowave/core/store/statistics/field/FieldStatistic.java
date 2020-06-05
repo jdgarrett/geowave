@@ -2,15 +2,15 @@ package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
 import org.locationtech.geowave.core.index.ByteArray;
+import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.statistics.BaseStatistic;
-import org.locationtech.geowave.core.store.statistics.FieldStatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticId;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
+import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
 import org.locationtech.geowave.core.store.statistics.visibility.FieldNameStatisticVisibility;
 import com.beust.jcommander.Parameter;
 
@@ -28,12 +28,12 @@ public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseSt
       description = "The field name to use for statistics.")
   private String fieldName = null;
 
-  public FieldStatistic(final StatisticType<V> statisticsType) {
+  public FieldStatistic(final FieldStatisticType<V> statisticsType) {
     this(statisticsType, null, null);
   }
 
   public FieldStatistic(
-      final StatisticType<V> statisticsType,
+      final FieldStatisticType<V> statisticsType,
       final String typeName,
       final String fieldName) {
     super(statisticsType);
@@ -63,7 +63,12 @@ public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseSt
   @Override
   public final StatisticId<V> getId() {
     if (cachedStatisticId == null) {
-      cachedStatisticId = new FieldStatisticId<>(new ByteArray(typeName), getStatisticType(), fieldName, getName());
+      cachedStatisticId =
+          generateStatisticId(
+              typeName,
+              (FieldStatisticType<V>) getStatisticType(),
+              fieldName,
+              getTag());
     }
     return cachedStatisticId;
   }
@@ -80,25 +85,28 @@ public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseSt
   public <T> EntryVisibilityHandler<T> getVisibilityHandler(
       CommonIndexModel indexModel,
       DataTypeAdapter<T> adapter) {
+    if (adapter.isCommonIndexField(indexModel, fieldName)) {
+      return new DefaultFieldStatisticVisibility<>();
+    }
     return new FieldNameStatisticVisibility<>(fieldName, indexModel, adapter);
   }
 
   @Override
   protected int byteLength() {
     return super.byteLength()
-        + VarintUtils.unsignedShortByteLength((short) typeName.getBytes().length)
-        + VarintUtils.unsignedShortByteLength((short) fieldName.getBytes().length)
+        + VarintUtils.unsignedShortByteLength((short) typeName.length())
+        + VarintUtils.unsignedShortByteLength((short) fieldName.length())
         + typeName.length()
-        + fieldName.getBytes().length;
+        + fieldName.length();
   }
 
   @Override
   protected void writeBytes(ByteBuffer buffer) {
     super.writeBytes(buffer);
-    VarintUtils.writeUnsignedShort((short) typeName.getBytes().length, buffer);
-    buffer.put(typeName.getBytes());
-    VarintUtils.writeUnsignedShort((short) fieldName.getBytes().length, buffer);
-    buffer.put(fieldName.getBytes());
+    VarintUtils.writeUnsignedShort((short) typeName.length(), buffer);
+    buffer.put(StringUtils.stringToBinary(typeName));
+    VarintUtils.writeUnsignedShort((short) fieldName.length(), buffer);
+    buffer.put(StringUtils.stringToBinary(fieldName));
   }
 
   @Override
@@ -108,8 +116,20 @@ public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseSt
     buffer.get(typeBytes);
     byte[] nameBytes = new byte[VarintUtils.readUnsignedShort(buffer)];
     buffer.get(nameBytes);
-    typeName = new String(typeBytes);
-    fieldName = new String(nameBytes);
+    typeName = StringUtils.stringFromBinary(typeBytes);
+    fieldName = StringUtils.stringFromBinary(nameBytes);
+  }
+
+  public static <V extends StatisticValue<?>> StatisticId<V> generateStatisticId(
+      final String typeName,
+      final FieldStatisticType<V> statisticType,
+      final String fieldName,
+      final String tag) {
+    return new FieldStatisticId<>(generateGroupId(typeName), statisticType, fieldName, tag);
+  }
+
+  public static ByteArray generateGroupId(final String typeName) {
+    return new ByteArray("F" + typeName);
   }
 
 }

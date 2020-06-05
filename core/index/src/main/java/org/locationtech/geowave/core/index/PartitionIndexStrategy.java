@@ -9,7 +9,8 @@
 package org.locationtech.geowave.core.index;
 
 public interface PartitionIndexStrategy<QueryRangeType extends IndexConstraints, EntryRangeType>
-    extends IndexStrategy<QueryRangeType, EntryRangeType> {
+    extends
+    IndexStrategy<QueryRangeType, EntryRangeType> {
   byte[][] getInsertionPartitionKeys(EntryRangeType insertionData);
 
   byte[][] getQueryPartitionKeys(QueryRangeType queryData, IndexMetaData... hints);

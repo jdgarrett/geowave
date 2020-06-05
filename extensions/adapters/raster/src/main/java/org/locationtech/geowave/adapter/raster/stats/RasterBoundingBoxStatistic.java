@@ -10,50 +10,54 @@ package org.locationtech.geowave.adapter.raster.stats;
 
 import org.geotools.geometry.GeneralEnvelope;
 import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
-import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatisticValue;
+import org.locationtech.geowave.core.geotime.store.statistics.AbstractBoundingBoxValue;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
 import org.locationtech.jts.geom.Envelope;
 import org.opengis.coverage.grid.GridCoverage;
 
-public class RasterBoundingBoxStatistics extends
-    AdapterStatistic<RasterBoundingBoxStatistics.RasterBoundingBoxValue> {
-  public static final StatisticType<RasterBoundingBoxValue> STATS_TYPE = new StatisticType<>("RASTER_BOUNDING_BOX");
+public class RasterBoundingBoxStatistic extends
+    AdapterStatistic<RasterBoundingBoxStatistic.RasterBoundingBoxValue> {
+  public static final AdapterStatisticType<RasterBoundingBoxValue> STATS_TYPE =
+      new AdapterStatisticType<>("RASTER_BOUNDING_BOX");
 
-  public RasterBoundingBoxStatistics() {
+  public RasterBoundingBoxStatistic() {
     super(STATS_TYPE);
   }
 
-  public RasterBoundingBoxStatistics(final String typeName) {
+  public RasterBoundingBoxStatistic(final String typeName) {
     super(STATS_TYPE, typeName);
   }
-  
+
   @Override
   public String getDescription() {
     return "Maintains a bounding box for a raster data set.";
   }
-  
+
   @Override
   public boolean isCompatibleWith(final Class<?> adapterClass) {
     return GridCoverage.class.isAssignableFrom(adapterClass);
   }
-  
+
   @Override
   public RasterBoundingBoxValue createEmpty() {
     return new RasterBoundingBoxValue(this);
   }
-  
-  public static class RasterBoundingBoxValue extends BoundingBoxStatisticValue {
-    
+
+  public static class RasterBoundingBoxValue extends AbstractBoundingBoxValue {
+
     public RasterBoundingBoxValue(final Statistic<?> statistic) {
       super(statistic);
     }
 
     @Override
-    public <T> Envelope getEnvelope(final DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows) {
+    public <T> Envelope getEnvelope(
+        final DataTypeAdapter<T> adapter,
+        final T entry,
+        final GeoWaveRow... rows) {
       if (entry instanceof GridCoverage) {
         final org.opengis.geometry.Envelope indexedEnvelope = ((GridCoverage) entry).getEnvelope();
         final org.opengis.geometry.Envelope originalEnvelope;
@@ -77,7 +81,7 @@ public class RasterBoundingBoxStatistics extends
       }
       return null;
     }
-    
+
   }
 
   private static org.opengis.geometry.Envelope getIntersection(

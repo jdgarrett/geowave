@@ -78,9 +78,9 @@ import org.locationtech.geowave.adapter.raster.adapter.merge.SingleAdapterServer
 import org.locationtech.geowave.adapter.raster.adapter.merge.nodata.NoDataMergeStrategy;
 import org.locationtech.geowave.adapter.raster.adapter.warp.WarpRIF;
 import org.locationtech.geowave.adapter.raster.stats.HistogramConfig;
-import org.locationtech.geowave.adapter.raster.stats.HistogramStatistics;
-import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics;
-import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistics;
+import org.locationtech.geowave.adapter.raster.stats.RasterHistogramStatistic;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic;
+import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistic;
 import org.locationtech.geowave.adapter.raster.util.SampleModelPersistenceUtils;
 import org.locationtech.geowave.core.geotime.index.dimension.LatitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.LongitudeDefinition;
@@ -1787,6 +1787,11 @@ public class RasterDataAdapter implements
   }
 
   @Override
+  public boolean isCommonIndexField(final CommonIndexModel model, final String fieldName) {
+    return false;
+  }
+
+  @Override
   public int getPositionOfOrderedField(final CommonIndexModel model, final String fieldName) {
     int i = 0;
     for (final NumericDimensionField<? extends CommonIndexValue> dimensionField : model.getDimensions()) {
@@ -1855,11 +1860,18 @@ public class RasterDataAdapter implements
   @Override
   public List<Statistic<? extends StatisticValue<?>>> getDefaultStatistics() {
     List<Statistic<?>> statistics = Lists.newArrayList();
-    statistics.add(new OverviewStatistics(getTypeName()));
-    statistics.add(new RasterBoundingBoxStatistics(getTypeName()));
+    RasterOverviewStatistic overview = new RasterOverviewStatistic(getTypeName());
+    overview.setInternal();
+    statistics.add(overview);
+    RasterBoundingBoxStatistic bbox = new RasterBoundingBoxStatistic(getTypeName());
+    bbox.setInternal();
+    statistics.add(bbox);
 
     if (histogramConfig != null) {
-      statistics.add(new HistogramStatistics(getTypeName(), histogramConfig));
+      RasterHistogramStatistic histogram =
+          new RasterHistogramStatistic(getTypeName(), histogramConfig);
+      histogram.setInternal();
+      statistics.add(histogram);
     }
     return statistics;
   }

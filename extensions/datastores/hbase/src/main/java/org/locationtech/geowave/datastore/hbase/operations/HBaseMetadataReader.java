@@ -29,9 +29,7 @@ import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
-import org.locationtech.geowave.datastore.hbase.util.HBaseUtils;
 import org.locationtech.geowave.datastore.hbase.util.HBaseUtils.ScannerClosableWrapper;
-import org.locationtech.geowave.mapreduce.URLClassloaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +63,7 @@ public class HBaseMetadataReader implements MetadataReader {
       }
 
       if (query.hasPrimaryId()) {
-        if (metadataType.equals(MetadataType.STATS)) {
+        if (query.isPrefix()) {
           scanner.setStartRow(query.getPrimaryId());
           scanner.setStopRow(ByteArrayUtils.getNextPrefix(query.getPrimaryId()));
         } else {
@@ -73,9 +71,8 @@ public class HBaseMetadataReader implements MetadataReader {
           scanner.setStopRow(query.getPrimaryId());
         }
       }
-      final boolean clientsideStatsMerge =
-          (metadataType == MetadataType.STATS) && !options.isServerSideLibraryEnabled();
-      if (clientsideStatsMerge) {
+      final boolean clientsideMerge = !options.isServerSideLibraryEnabled();
+      if (clientsideMerge) {
         scanner.setMaxVersions(); // Get all versions
       }
 
@@ -97,7 +94,7 @@ public class HBaseMetadataReader implements MetadataReader {
                           result.getRow(),
                           key,
                           null,
-                          getMergedStats(result, clientsideStatsMerge, columnFamily, key)));
+                          getMergedStats(result, clientsideMerge, columnFamily, key)));
                 }
                 resultantCQ = familyMap.firstKey();
               } else {
@@ -111,7 +108,7 @@ public class HBaseMetadataReader implements MetadataReader {
                     result.getRow(),
                     resultantCQ,
                     null,
-                    getMergedStats(result, clientsideStatsMerge)));
+                    getMergedStats(result, clientsideMerge)));
           }).iterator();
       if (rS instanceof ResultScanner) {
         return new CloseableIteratorWrapper<>(
@@ -127,6 +124,7 @@ public class HBaseMetadataReader implements MetadataReader {
     return new CloseableIterator.Wrapper<>(Collections.emptyIterator());
   }
 
+  // STATS_TODO: What to do with these?
   private byte[] getMergedStats(
       final Result result,
       final boolean clientsideStatsMerge,
@@ -136,15 +134,13 @@ public class HBaseMetadataReader implements MetadataReader {
     if ((columnCells.size() == 1)) {
       return CellUtil.cloneValue(columnCells.get(0));
     }
-
-    return URLClassloaderUtils.toBinary(HBaseUtils.getMergedStats(columnCells));
+    return new byte[0];
   }
 
   private byte[] getMergedStats(final Result result, final boolean clientsideStatsMerge) {
     if (!clientsideStatsMerge || (result.size() == 1)) {
       return result.value();
     }
-
-    return URLClassloaderUtils.toBinary(HBaseUtils.getMergedStats(result.listCells()));
+    return new byte[0];
   }
 }

@@ -11,9 +11,9 @@ import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 public interface StatisticsRegistrySPI {
 
   public RegisteredStatistic[] getProvidedStatistics();
-  
+
   public RegisteredBinningStrategy[] getProvidedBinningStrategies();
-  
+
   /**
    * Associates a {@link StatisticType} with its options.
    */
@@ -80,20 +80,22 @@ public interface StatisticsRegistrySPI {
       return prototype.isCompatibleWith(clazz);
     }
   }
-  
+
   public static class RegisteredBinningStrategy {
     private final String strategyName;
     private final Supplier<StatisticBinningStrategy> constructor;
-    
-    public RegisteredBinningStrategy(final String strategyName, Supplier<StatisticBinningStrategy> constructor) {
+
+    public RegisteredBinningStrategy(
+        final String strategyName,
+        Supplier<StatisticBinningStrategy> constructor) {
       this.strategyName = strategyName;
       this.constructor = constructor;
     }
-    
+
     public String getStrategyName() {
       return strategyName;
     }
-    
+
     public Supplier<StatisticBinningStrategy> getConstructor() {
       return constructor;
     }

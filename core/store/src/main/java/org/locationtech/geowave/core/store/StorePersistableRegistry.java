@@ -54,6 +54,9 @@ import org.locationtech.geowave.core.store.query.options.FilterByTypeQueryOption
 import org.locationtech.geowave.core.store.query.options.QueryAllIndices;
 import org.locationtech.geowave.core.store.query.options.QueryAllTypes;
 import org.locationtech.geowave.core.store.query.options.QuerySingleIndex;
+import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
@@ -86,7 +89,10 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 218, CustomNameIndex::new),
         new PersistableIdAndConstructor((short) 219, NullIndex::new),
         new PersistableIdAndConstructor((short) 220, DataIdRangeQuery::new),
-        // 221 - 227 Unused
+        new PersistableIdAndConstructor((short) 221, AdapterBinningStrategy::new),
+        new PersistableIdAndConstructor((short) 222, PartitionBinningStrategy::new),
+        new PersistableIdAndConstructor((short) 223, CompositeBinningStrategy::new),
+        // 224-227 Unused
         new PersistableIdAndConstructor((short) 228, BasicQueryByClass::new),
         new PersistableIdAndConstructor((short) 229, CoordinateRangeQuery::new),
         new PersistableIdAndConstructor((short) 230, CoordinateRangeQueryFilter::new),
@@ -98,10 +104,13 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 236, PartitionsStatistic::new),
         new PersistableIdAndConstructor((short) 237, FilterByTypeQueryOptions::new),
         new PersistableIdAndConstructor((short) 238, QueryAllIndices::new),
+        // 239-240 Unused
         new PersistableIdAndConstructor((short) 241, AggregateTypeQueryOptions::new),
         new PersistableIdAndConstructor((short) 242, AdapterMapping::new),
+        // 243 Unused
         new PersistableIdAndConstructor((short) 244, Query::new),
         new PersistableIdAndConstructor((short) 245, AggregationQuery::new),
+        // 246-247 Unused
         new PersistableIdAndConstructor((short) 248, QuerySingleIndex::new),
         new PersistableIdAndConstructor((short) 249, QueryAllTypes::new),
         new PersistableIdAndConstructor((short) 250, FilterList::new),

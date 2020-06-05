@@ -187,9 +187,7 @@ public class GeoWaveGTDataStore extends ContentDataStore {
       if (featureNameSpaceURI != null) {
         adapter.setNamespace(featureNameSpaceURI.toString());
       }
-      final InternalDataAdapter<?> internalAdapter =
-          new InternalDataAdapterWrapper(adapter, adapterId);
-      adapterStore.addAdapter(internalAdapter);
+      dataStore.addType(adapter);
     }
   }
 

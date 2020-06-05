@@ -12,10 +12,8 @@ import java.nio.ByteBuffer;
 import java.util.Date;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.FixedBinNumericHistogram;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import com.beust.jcommander.Parameter;
 
@@ -34,7 +32,8 @@ import com.beust.jcommander.Parameter;
 public class FixedBinNumericHistogramStatistic extends
     FieldStatistic<FixedBinNumericHistogramStatistic.FixedBinNumericHistogramValue> {
 
-  public static final StatisticType<FixedBinNumericHistogramValue> STATS_TYPE = new StatisticType<>("FIXED_BIN_NUMERIC_HISTOGRAM");
+  public static final FieldStatisticType<FixedBinNumericHistogramValue> STATS_TYPE =
+      new FieldStatisticType<>("FIXED_BIN_NUMERIC_HISTOGRAM");
 
   @Parameter(names = "--numBins", description = "The number of bins for the histogram.")
   private int numBins = 1024;
@@ -89,33 +88,23 @@ public class FixedBinNumericHistogramStatistic extends
 
   @Override
   public FixedBinNumericHistogramValue createEmpty() {
-    if (minValue == null || maxValue == null) {
-      return new FixedBinNumericHistogramValue(this, getFieldName(), numBins);
-    }
-    return new FixedBinNumericHistogramValue(this, getFieldName(), numBins, minValue, maxValue);
+    return new FixedBinNumericHistogramValue(this);
   }
 
-  public static class FixedBinNumericHistogramValue extends StatisticValue<FixedBinNumericHistogram> implements
+  public static class FixedBinNumericHistogramValue extends StatisticValue<FixedBinNumericHistogram>
+      implements
       StatisticsIngestCallback {
 
-    private final String fieldName;
     private FixedBinNumericHistogram histogram;
 
-    private FixedBinNumericHistogramValue(Statistic<?> statistic, String fieldName, int bins) {
+    private FixedBinNumericHistogramValue(FixedBinNumericHistogramStatistic statistic) {
       super(statistic);
-      this.fieldName = fieldName;
-      histogram = new FixedBinNumericHistogram(bins);
-    }
-
-    private FixedBinNumericHistogramValue(
-        Statistic<?> statistic,
-        String fieldName,
-        int bins,
-        double minValue,
-        double maxValue) {
-      super(statistic);
-      this.fieldName = fieldName;
-      histogram = new FixedBinNumericHistogram(bins, minValue, maxValue);
+      if (statistic.minValue == null || statistic.maxValue == null) {
+        histogram = new FixedBinNumericHistogram(statistic.numBins);
+      } else {
+        histogram =
+            new FixedBinNumericHistogram(statistic.numBins, statistic.minValue, statistic.maxValue);
+      }
     }
 
     @Override
@@ -127,7 +116,10 @@ public class FixedBinNumericHistogramStatistic extends
 
     @Override
     public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      final Object o = adapter.getFieldValue(entry, fieldName);
+      final Object o =
+          adapter.getFieldValue(
+              entry,
+              ((FixedBinNumericHistogramStatistic) getStatistic()).getFieldName());
       if (o == null) {
         return;
       }

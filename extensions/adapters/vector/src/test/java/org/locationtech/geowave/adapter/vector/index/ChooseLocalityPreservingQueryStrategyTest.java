@@ -63,9 +63,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(HOUSE, HOUSE, HOUR)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(HOUSE, HOUSE, HOUR)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(1).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -77,9 +75,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(HOUSE, HOUSE, DAY)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(HOUSE, HOUSE, DAY)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(3).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -91,9 +87,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(HOUSE, HOUSE, WEEK)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(HOUSE, HOUSE, WEEK)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(3).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -105,9 +99,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(BLOCK, BLOCK, HOUR)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(BLOCK, BLOCK, HOUR)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(1).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -119,9 +111,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(BLOCK, BLOCK, DAY)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(BLOCK, BLOCK, DAY)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(1).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -133,9 +123,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(BLOCK, BLOCK, WEEK)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(BLOCK, BLOCK, WEEK)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(3).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -147,9 +135,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(CITY, CITY, HOUR)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(CITY, CITY, HOUR)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(1).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -161,9 +147,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(CITY, CITY, DAY)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(CITY, CITY, DAY)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(1).getName(), it.next().getName());
     assertFalse(it.hasNext());
@@ -175,9 +159,7 @@ public class ChooseLocalityPreservingQueryStrategyTest {
         new ChooseLocalityPreservingQueryStrategy();
 
     final Iterator<Index> it =
-        getIndices(
-            new BasicQueryByClass(createConstraints(CITY, CITY, WEEK)),
-            strategy);
+        getIndices(new BasicQueryByClass(createConstraints(CITY, CITY, WEEK)), strategy);
     assertTrue(it.hasNext());
     assertEquals(indices.get(1).getName(), it.next().getName());
     assertFalse(it.hasNext());

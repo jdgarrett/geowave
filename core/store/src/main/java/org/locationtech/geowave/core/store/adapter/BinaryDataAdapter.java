@@ -73,6 +73,11 @@ public class BinaryDataAdapter implements DataTypeAdapter<Pair<byte[], byte[]>> 
   }
 
   @Override
+  public boolean isCommonIndexField(final CommonIndexModel model, final String fieldName) {
+    return false;
+  }
+
+  @Override
   public int getPositionOfOrderedField(final CommonIndexModel model, final String fieldName) {
     return 0;
   }

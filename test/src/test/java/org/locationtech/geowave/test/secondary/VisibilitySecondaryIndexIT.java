@@ -68,7 +68,7 @@ public class VisibilitySecondaryIndexIT {
         (differingVisibilities) -> Assert.assertEquals(
             "No entries should have differing visibility",
             0,
-            differingVisibilities.getEntriesWithDifferingFieldVisibilities()),
+            differingVisibilities.getValue().longValue()),
         (store, statsStore, internalAdapterId, spatial) -> {
           try {
             testQuery(store, statsStore, internalAdapterId, spatial);

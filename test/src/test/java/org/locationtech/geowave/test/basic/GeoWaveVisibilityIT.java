@@ -8,6 +8,7 @@
  */
 package org.locationtech.geowave.test.basic;
 
+import static org.junit.Assert.assertNotNull;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.IOException;
@@ -32,17 +33,20 @@ import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.exceptions.MismatchedIndexToAdapterMapping;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.AggregationQueryBuilder;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
+import org.locationtech.geowave.core.store.api.StatisticQueryBuilder;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.data.VisibilityWriter;
 import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
 import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
+import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
+import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
 import org.locationtech.geowave.test.GeoWaveITRunner;
 import org.locationtech.geowave.test.TestUtils;
 import org.locationtech.geowave.test.annotation.GeoWaveTestStore;
@@ -513,7 +517,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         (differingVisibilities) -> Assert.assertEquals(
             "Exactly half the entries should have differing visibility",
             TOTAL_FEATURES / 2,
-            differingVisibilities.getEntriesWithDifferingFieldVisibilities()),
+            differingVisibilities.getValue().intValue()),
         (store, statsStore, internalAdapterId, spatial) -> {
           try {
             testQueryMixed(store, statsStore, internalAdapterId, spatial);
@@ -528,7 +532,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
   public static void testIngestAndQueryVisibilityFields(
       final DataStorePluginOptions dataStoreOptions,
       final VisibilityWriter<SimpleFeature> visibilityWriter,
-      final Consumer<DifferingFieldVisibilityEntryCount> verifyDifferingVisibilities,
+      final Consumer<DifferingFieldVisibilityEntryCountValue> verifyDifferingVisibilities,
       final QuadConsumer<DataStore, DataStatisticsStore, Short, Boolean> verifyQuery,
       final int totalFeatures) {
     final SimpleFeatureBuilder bldr = new SimpleFeatureBuilder(getType());
@@ -544,22 +548,18 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         writer.write(bldr.buildFeature(Integer.toString(i)), visibilityWriter);
       }
     }
+    final DataStore dataStore = dataStoreOptions.createDataStore();
     final DataStatisticsStore statsStore = dataStoreOptions.createDataStatisticsStore();
     final InternalAdapterStore internalDataStore = dataStoreOptions.createInternalAdapterStore();
     final short internalAdapterId = internalDataStore.getAdapterId(adapter.getTypeName());
 
-    final StatisticsId statsId =
-        DifferingFieldVisibilityEntryCount.STATS_TYPE.newBuilder().indexName(
-            TestUtils.DEFAULT_SPATIAL_INDEX.getName()).build().getId();
-    try (CloseableIterator<DifferingFieldVisibilityEntryCount> differingVisibilitiesIt =
-        (CloseableIterator) statsStore.getDataStatistics(
-            internalAdapterId,
-            statsId.getExtendedId(),
-            statsId.getType())) {
-      final DifferingFieldVisibilityEntryCount differingVisibilities =
-          differingVisibilitiesIt.next();
-      verifyDifferingVisibilities.accept(differingVisibilities);
-    }
+    DifferingFieldVisibilityEntryCountValue count =
+        dataStore.aggregateStatistics(
+            StatisticQueryBuilder.newBuilder(
+                DifferingFieldVisibilityEntryCount.STATS_TYPE).indexName(
+                    TestUtils.DEFAULT_SPATIAL_INDEX.getName()).addBin(
+                        AdapterBinningStrategy.getBin(adapter)).build());
+    verifyDifferingVisibilities.accept(count);
     verifyQuery.accept(store, statsStore, internalAdapterId, false);
     verifyQuery.accept(store, statsStore, internalAdapterId, true);
     TestUtils.deleteAll(dataStoreOptions);
@@ -752,20 +752,18 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         expectedResultCount,
         count.intValue());
 
-    try (final CloseableIterator<CountStatistic<?>> statsIt =
-        (CloseableIterator) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE,
-            auths)) {
-      final CountStatistic<?> stats = statsIt.next();
-      Assert.assertEquals(
-          "Unexpected stats result count for "
-              + (spatial ? "spatial query" : "full table scan")
-              + " with auths "
-              + Arrays.toString(auths),
-          expectedResultCount,
-          stats.getCount());
-    }
+    CountValue countStat =
+        store.aggregateStatistics(
+            StatisticQueryBuilder.newBuilder(CountStatistic.STATS_TYPE).typeName(
+                getType().getTypeName()).build());
+    assertNotNull(countStat);
+    Assert.assertEquals(
+        "Unexpected stats result count for "
+            + (spatial ? "spatial query" : "full table scan")
+            + " with auths "
+            + Arrays.toString(auths),
+        expectedResultCount,
+        countStat.getValue().intValue());
   }
 
   private static SimpleFeatureType getType() {

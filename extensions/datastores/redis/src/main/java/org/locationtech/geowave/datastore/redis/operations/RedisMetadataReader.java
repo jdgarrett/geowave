@@ -16,7 +16,6 @@ import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
-import org.locationtech.geowave.core.store.util.StatisticsRowIterator;
 import org.locationtech.geowave.datastore.redis.util.RedisUtils;
 import org.redisson.api.RScoredSortedSet;
 import com.google.common.base.Predicate;
@@ -83,7 +82,7 @@ public class RedisMetadataReader implements MetadataReader {
     } else {
       retVal = new CloseableIterator.Wrapper<>(results.iterator());
     }
-    return isStats ? new StatisticsRowIterator(retVal, query.getAuthorizations()) : retVal;
+    return retVal;
   }
 
   @Override

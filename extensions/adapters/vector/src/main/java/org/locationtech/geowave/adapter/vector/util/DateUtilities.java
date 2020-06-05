@@ -11,14 +11,16 @@ package org.locationtech.geowave.adapter.vector.util;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.locationtech.geowave.core.geotime.store.query.TemporalRange;
-import org.locationtech.geowave.core.geotime.store.query.api.VectorStatisticsQueryBuilder;
-import org.locationtech.geowave.core.geotime.store.statistics.FeatureTimeRangeStatistics;
+import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeStatistic;
+import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeStatistic.TimeRangeValue;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
-import org.locationtech.geowave.core.store.api.StatisticsQuery;
+import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
-import org.threeten.extra.Interval;
 
 public class DateUtilities {
 
@@ -49,7 +51,9 @@ public class DateUtilities {
       final String timeField) {
     final DataStatisticsStore statisticsStore = dataStorePlugin.createDataStatisticsStore();
     final InternalAdapterStore internalAdapterStore = dataStorePlugin.createInternalAdapterStore();
+    final PersistentAdapterStore adapterStore = dataStorePlugin.createAdapterStore();
     final short adapterId = internalAdapterStore.getAdapterId(typeName);
+    final DataTypeAdapter<?> adapter = adapterStore.getAdapter(adapterId);
     // if this is a ranged schema, we have to get complete bounds
     if (timeField.contains("|")) {
       final int pipeIndex = timeField.indexOf("|");
@@ -59,66 +63,61 @@ public class DateUtilities {
       Date start = null;
       Date end = null;
 
-      // STATS_TODO: Query logic
-//      StatisticsQuery<Interval> query =
-//          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
-//              startField).build();
-//      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
-//          statisticsStore.getDataStatistics(
-//              adapterId,
-//              query.getExtendedId(),
-//              query.getStatsType(),
-//              new String[0])) {
-//        if (timeStatIt.hasNext()) {
-//          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
-//          if (timeStat instanceof FeatureTimeRangeStatistics) {
-//            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
-//            start = trStats.getMinTime();
-//          }
-//        }
-//      }
-//      query =
-//          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
-//              endField).build();
-//      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
-//          statisticsStore.getDataStatistics(
-//              adapterId,
-//              query.getExtendedId(),
-//              query.getStatsType(),
-//              new String[0])) {
-//        if (timeStatIt.hasNext()) {
-//          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
-//          if (timeStat instanceof FeatureTimeRangeStatistics) {
-//            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
-//            end = trStats.getMinTime();
-//          }
-//        }
-//      }
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statIter =
+          statisticsStore.getFieldStatistics(
+              adapter,
+              TimeRangeStatistic.STATS_TYPE,
+              startField,
+              null)) {
+        if (statIter.hasNext()) {
+          TimeRangeStatistic statistic = (TimeRangeStatistic) statIter.next();
+          if (statistic != null) {
+            TimeRangeValue value = statisticsStore.getStatisticValue(statistic);
+            if (value != null) {
+              start = value.getMinTime();
+            }
+          }
+        }
+      }
+
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statIter =
+          statisticsStore.getFieldStatistics(
+              adapter,
+              TimeRangeStatistic.STATS_TYPE,
+              endField,
+              null)) {
+        if (statIter.hasNext()) {
+          TimeRangeStatistic statistic = (TimeRangeStatistic) statIter.next();
+          if (statistic != null) {
+            TimeRangeValue value = statisticsStore.getStatisticValue(statistic);
+            if (value != null) {
+              end = value.getMaxTime();
+            }
+          }
+        }
+      }
 
       if ((start != null) && (end != null)) {
         return new TemporalRange(start, end);
       }
     } else {
       // Look up the time range stat for this adapter
-
-      // STATS_TODO: Query logic
-//      final StatisticsQuery<Interval> query =
-//          VectorStatisticsQueryBuilder.newBuilder().factory().timeRange().fieldName(
-//              timeField).build();
-//      try (CloseableIterator<DataStatistics<?, ?, ?>> timeStatIt =
-//          statisticsStore.getDataStatistics(
-//              adapterId,
-//              query.getExtendedId(),
-//              query.getStatsType(),
-//              new String[0])) {
-//        if (timeStatIt.hasNext()) {
-//          final DataStatistics<?, ?, ?> timeStat = timeStatIt.next();
-//          if (timeStat instanceof FeatureTimeRangeStatistics) {
-//            final FeatureTimeRangeStatistics trStats = (FeatureTimeRangeStatistics) timeStat;
-//            return trStats.asTemporalRange();
-//          }
-//        }
-//      }
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statIter =
+          statisticsStore.getFieldStatistics(
+              adapter,
+              TimeRangeStatistic.STATS_TYPE,
+              timeField,
+              null)) {
+        if (statIter.hasNext()) {
+          TimeRangeStatistic statistic = (TimeRangeStatistic) statIter.next();
+          if (statistic != null) {
+            TimeRangeValue value = statisticsStore.getStatisticValue(statistic);
+            if (value != null) {
+              return value.asTemporalRange();
+            }
+          }
+        }
+      }
     }
 
     return null;

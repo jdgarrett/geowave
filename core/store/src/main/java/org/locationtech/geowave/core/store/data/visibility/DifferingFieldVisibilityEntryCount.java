@@ -16,14 +16,15 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 
 public class DifferingFieldVisibilityEntryCount extends
     IndexStatistic<DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue> {
-  public static final StatisticType<DifferingFieldVisibilityEntryCountValue> STATS_TYPE = new StatisticType<>("DIFFERING_VISIBILITY_COUNT");
+  public static final IndexStatisticType<DifferingFieldVisibilityEntryCountValue> STATS_TYPE =
+      new IndexStatisticType<>("DIFFERING_VISIBILITY_COUNT");
 
 
   public DifferingFieldVisibilityEntryCount() {
@@ -44,13 +45,13 @@ public class DifferingFieldVisibilityEntryCount extends
     return new DifferingFieldVisibilityEntryCountValue(this);
   }
 
-  public static class DifferingFieldVisibilityEntryCountValue extends
-      StatisticValue<Long> implements
+  public static class DifferingFieldVisibilityEntryCountValue extends StatisticValue<Long>
+      implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
 
     private long entriesWithDifferingFieldVisibilities = 0;
-    
+
     private DifferingFieldVisibilityEntryCountValue(Statistic<?> statistic) {
       super(statistic);
     }

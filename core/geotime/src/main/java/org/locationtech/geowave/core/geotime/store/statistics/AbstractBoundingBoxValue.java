@@ -16,16 +16,17 @@ import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.C
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.jts.geom.Envelope;
 
-public abstract class BoundingBoxStatisticValue extends StatisticValue<Envelope> implements StatisticsIngestCallback {
+public abstract class AbstractBoundingBoxValue extends StatisticValue<Envelope> implements
+    StatisticsIngestCallback {
   protected double minX = Double.MAX_VALUE;
   protected double minY = Double.MAX_VALUE;
   protected double maxX = -Double.MAX_VALUE;
   protected double maxY = -Double.MAX_VALUE;
-  
-  protected BoundingBoxStatisticValue(final Statistic<?> statistic) {
+
+  protected AbstractBoundingBoxValue(final Statistic<?> statistic) {
     super(statistic);
   }
-  
+
   public boolean isSet() {
     if ((minX == Double.MAX_VALUE)
         || (minY == Double.MAX_VALUE)
@@ -59,7 +60,7 @@ public abstract class BoundingBoxStatisticValue extends StatisticValue<Envelope>
   public double getHeight() {
     return maxY - minY;
   }
-  
+
   public ConstraintSet getConstraints() {
     // Create a NumericRange object using the x axis
     final NumericRange rangeLongitude = new NumericRange(minX, maxX);
@@ -77,11 +78,11 @@ public abstract class BoundingBoxStatisticValue extends StatisticValue<Envelope>
     constraintsPerDimension.put(LatitudeDefinition.class, new ConstraintData(rangeLatitude, true));
     return new ConstraintSet(constraintsPerDimension);
   }
-  
+
   @Override
   public void merge(StatisticValue<Envelope> merge) {
-    if ((merge != null) && (merge instanceof BoundingBoxStatisticValue)) {
-      final BoundingBoxStatisticValue bboxStats = (BoundingBoxStatisticValue) merge;
+    if ((merge != null) && (merge instanceof AbstractBoundingBoxValue)) {
+      final AbstractBoundingBoxValue bboxStats = (AbstractBoundingBoxValue) merge;
       if (bboxStats.isSet()) {
         minX = Math.min(minX, bboxStats.minX);
         minY = Math.min(minY, bboxStats.minY);
@@ -101,7 +102,7 @@ public abstract class BoundingBoxStatisticValue extends StatisticValue<Envelope>
       maxY = Math.max(maxY, env.getMaxY());
     }
   }
-  
+
   public abstract <T> Envelope getEnvelope(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows);
 
   @Override
@@ -131,5 +132,5 @@ public abstract class BoundingBoxStatisticValue extends StatisticValue<Envelope>
     maxX = buffer.getDouble();
     maxY = buffer.getDouble();
   }
-  
+
 }

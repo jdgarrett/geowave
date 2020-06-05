@@ -175,6 +175,13 @@ public abstract class AbstractGeoWavePersistence<T extends Persistable> {
   }
 
   protected byte[] getValue(final T object) {
+    final byte[] value = PersistenceUtils.toBinary(object);
+    if (object != null && (value == null || value.length == 0)) {
+      throw new UnsupportedOperationException(
+          "Object of class "
+              + object.getClass().getName()
+              + " was not found in the persistable registry and cannot be persisted!");
+    }
     return PersistenceUtils.toBinary(object);
   }
 

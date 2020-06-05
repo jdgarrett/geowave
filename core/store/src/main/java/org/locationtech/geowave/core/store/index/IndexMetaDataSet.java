@@ -18,30 +18,32 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
+import com.clearspring.analytics.util.Lists;
 
 public class IndexMetaDataSet extends IndexStatistic<IndexMetaDataSet.IndexMetaDataSetValue> {
-  public static final StatisticType<IndexMetaDataSetValue> STATS_TYPE = new StatisticType<>("INDEX_METADATA");
-  
+  public static final IndexStatisticType<IndexMetaDataSetValue> STATS_TYPE =
+      new IndexStatisticType<>("INDEX_METADATA");
+
   private byte[] metadata = null;
 
   public IndexMetaDataSet() {
-    super(STATS_TYPE);
+    this(null, Lists.newArrayList());
   }
-  
+
   public IndexMetaDataSet(final String indexName) {
-    super(STATS_TYPE, indexName);
+    this(indexName, Lists.newArrayList());
   }
-  
+
   public IndexMetaDataSet(final String indexName, List<IndexMetaData> baseMetadata) {
     super(STATS_TYPE, indexName);
     this.metadata = PersistenceUtils.toBinary(baseMetadata);
   }
-  
+
   @Override
   public String getDescription() {
     return "Maintains metadata about an index.";
@@ -53,30 +55,34 @@ public class IndexMetaDataSet extends IndexStatistic<IndexMetaDataSet.IndexMetaD
     value.fromBinary(metadata);
     return value;
   }
-  
+
   @Override
   protected int byteLength() {
-    return super.byteLength() + metadata.length + VarintUtils.unsignedIntByteLength(metadata.length);
+    return super.byteLength()
+        + metadata.length
+        + VarintUtils.unsignedIntByteLength(metadata.length);
   }
-  
+
   @Override
   protected void writeBytes(final ByteBuffer buffer) {
     super.writeBytes(buffer);
-    VarintUtils.writeUnsignedInt(metadata.length);
+    VarintUtils.writeUnsignedInt(metadata.length, buffer);
     buffer.put(metadata);
   }
-  
+
   @Override
   protected void readBytes(final ByteBuffer buffer) {
     super.readBytes(buffer);
     metadata = new byte[VarintUtils.readUnsignedInt(buffer)];
     buffer.get(metadata);
   }
-  
-  public static class IndexMetaDataSetValue extends StatisticValue<List<IndexMetaData>> implements StatisticsIngestCallback, StatisticsDeleteCallback {
+
+  public static class IndexMetaDataSetValue extends StatisticValue<List<IndexMetaData>> implements
+      StatisticsIngestCallback,
+      StatisticsDeleteCallback {
 
     private List<IndexMetaData> metadata;
-    
+
     private IndexMetaDataSetValue(Statistic<?> statistic) {
       super(statistic);
     }
@@ -84,7 +90,7 @@ public class IndexMetaDataSet extends IndexStatistic<IndexMetaDataSet.IndexMetaD
     public IndexMetaData[] toArray() {
       return metadata.toArray(new IndexMetaData[metadata.size()]);
     }
-    
+
     @Override
     public void merge(StatisticValue<List<IndexMetaData>> merge) {
       if ((merge != null) && (merge instanceof IndexMetaDataSetValue)) {

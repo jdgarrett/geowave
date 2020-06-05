@@ -37,7 +37,8 @@ public interface DataStatisticsStore {
    * @param type the type to get compatible statistics for
    * @return a list of compatible statistics
    */
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(final Class<?> adapterDataClass);
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(
+      final Class<?> adapterDataClass);
 
   /**
    * Get registered field statistics that are compatible with the the provided type.
@@ -80,7 +81,8 @@ public interface DataStatisticsStore {
    * @param authorizations the authorizations for the query
    * @return {@code true} if statistics were removed
    */
-  public boolean removeStatistics(Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics);
+  public boolean removeStatistics(
+      Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics);
 
   /**
    * Remove statistics associated with the given index.
@@ -96,7 +98,7 @@ public interface DataStatisticsStore {
    * @param type the type to remove statistics for
    * @return {@code true} if statistics were removed
    */
-  public boolean removeStatistics(DataTypeAdapter<?> type);
+  public boolean removeStatistics(DataTypeAdapter<?> type, Index... adapterIndices);
 
   /**
    * Gets tracked index statistics for the given index.
@@ -106,10 +108,10 @@ public interface DataStatisticsStore {
    * @param name an optional name filter
    * @return a list of tracked statistics for the given index
    */
-  public  CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getIndexStatistics(
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getIndexStatistics(
       final Index index,
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
-      final @Nullable String name);
+      final @Nullable String tag);
 
   /**
    * Gets all of the tracked adapter statistics for the given type.
@@ -122,7 +124,7 @@ public interface DataStatisticsStore {
   public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAdapterStatistics(
       final DataTypeAdapter<?> type,
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
-      final @Nullable String name);
+      final @Nullable String tag);
 
   /**
    * Gets all of the tracked field statistics for the given type. If a field name is specified, only
@@ -138,8 +140,8 @@ public interface DataStatisticsStore {
       final DataTypeAdapter<?> type,
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
       final @Nullable String fieldName,
-      final @Nullable String name);
-  
+      final @Nullable String tag);
+
   /**
    * Gets all of the tracked statistics in the data store.
    * 
@@ -148,15 +150,16 @@ public interface DataStatisticsStore {
    */
   public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAllStatistics(
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType);
-  
+
   /**
    * Gets the statistic with the given StatisticId, or {@code null} if it could not be found.
    * 
    * @param statisticId the id of the statistic to get
    * @return
    */
-  public <V extends StatisticValue<R>, R> Statistic<V> getStatisticById(final StatisticId<V> statisticId);
-  
+  public <V extends StatisticValue<R>, R> Statistic<V> getStatisticById(
+      final StatisticId<V> statisticId);
+
   /**
    * This will write the statistic value to the underlying store. Note that this will overwrite
    * whatever the current persisted values are for the given statistic. Use incorporateStatistic to
@@ -165,7 +168,7 @@ public interface DataStatisticsStore {
    * @param statistic The statistic to write
    */
   public <V extends StatisticValue<R>, R> void setStatisticValue(Statistic<V> statistic, V value);
-  
+
   /**
    * This will write the statistic value to the underlying store. Note that this will overwrite
    * whatever the current persisted values are for the given statistic. Use incorporateStatistic to
@@ -173,7 +176,10 @@ public interface DataStatisticsStore {
    *
    * @param statistic The statistic to write
    */
-  public <V extends StatisticValue<R>, R> void setStatisticValue(Statistic<V> statistic, V value, ByteArray bin);
+  public <V extends StatisticValue<R>, R> void setStatisticValue(
+      Statistic<V> statistic,
+      V value,
+      ByteArray bin);
 
   /**
    * Add the statistic value to the store, overwriting existing values with the aggregation of this
@@ -181,7 +187,9 @@ public interface DataStatisticsStore {
    *
    * @param statistic the statistic to incorporate
    */
-  public <V extends StatisticValue<R>, R> void incorporateStatisticValue(Statistic<V> statistic, V value);
+  public <V extends StatisticValue<R>, R> void incorporateStatisticValue(
+      Statistic<V> statistic,
+      V value);
 
   /**
    * Add the statistic value to the store, overwriting existing values with the aggregation of this
@@ -189,29 +197,40 @@ public interface DataStatisticsStore {
    *
    * @param statistic the statistic to incorporate
    */
-  public <V extends StatisticValue<R>, R> void incorporateStatisticValue(Statistic<V> statistic, V value, ByteArray bin);
-  
-  public <V extends StatisticValue<R>, R> boolean removeStatisticValue(Statistic<V> statistic);
-  
-  public <V extends StatisticValue<R>, R> boolean removeStatisticValue(Statistic<V> statistic, ByteArray bin);
-  
-  public <V extends StatisticValue<R>, R> boolean removeStatisticValues(Statistic<V> statistic);
-  
-  public <V extends StatisticValue<R>, R> StatisticValueWriter<V> createStatisticValueWriter(Statistic<V> statistic);
-  
-  public <T> StatisticUpdateCallback<T> getUpdateCallback(DataTypeAdapter<T> adapter, Index index);
+  public <V extends StatisticValue<R>, R> void incorporateStatisticValue(
+      Statistic<V> statistic,
+      V value,
+      ByteArray bin);
+
+  public boolean removeStatisticValue(Statistic<? extends StatisticValue<?>> statistic);
+
+  public boolean removeStatisticValue(
+      Statistic<? extends StatisticValue<?>> statistic,
+      ByteArray bin);
+
+  public boolean removeStatisticValues(Statistic<? extends StatisticValue<?>> statistic);
+
+  public <V extends StatisticValue<R>, R> StatisticValueWriter<V> createStatisticValueWriter(
+      Statistic<V> statistic);
+
+  public <T> StatisticUpdateCallback<T> createUpdateCallback(
+      Index index,
+      DataTypeAdapter<T> adapter,
+      boolean updateAdapterStats);
 
   /**
-   * Returns the values for each provided statistic.  If the statistic uses a binning strategy, each bin will be returned as a separate value.
+   * Returns the values for each provided statistic. Only statistics that use a binning strategy and
+   * match the given bins
+   * 
    * @param statistics
    * @param authorizations
    * @return
    */
   public CloseableIterator<? extends StatisticValue<?>> getStatisticValues(
       final Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics,
-      String... authorizations);
+      final ByteArray[] bins,
+      final String... authorizations);
 
-  
   public <V extends StatisticValue<R>, R> V getStatisticValue(
       final Statistic<V> statistic,
       String... authorizations);
@@ -220,11 +239,19 @@ public interface DataStatisticsStore {
       final Statistic<V> statistic,
       ByteArray bin,
       String... authorizations);
-  
-  public <V extends StatisticValue<R>, R> CloseableIterator<BinnedStatisticValue<R>> getBinnedStatisticValues(
+
+  /**
+   * Returns all of the values for a given statistic. If the statistic uses a binning strategy, each
+   * bin will be returned as a separate value.
+   * 
+   * @param statistic the statistic to get values for
+   * @param authorizations the authorizations
+   * @return
+   */
+  public <V extends StatisticValue<R>, R> CloseableIterator<V> getStatisticValues(
       final Statistic<V> statistic,
       String... authorizations);
-  
+
   public boolean mergeStats();
 
   /**

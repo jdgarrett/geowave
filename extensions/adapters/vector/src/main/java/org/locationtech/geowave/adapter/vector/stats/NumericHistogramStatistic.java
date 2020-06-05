@@ -15,26 +15,27 @@ import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.DoubleHistogram;
 import org.HdrHistogram.Histogram;
 import org.apache.commons.lang3.tuple.Pair;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 
 /**
  * Dynamic histogram provide very high accuracy for CDF and quantiles over the a numeric attribute.
  */
-public class NumericHistogramStatistics extends
-    FieldStatistic<NumericHistogramStatistics.NumericHistogramValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("NUMERIC_HISTOGRAM");
+public class NumericHistogramStatistic extends
+    FieldStatistic<NumericHistogramStatistic.NumericHistogramValue> {
+  public static final FieldStatisticType<NumericHistogramValue> STATS_TYPE =
+      new FieldStatisticType<>("NUMERIC_HISTOGRAM");
 
-  public NumericHistogramStatistics() {
+  public NumericHistogramStatistic() {
     super(STATS_TYPE);
   }
 
-  public NumericHistogramStatistics(final String typeName, final String fieldName) {
+  public NumericHistogramStatistic(final String typeName, final String fieldName) {
     super(STATS_TYPE, typeName, fieldName);
   }
 
@@ -45,28 +46,31 @@ public class NumericHistogramStatistics extends
 
   @Override
   public NumericHistogramValue createEmpty() {
-    return new NumericHistogramValue(getFieldName());
+    return new NumericHistogramValue(this, getFieldName());
   }
 
   @Override
   public boolean isCompatibleWith(Class<?> fieldClass) {
     return fieldClass.isAssignableFrom(Number.class) || fieldClass.isAssignableFrom(Date.class);
   }
-  
-  public static class NumericHistogramValue implements StatisticValue<Pair<DoubleHistogram, DoubleHistogram>>, StatisticsIngestCallback {
+
+  public static class NumericHistogramValue extends
+      StatisticValue<Pair<DoubleHistogram, DoubleHistogram>> implements
+      StatisticsIngestCallback {
     // Max value is determined by the level of accuracy required, using a
     // formula provided
     private final double maxValue = (Math.pow(2, 63) / Math.pow(2, 14)) - 1;
     private final double minValue = -(maxValue);
     private final String fieldName;
-    
+
     private DoubleHistogram positiveHistogram = new LocalDoubleHistogram();
     private DoubleHistogram negativeHistogram = null;
-    
-    private NumericHistogramValue(final String fieldName) {
+
+    private NumericHistogramValue(final Statistic<?> statistic, final String fieldName) {
+      super(statistic);
       this.fieldName = fieldName;
     }
-    
+
     private double percentageNegative() {
       final long nc = negativeHistogram == null ? 0 : negativeHistogram.getTotalCount();
       final long tc = positiveHistogram.getTotalCount() + nc;
@@ -137,7 +141,7 @@ public class NumericHistogramStatistics extends
       }
       return result;
     }
-    
+
     private DoubleHistogram getNegativeHistogram() {
       if (negativeHistogram == null) {
         negativeHistogram = new LocalDoubleHistogram();
@@ -146,7 +150,7 @@ public class NumericHistogramStatistics extends
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<Pair<DoubleHistogram, DoubleHistogram>> merge) {
       if (merge instanceof NumericHistogramValue) {
         positiveHistogram.add(((NumericHistogramValue) merge).positiveHistogram);
         if (((NumericHistogramValue) merge).negativeHistogram != null) {
@@ -171,7 +175,7 @@ public class NumericHistogramStatistics extends
         add(((Number) o).doubleValue());
       }
     }
-    
+
     protected void add(final double num) {
       if ((num < minValue) || (num > maxValue) || Double.isNaN(num)) {
         return;
@@ -225,7 +229,10 @@ public class NumericHistogramStatistics extends
         positiveHistogram.setAutoResize(true);
         if (buffer.get() == (byte) 0x01) {
           negativeHistogram =
-              DoubleHistogram.decodeFromCompressedByteBuffer(buffer, LocalInternalHistogram.class, 0);
+              DoubleHistogram.decodeFromCompressedByteBuffer(
+                  buffer,
+                  LocalInternalHistogram.class,
+                  0);
           negativeHistogram.setAutoResize(true);
         }
       } catch (final DataFormatException e) {

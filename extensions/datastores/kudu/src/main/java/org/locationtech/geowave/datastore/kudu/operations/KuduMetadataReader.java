@@ -24,7 +24,6 @@ import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
-import org.locationtech.geowave.core.store.util.StatisticsRowIterator;
 import org.locationtech.geowave.datastore.kudu.KuduMetadataRow.KuduMetadataField;
 import org.locationtech.geowave.datastore.kudu.util.KuduUtils;
 import org.slf4j.Logger;
@@ -96,9 +95,7 @@ public class KuduMetadataReader implements MetadataReader {
                 getVisibility(result),
                 result.getBinaryCopy(KuduMetadataField.GW_VALUE_KEY.getFieldName()))).iterator();
     final CloseableIterator<GeoWaveMetadata> retVal = new CloseableIterator.Wrapper<>(temp);
-    return MetadataType.STATS.equals(metadataType)
-        ? new StatisticsRowIterator(retVal, query.getAuthorizations())
-        : retVal;
+    return retVal;
   }
 
   private byte[] getVisibility(final RowResult result) {

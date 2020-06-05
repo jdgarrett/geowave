@@ -14,12 +14,12 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.NumericRangeValue> {
 
-  public static final StatisticType<NumericRangeValue> STATS_TYPE = new StatisticType<>("NUMERIC_RANGE");
+  public static final FieldStatisticType<NumericRangeValue> STATS_TYPE =
+      new FieldStatisticType<>("NUMERIC_RANGE");
 
   public NumericRangeStatistic() {
     super(STATS_TYPE);

@@ -72,9 +72,10 @@ public class MemoryDataStoreTest {
         return new GlobalVisibilityHandler("aaa&bbb");
       }
     };
-    List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayList();
+    List<Statistic<?>> statistics = Lists.newArrayList();
     statistics.add(new CountStatistic(adapter.getTypeName()));
-    statistics.add(new NumericRangeStatistic(adapter.getTypeName(), MockAbstractDataAdapter.INTEGER));
+    statistics.add(
+        new NumericRangeStatistic(adapter.getTypeName(), MockAbstractDataAdapter.INTEGER));
     dataStore.addType(adapter, statistics, index);
     try (final Writer indexWriter = dataStore.createWriter(adapter.getTypeName())) {
 
@@ -115,8 +116,10 @@ public class MemoryDataStoreTest {
       assertFalse(itemIt.hasNext());
     }
 
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIt = statsStore.getAllStatistics(null)) {
-      try (CloseableIterator<? extends StatisticValue<?>> statisticValues = statsStore.getStatisticValues(statsIt)) {
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIt =
+        statsStore.getAllStatistics(null)) {
+      try (CloseableIterator<? extends StatisticValue<?>> statisticValues =
+          statsStore.getStatisticValues(statsIt, null)) {
         assertTrue(checkStats(statisticValues, 2, new NumericRange(25, 35)));
       }
     }
@@ -178,10 +181,10 @@ public class MemoryDataStoreTest {
       }
     };
 
-    List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayList();
-    statistics.add(new CountStatistic(adapter.getTypeName()));
-    statistics.add(new NumericRangeStatistic(adapter.getTypeName(), MockAbstractDataAdapter.INTEGER));
-    
+    List<Statistic<?>> statistics = Lists.newArrayList();
+    statistics.add(
+        new NumericRangeStatistic(adapter.getTypeName(), MockAbstractDataAdapter.INTEGER));
+
     dataStore.addType(adapter, statistics, index1, index2);
     try (final Writer indexWriter = dataStore.createWriter(adapter.getTypeName())) {
 
@@ -222,8 +225,10 @@ public class MemoryDataStoreTest {
       assertFalse(itemIt.hasNext());
     }
 
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIt = statsStore.getAllStatistics(null)) {
-      try (CloseableIterator<? extends StatisticValue<?>> statisticValues = statsStore.getStatisticValues(statsIt)) {
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIt =
+        statsStore.getAllStatistics(null)) {
+      try (CloseableIterator<? extends StatisticValue<?>> statisticValues =
+          statsStore.getStatisticValues(statsIt, null)) {
         assertTrue(checkStats(statisticValues, 2, new NumericRange(25, 35)));
       }
     }

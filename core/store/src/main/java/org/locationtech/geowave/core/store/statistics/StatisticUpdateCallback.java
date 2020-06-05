@@ -3,7 +3,6 @@ package org.locationtech.geowave.core.store.statistics;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -14,6 +13,7 @@ import org.locationtech.geowave.core.store.callback.ScanCallback;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.collect.Lists;
 
 public class StatisticUpdateCallback<T> implements
     IngestCallback<T>,
@@ -43,7 +43,11 @@ public class StatisticUpdateCallback<T> implements
       final Index index,
       final DataTypeAdapter<T> adapter) {
     this.statisticsStore = statisticsStore;
-    statisticUpdateHandlers = statistics.stream().map(s -> new StatisticUpdateHandler(s, index, adapter)).collect(Collectors.toList());
+    statisticUpdateHandlers = Lists.newArrayListWithCapacity(statistics.size());
+    for (Statistic<?> statistic : statistics) {
+      StatisticUpdateHandler handler = new StatisticUpdateHandler(statistic, index, adapter);
+      statisticUpdateHandlers.add(handler);
+    }
     // STATS_TODO: Is this system property even needed?
     final Object v = System.getProperty("StatsCompositionTool.skipFlush");
     skipFlush = ((v != null) && v.toString().equalsIgnoreCase("true"));
@@ -53,7 +57,7 @@ public class StatisticUpdateCallback<T> implements
   public void entryDeleted(T entry, GeoWaveRow... rows) {
     synchronized (MUTEX) {
       for (StatisticUpdateHandler<T, ?, ?> handler : statisticUpdateHandlers) {
-        handler.entryIngested(entry, rows);
+        handler.entryDeleted(entry, rows);
       }
       updateCount++;
       checkStats();

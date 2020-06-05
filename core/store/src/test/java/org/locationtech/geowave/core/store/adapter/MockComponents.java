@@ -31,6 +31,8 @@ import org.locationtech.geowave.core.index.sfc.data.NumericData;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.index.sfc.data.NumericValue;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.data.PersistentDataset;
 import org.locationtech.geowave.core.store.data.PersistentValue;
 import org.locationtech.geowave.core.store.data.field.FieldReader;
@@ -39,13 +41,16 @@ import org.locationtech.geowave.core.store.data.field.FieldWriter;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
+import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Bytes;
 
 public class MockComponents {
   // Mock class instantiating abstract class so we can test logic
   // contained in abstract class.
-  public static class MockAbstractDataAdapter extends AbstractDataAdapter<Integer> {
+  public static class MockAbstractDataAdapter extends AbstractDataAdapter<Integer> implements
+      DefaultStatisticsProvider {
     private String id = ID;
 
     public MockAbstractDataAdapter() {
@@ -288,6 +293,15 @@ public class MockComponents {
     @Override
     public Class<Integer> getDataClass() {
       return Integer.class;
+    }
+
+    @Override
+    public List<Statistic<? extends StatisticValue<?>>> getDefaultStatistics() {
+      List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayList();
+      CountStatistic count = new CountStatistic(getTypeName());
+      count.setInternal();
+      statistics.add(count);
+      return statistics;
     }
   } // class MockAbstractDataAdapter
 

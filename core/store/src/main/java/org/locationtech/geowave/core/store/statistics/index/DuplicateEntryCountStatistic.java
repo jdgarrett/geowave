@@ -14,13 +14,13 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class DuplicateEntryCountStatistic extends
     IndexStatistic<DuplicateEntryCountStatistic.DuplicateEntryCountValue> {
-  public static final StatisticType<DuplicateEntryCountValue> STATS_TYPE = new StatisticType<>("DUPLICATE_ENTRY_COUNT");
+  public static final IndexStatisticType<DuplicateEntryCountValue> STATS_TYPE =
+      new IndexStatisticType<>("DUPLICATE_ENTRY_COUNT");
 
   public DuplicateEntryCountStatistic() {
     super(STATS_TYPE);
@@ -45,7 +45,7 @@ public class DuplicateEntryCountStatistic extends
       StatisticsDeleteCallback {
 
     private long entriesWithDuplicates = 0L;
-    
+
     private DuplicateEntryCountValue(final Statistic<?> statistic) {
       super(statistic);
     }

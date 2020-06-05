@@ -16,7 +16,6 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 /**
@@ -24,7 +23,8 @@ import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
  */
 public class RowRangeHistogramStatistic extends
     IndexStatistic<RowRangeHistogramStatistic.RowRangeHistogramValue> {
-  public static final StatisticType<RowRangeHistogramValue> STATS_TYPE = new StatisticType<>("ROW_RANGE_HISTOGRAM");
+  public static final IndexStatisticType<RowRangeHistogramValue> STATS_TYPE =
+      new IndexStatisticType<>("ROW_RANGE_HISTOGRAM");
 
   public RowRangeHistogramStatistic() {
     super(STATS_TYPE);

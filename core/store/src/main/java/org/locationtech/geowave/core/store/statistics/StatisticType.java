@@ -10,7 +10,7 @@ package org.locationtech.geowave.core.store.statistics;
 
 import java.util.Arrays;
 import org.locationtech.geowave.core.index.ByteArray;
-import org.locationtech.geowave.core.index.persist.Persistable;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 
 /**
  * This is a marker class extending ByteArrayId that additionally provides type checking with a
@@ -18,16 +18,8 @@ import org.locationtech.geowave.core.index.persist.Persistable;
  *
  * @param <R> The type of statistic
  */
-public class StatisticType<V> extends ByteArray {
+public abstract class StatisticType<V extends StatisticValue<?>> extends ByteArray {
   private static final long serialVersionUID = 1L;
-
-  public StatisticType() {
-    super();
-  }
-
-  public StatisticType(final byte[] id) {
-    super(id);
-  }
 
   public StatisticType(final String id) {
     super(id);

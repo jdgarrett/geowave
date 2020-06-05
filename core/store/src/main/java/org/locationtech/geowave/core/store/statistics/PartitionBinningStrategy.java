@@ -11,9 +11,21 @@ public class PartitionBinningStrategy implements StatisticBinningStrategy {
   public <T> ByteArray[] getBins(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
     ByteArray[] partitionKeys = new ByteArray[rows.length];
     for (int i = 0; i < rows.length; i++) {
-      partitionKeys[i] = new ByteArray(rows[i].getPartitionKey());
+      partitionKeys[i] = getBin(rows[i].getPartitionKey());
     }
     return partitionKeys;
   }
+
+  public static ByteArray getBin(final byte[] partitionKey) {
+    return new ByteArray(partitionKey);
+  }
+
+  @Override
+  public byte[] toBinary() {
+    return new byte[0];
+  }
+
+  @Override
+  public void fromBinary(byte[] bytes) {}
 
 }

@@ -147,12 +147,12 @@ public class DeleteWriterTest {
 
   @Test
   public void testDeleteByInsertionId() throws IOException {
-    final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
     CountStatistic countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(3, countStats.getCount());
+        (CountStatistic) statsStore.getAdapterStatistics(
+            adapter,
+            CountStatistic.STATS_TYPE,
+            null).next();
+    assertEquals(3, (long) statsStore.getStatisticValue(countStats).getValue());
     assertTrue(rowIds1.getSize() > 1);
 
     final Pair<byte[], byte[]> key = rowIds1.getFirstPartitionAndSortKeyPair();
@@ -181,21 +181,18 @@ public class DeleteWriterTest {
                         StringUtils.stringToBinary("test_pt_1"))).build())) {
       assertTrue(!it2.hasNext());
     }
-    countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(2, countStats.getCount());
+
+    assertEquals(2, (long) statsStore.getStatisticValue(countStats).getValue());
   }
 
   @Test
   public void testDeleteBySpatialConstraint() throws IOException {
-    final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
     CountStatistic countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(3, countStats.getCount());
+        (CountStatistic) statsStore.getAdapterStatistics(
+            adapter,
+            CountStatistic.STATS_TYPE,
+            null).next();
+    assertEquals(3, (long) statsStore.getStatisticValue(countStats).getValue());
     final ExplicitSpatialQuery spatialQuery =
         new ExplicitSpatialQuery(new GeometryFactory().toGeometry(new Envelope(-78, -77, 38, 39)));
     try (final CloseableIterator it1 =
@@ -210,21 +207,17 @@ public class DeleteWriterTest {
         mockDataStore.query(QueryBuilder.newBuilder().constraints(spatialQuery).build())) {
       assertTrue(!it2.hasNext());
     }
-    countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(2, countStats.getCount());
+    assertEquals(2, (long) statsStore.getStatisticValue(countStats).getValue());
   }
 
   @Test
   public void testDeleteByPrefixId() throws IOException {
-    final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
     CountStatistic countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(3, countStats.getCount());
+        (CountStatistic) statsStore.getAdapterStatistics(
+            adapter,
+            CountStatistic.STATS_TYPE,
+            null).next();
+    assertEquals(3, (long) statsStore.getStatisticValue(countStats).getValue());
     final Pair<byte[], byte[]> rowId3 = rowIds3.getFirstPartitionAndSortKeyPair();
     // just take the first half of the row ID as the prefix
     final byte[] rowId3Prefix = Arrays.copyOf(rowId3.getRight(), rowId3.getRight().length / 2);
@@ -243,21 +236,17 @@ public class DeleteWriterTest {
         mockDataStore.query(QueryBuilder.newBuilder().constraints(prefixIdQuery).build())) {
       assertTrue(!it2.hasNext());
     }
-    countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(2, countStats.getCount());
+    assertEquals(2, (long) statsStore.getStatisticValue(countStats).getValue());
   }
 
   @Test
   public void testDeleteByDataId() throws IOException {
-    final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
     CountStatistic countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-    assertEquals(3, countStats.getCount());
+        (CountStatistic) statsStore.getAdapterStatistics(
+            adapter,
+            CountStatistic.STATS_TYPE,
+            null).next();
+    assertEquals(3, (long) statsStore.getStatisticValue(countStats).getValue());
     assertTrue(rowIds1.getSize() > 1);
     try (final CloseableIterator it1 =
         mockDataStore.query(
@@ -279,11 +268,6 @@ public class DeleteWriterTest {
 
       assertTrue(!it2.hasNext());
     }
-    countStats =
-        (CountStatistic) statsStore.getDataStatistics(
-            internalAdapterId,
-            CountStatistic.STATS_TYPE).next();
-
-    assertEquals(2, countStats.getCount());
+    assertEquals(2, (long) statsStore.getStatisticValue(countStats).getValue());
   }
 }

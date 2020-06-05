@@ -81,11 +81,14 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
       throw new ParameterException("Unrecognized type name: " + typeName);
     }
 
-    List<? extends Statistic<? extends StatisticValue<?>>> indexStats = statsStore.getRegisteredIndexStatistics();
+    List<? extends Statistic<? extends StatisticValue<?>>> indexStats =
+        statsStore.getRegisteredIndexStatistics();
 
     ConsolePrinter printer = new ConsolePrinter(0, Integer.MAX_VALUE);
-    Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> adapterStats = Maps.newHashMap();
-    Map<String, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>>> fieldStats = Maps.newHashMap();
+    Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> adapterStats =
+        Maps.newHashMap();
+    Map<String, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>>> fieldStats =
+        Maps.newHashMap();
     if (adapter == null) {
       DataTypeAdapter<?>[] adapters = dataStore.getTypes();
       for (DataTypeAdapter<?> dataAdapter : adapters) {
@@ -112,7 +115,9 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
     return null;
   }
 
-  private void displayIndexStats(ConsolePrinter printer, List<? extends Statistic<? extends StatisticValue<?>>> stats) {
+  private void displayIndexStats(
+      ConsolePrinter printer,
+      List<? extends Statistic<? extends StatisticValue<?>>> stats) {
     JCommander.getConsole().println("General index statistics: ");
     List<List<Object>> rows = Lists.newArrayListWithCapacity(stats.size());
 
@@ -122,7 +127,9 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
     printer.print(Arrays.asList("Statistic", "Description"), rows);
   }
 
-  private void displayAdapterStats(ConsolePrinter printer, Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> stats) {
+  private void displayAdapterStats(
+      ConsolePrinter printer,
+      Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> stats) {
     JCommander.getConsole().println("General data type statistics: ");
     List<List<Object>> rows = Lists.newArrayListWithCapacity(stats.size());
     for (Entry<String, List<? extends Statistic<? extends StatisticValue<?>>>> adapterStats : stats.entrySet()) {

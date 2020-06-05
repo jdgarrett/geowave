@@ -18,9 +18,14 @@ import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
+import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.StatisticId;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.slf4j.Logger;
@@ -62,17 +67,19 @@ public class ChooseBestMatchIndexQueryStrategy implements IndexQueryStrategySPI 
 
           RowRangeHistogramStatistic rowRangeHistogramStatistic = null;
 
-          try (CloseableIterator<Statistic<?>> stats =
+          try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
               statisticsStore.getIndexStatistics(
                   nextIdx,
                   RowRangeHistogramStatistic.STATS_TYPE,
-                  null)) {
-            while (stats.hasNext()) {
+                  Statistic.INTERNAL_TAG)) {
+            if (stats.hasNext()) {
               Statistic<?> statistic = stats.next();
               if (statistic instanceof RowRangeHistogramStatistic
-                  && statistic.getBinningStrategy() instanceof PartitionBinningStrategy) {
+                  && statistic.getBinningStrategy() instanceof CompositeBinningStrategy
+                  && ((CompositeBinningStrategy) statistic.getBinningStrategy()).isOfType(
+                      AdapterBinningStrategy.class,
+                      PartitionBinningStrategy.class)) {
                 rowRangeHistogramStatistic = (RowRangeHistogramStatistic) statistic;
-                break;
               }
             }
           }
@@ -107,6 +114,7 @@ public class ChooseBestMatchIndexQueryStrategy implements IndexQueryStrategySPI 
                 DataStoreUtils.cardinality(
                     statisticsStore,
                     rowRangeHistogramStatistic,
+                    adapter,
                     nextIdx,
                     ranges);
             if (temp < min) {

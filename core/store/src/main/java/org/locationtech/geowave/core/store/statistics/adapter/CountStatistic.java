@@ -14,17 +14,17 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> {
-  public static final StatisticType<CountValue> STATS_TYPE = new StatisticType<>("COUNT");
+  public static final AdapterStatisticType<CountValue> STATS_TYPE =
+      new AdapterStatisticType<>("COUNT");
 
   public CountStatistic() {
     super(STATS_TYPE);
   }
-  
+
   public CountStatistic(final String typeName) {
     super(STATS_TYPE, typeName);
   }

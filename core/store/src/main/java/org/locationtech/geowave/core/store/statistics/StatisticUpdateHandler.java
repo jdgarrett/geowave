@@ -36,7 +36,7 @@ public class StatisticUpdateHandler<T, V extends StatisticValue<R>, R> implement
   private final DataTypeAdapter<T> adapter;
   private final IngestHandler<T, V, R> ingestHandler;
   private final DeleteHandler<T, V, R> deleteHandler;
-  
+
   private static final ByteArray NO_BIN = new ByteArray(new byte[0]);
 
   public StatisticUpdateHandler(
@@ -50,8 +50,11 @@ public class StatisticUpdateHandler<T, V extends StatisticValue<R>, R> implement
     this.ingestHandler = new IngestHandler<>();
     this.deleteHandler = new DeleteHandler<>();
   }
-  
-  protected void handleEntry(final Handler<T, V, R> handler, final T entry, final GeoWaveRow... rows) {
+
+  protected void handleEntry(
+      final Handler<T, V, R> handler,
+      final T entry,
+      final GeoWaveRow... rows) {
     final ByteArray visibility = new ByteArray(visibilityHandler.getVisibility(entry, rows));
     Map<ByteArray, V> binnedValues = statisticsMap.get(visibility);
     if (binnedValues == null) {
@@ -67,8 +70,13 @@ public class StatisticUpdateHandler<T, V extends StatisticValue<R>, R> implement
       handleBin(handler, binnedValues, NO_BIN, entry, rows);
     }
   }
-  
-  protected void handleBin(final Handler<T, V, R> handler, Map<ByteArray, V> binnedValues, ByteArray bin, final T entry, final GeoWaveRow... rows) {
+
+  protected void handleBin(
+      final Handler<T, V, R> handler,
+      Map<ByteArray, V> binnedValues,
+      ByteArray bin,
+      final T entry,
+      final GeoWaveRow... rows) {
     V value = binnedValues.get(bin);
     if (value == null) {
       value = statistic.createEmpty();
@@ -92,16 +100,20 @@ public class StatisticUpdateHandler<T, V extends StatisticValue<R>, R> implement
   public void entryScanned(final T entry, final GeoWaveRow row) {
     handleEntry(ingestHandler, entry, row);
   }
-  
+
   public void writeStatistics(final DataStatisticsStore statisticsStore, final boolean overwrite) {
     if (overwrite) {
       statisticsStore.removeStatisticValues(statistic);
     }
-    try (StatisticValueWriter<V> statWriter = statisticsStore.createStatisticValueWriter(statistic)) {
+    try (StatisticValueWriter<V> statWriter =
+        statisticsStore.createStatisticValueWriter(statistic)) {
       for (final Entry<ByteArray, Map<ByteArray, V>> visibilityStatistic : statisticsMap.entrySet()) {
         Map<ByteArray, V> bins = visibilityStatistic.getValue();
         for (Entry<ByteArray, V> binValue : bins.entrySet()) {
-          statWriter.writeStatisticValue(binValue.getKey().getBytes(), visibilityStatistic.getKey().getBytes(), binValue.getValue());
+          statWriter.writeStatisticValue(
+              binValue.getKey().getBytes(),
+              visibilityStatistic.getKey().getBytes(),
+              binValue.getValue());
         }
       }
       statisticsMap.clear();
@@ -109,24 +121,43 @@ public class StatisticUpdateHandler<T, V extends StatisticValue<R>, R> implement
       LOGGER.error("Unable to write statistic value.", e);
     }
   }
-  
+
   private static interface Handler<T, V extends StatisticValue<R>, R> {
-    public void handle(V value, DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows);
+    public void handle(
+        V value,
+        DataTypeAdapter<T> adapter,
+        final T entry,
+        final GeoWaveRow... rows);
   }
-  
-  private static class IngestHandler<T, V extends StatisticValue<R>, R> implements Handler<T, V, R> {
-    public void handle(V value, DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows) {
+
+  private static class IngestHandler<T, V extends StatisticValue<R>, R> implements
+      Handler<T, V, R> {
+    public void handle(
+        V value,
+        DataTypeAdapter<T> adapter,
+        final T entry,
+        final GeoWaveRow... rows) {
       if (value instanceof StatisticsIngestCallback) {
         ((StatisticsIngestCallback) value).entryIngested(adapter, entry, rows);
       }
     }
   }
-  
-  private static class DeleteHandler<T, V extends StatisticValue<R>, R> implements Handler<T, V, R> {
-    public void handle(V value, DataTypeAdapter<T> adapter, final T entry, final GeoWaveRow... rows) {
+
+  private static class DeleteHandler<T, V extends StatisticValue<R>, R> implements
+      Handler<T, V, R> {
+    public void handle(
+        V value,
+        DataTypeAdapter<T> adapter,
+        final T entry,
+        final GeoWaveRow... rows) {
       if (value instanceof StatisticsDeleteCallback) {
         ((StatisticsDeleteCallback) value).entryDeleted(adapter, entry, rows);
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    return "StatisticUpdateHandler -> " + statistic.toString();
   }
 }

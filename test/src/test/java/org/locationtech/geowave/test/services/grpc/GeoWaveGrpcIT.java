@@ -405,7 +405,6 @@ public class GeoWaveGrpcIT extends AbstractGeoWaveBasicVectorIT {
     result = client.ListStatsCommand();
     Assert.assertTrue(!result.equalsIgnoreCase(""));
 
-    Assert.assertTrue(client.CalculateStatCommand());
     Assert.assertTrue(client.RecalculateStatsCommand());
 
     Assert.assertTrue(client.RemoveStatCommand());

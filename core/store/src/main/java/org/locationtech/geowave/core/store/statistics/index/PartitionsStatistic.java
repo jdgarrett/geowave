@@ -17,7 +17,6 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 /**
@@ -27,7 +26,8 @@ import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
  * @param <T> The type of the row to keep statistics on
  */
 public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.PartitionsValue> {
-  public static final StatisticType<PartitionsValue> STATS_TYPE = new StatisticType<>("PARTITIONS");
+  public static final IndexStatisticType<PartitionsValue> STATS_TYPE =
+      new IndexStatisticType<>("PARTITIONS");
 
   public PartitionsStatistic() {
     super(STATS_TYPE);
@@ -51,7 +51,7 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
       StatisticsIngestCallback {
 
     private Set<ByteArray> partitions = new HashSet<>();
-    
+
     private PartitionsValue(Statistic<?> statistic) {
       super(statistic);
     }

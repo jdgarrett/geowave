@@ -13,7 +13,8 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
-// STATS_TODO: This is a cool idea, but this is a worthless class as it's currently implemented, because it doesn't take binning strategy/visibility into account
+// STATS_TODO: This is a cool idea, but this is a worthless class as it's currently implemented,
+// because it doesn't take binning strategy/visibility into account
 public class DataStatisticsAggregation<T> implements
     Aggregation<Statistic<?>, StatisticValue<?>, T> {
   private Statistic<?> statisticsParam;

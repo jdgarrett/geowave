@@ -33,8 +33,10 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
 
   @Parameter(description = "<store name> <stat type>")
   private final List<String> parameters = new ArrayList<>();
-  
-  @Parameter(names = "--all", description = "If specified, all matching statistics will be removed.")
+
+  @Parameter(
+      names = "--all",
+      description = "If specified, all matching statistics will be removed.")
   private boolean all = false;
 
   private String statType = null;
@@ -51,15 +53,16 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
 
     // Remove the stat
     final DataStatisticsStore statStore = storeOptions.createDataStatisticsStore();
-    
-    StatisticType<StatisticValue<Object>> statisticType = StatisticsRegistry.instance().getStatisticType(statType);
-    
+
+    StatisticType<StatisticValue<Object>> statisticType =
+        StatisticsRegistry.instance().getStatisticType(statType);
+
     if (statisticType == null) {
       throw new ParameterException("Unrecognized statistic type: " + statType);
     }
-    
+
     List<Statistic<? extends StatisticValue<?>>> toRemove = Lists.newArrayList();
-    
+
     if (statsOptions.getIndexName() != null) {
       if (statsOptions.getTypeName() != null || statsOptions.getFieldName() != null) {
         throw new ParameterException(
@@ -68,10 +71,12 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
       final IndexStore indexStore = storeOptions.createIndexStore();
       final Index index = indexStore.getIndex(statsOptions.getIndexName());
       if (index == null) {
-        throw new ParameterException("Unable to find an index named: " + statsOptions.getIndexName());
+        throw new ParameterException(
+            "Unable to find an index named: " + statsOptions.getIndexName());
       }
-      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats = statStore.getIndexStatistics(index, statisticType, statsOptions.getName())) {
-        while(stats.hasNext()) {
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+          statStore.getIndexStatistics(index, statisticType, statsOptions.getName())) {
+        while (stats.hasNext()) {
           toRemove.add(stats.next());
         }
       }
@@ -80,13 +85,14 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
         // remove field statistics that match the given name (if supplied)
       }
     }
-    
+
     if (toRemove.isEmpty()) {
       throw new ParameterException("A matching statistic could not be found");
     }
 
     if (!all && toRemove.size() > 1) {
-      throw new ParameterException("Multiple statistics matched the given parameters, if this is intentional, please supply the --all option.");
+      throw new ParameterException(
+          "Multiple statistics matched the given parameters, if this is intentional, please supply the --all option.");
     }
 
     if (!statStore.removeStatistics(toRemove.iterator())) {

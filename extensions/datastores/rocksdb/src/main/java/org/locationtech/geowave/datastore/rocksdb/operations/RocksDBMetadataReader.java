@@ -17,7 +17,6 @@ import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
-import org.locationtech.geowave.core.store.util.StatisticsRowIterator;
 import org.locationtech.geowave.datastore.rocksdb.util.RocksDBMetadataTable;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
@@ -63,10 +62,7 @@ public class RocksDBMetadataReader implements MetadataReader {
         }
       });
     }
-    final boolean isStats = MetadataType.STATS.equals(metadataType) && mergeStats;
-    final CloseableIterator<GeoWaveMetadata> retVal =
-        new CloseableIteratorWrapper<>(originalResults, resultsIt);
-    return isStats ? new StatisticsRowIterator(retVal, query.getAuthorizations()) : retVal;
+    return new CloseableIteratorWrapper<>(originalResults, resultsIt);
   }
 
   @Override

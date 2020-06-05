@@ -32,8 +32,10 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
 
   @Parameter(description = "<store name> <stat type>")
   private final List<String> parameters = new ArrayList<>();
-  
-  @Parameter(names = "--binningStrategy", description = "If specified, statistics will be binned using the given strategy.")
+
+  @Parameter(
+      names = "--binningStrategy",
+      description = "If specified, statistics will be binned using the given strategy.")
   private String binningStrategyName = null;
 
   @Parameter(
@@ -45,7 +47,7 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
 
   @ParametersDelegate
   Statistic<?> statOptions;
-  
+
   @ParametersDelegate
   StatisticBinningStrategy binningStrategy = null;
 
@@ -64,7 +66,7 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
     if (statOptions == null) {
       throw new ParameterException("Unrecognized stat type: " + statType);
     }
-    
+
     if (binningStrategyName != null) {
       binningStrategy = StatisticsRegistry.instance().getBinningStrategy(binningStrategyName);
       if (binningStrategy == null) {
@@ -94,11 +96,11 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
     final DataStorePluginOptions storeOptions = inputStoreLoader.getDataStorePlugin();
 
     final DataStore dataStore = storeOptions.createDataStore();
-    
+
     if (binningStrategy != null && statOptions instanceof BaseStatistic<?>) {
       ((BaseStatistic<?>) statOptions).setBinningStrategy(binningStrategy);
     }
-    
+
     dataStore.addStatistic(statOptions, !skipCalculation);
 
     return null;

@@ -50,39 +50,41 @@ public class RecalculateStatsCommand extends AbstractStatsCommand<Void> {
       final StatsCommandLineOptions statsOptions) throws IOException {
 
     try {
-      final DataStore dataStore = storeOptions.createDataStore();
+      // final DataStore dataStore = storeOptions.createDataStore();
 
-      final AdapterIndexMappingStore mappingStore = storeOptions.createAdapterIndexMappingStore();
-      final IndexStore indexStore = storeOptions.createIndexStore();
+      // final AdapterIndexMappingStore mappingStore =
+      // storeOptions.createAdapterIndexMappingStore();
+      // final IndexStore indexStore = storeOptions.createIndexStore();
 
       // STATS_TODO: Recalculate stats based on options
-//      boolean isFirstTime = true;
-//      for (final Index index : mappingStore.getIndicesForAdapter(adapter.getAdapterId()).getIndices(
-//          indexStore)) {
-//        @SuppressWarnings({"rawtypes", "unchecked"})
-//        final DataStoreStatisticsProvider provider =
-//            new DataStoreStatisticsProvider(adapter, index, isFirstTime);
-//        final String[] authorizations = getAuthorizations(statsOptions.getAuthorizations());
-//
-//        try (StatsCompositionTool<?> statsTool =
-//            new StatsCompositionTool(
-//                provider,
-//                storeOptions.createDataStatisticsStore(),
-//                index,
-//                adapter,
-//                true)) {
-//          try (CloseableIterator<?> entryIt =
-//              ((BaseDataStore) dataStore).query(
-//                  QueryBuilder.newBuilder().addTypeName(adapter.getTypeName()).indexName(
-//                      index.getName()).setAuthorizations(authorizations).build(),
-//                  (ScanCallback) statsTool)) {
-//            while (entryIt.hasNext()) {
-//              entryIt.next();
-//            }
-//          }
-//        }
-//        isFirstTime = false;
-//      }
+      // boolean isFirstTime = true;
+      // for (final Index index :
+      // mappingStore.getIndicesForAdapter(adapter.getAdapterId()).getIndices(
+      // indexStore)) {
+      // @SuppressWarnings({"rawtypes", "unchecked"})
+      // final DataStoreStatisticsProvider provider =
+      // new DataStoreStatisticsProvider(adapter, index, isFirstTime);
+      // final String[] authorizations = getAuthorizations(statsOptions.getAuthorizations());
+      //
+      // try (StatsCompositionTool<?> statsTool =
+      // new StatsCompositionTool(
+      // provider,
+      // storeOptions.createDataStatisticsStore(),
+      // index,
+      // adapter,
+      // true)) {
+      // try (CloseableIterator<?> entryIt =
+      // ((BaseDataStore) dataStore).query(
+      // QueryBuilder.newBuilder().addTypeName(adapter.getTypeName()).indexName(
+      // index.getName()).setAuthorizations(authorizations).build(),
+      // (ScanCallback) statsTool)) {
+      // while (entryIt.hasNext()) {
+      // entryIt.next();
+      // }
+      // }
+      // }
+      // isFirstTime = false;
+      // }
 
     } catch (final Exception ex) {
       LOGGER.error("Error while writing statistics.", ex);

@@ -20,10 +20,10 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import org.locationtech.geowave.core.store.util.VisibilityExpression;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -32,7 +32,8 @@ import com.google.common.collect.Sets;
 // visibility.
 public class FieldVisibilityCount extends
     IndexStatistic<FieldVisibilityCount.FieldVisibilityCountValue> {
-  public static final StatisticType<FieldVisibilityCountValue> STATS_TYPE = new StatisticType<>("FIELD_VISIBILITY_COUNT");
+  public static final IndexStatisticType<FieldVisibilityCountValue> STATS_TYPE =
+      new IndexStatisticType<>("FIELD_VISIBILITY_COUNT");
 
   public FieldVisibilityCount() {
     super(STATS_TYPE);
@@ -52,12 +53,12 @@ public class FieldVisibilityCount extends
     return new FieldVisibilityCountValue(this);
   }
 
-  public static class FieldVisibilityCountValue extends
-      StatisticValue<Map<ByteArray, Long>> implements
+  public static class FieldVisibilityCountValue extends StatisticValue<Map<ByteArray, Long>>
+      implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
     private final Map<ByteArray, Long> countsPerVisibility = Maps.newHashMap();
-    
+
     private FieldVisibilityCountValue(final Statistic<?> statistic) {
       super(statistic);
     }

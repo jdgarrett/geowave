@@ -11,7 +11,6 @@ package org.locationtech.geowave.datastore.bigtable;
 import org.locationtech.geowave.core.store.BaseDataStoreFamily;
 import org.locationtech.geowave.core.store.GenericStoreFactory;
 import org.locationtech.geowave.core.store.api.DataStore;
-import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 
 public class BigTableStoreFactoryFamily extends BaseDataStoreFamily {
   public static final String TYPE = "bigtable";
@@ -24,10 +23,5 @@ public class BigTableStoreFactoryFamily extends BaseDataStoreFamily {
   @Override
   public GenericStoreFactory<DataStore> getDataStoreFactory() {
     return new BigTableDataStoreFactory(TYPE, DESCRIPTION, new BigTableFactoryHelper());
-  }
-
-  @Override
-  public GenericStoreFactory<DataStatisticsStore> getDataStatisticsStoreFactory() {
-    return new BigTableDataStatisticsStoreFactory(TYPE, DESCRIPTION, new BigTableFactoryHelper());
   }
 }

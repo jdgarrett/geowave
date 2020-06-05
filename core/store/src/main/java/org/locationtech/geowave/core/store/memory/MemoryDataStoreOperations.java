@@ -48,6 +48,7 @@ import org.locationtech.geowave.core.store.entities.GeoWaveValue;
 import org.locationtech.geowave.core.store.flatten.FlattenedUnreadData;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
 import org.locationtech.geowave.core.store.metadata.AbstractGeoWavePersistence;
+import org.locationtech.geowave.core.store.metadata.ClientMetadataFilteringIterator;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.operations.MetadataDeleter;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
@@ -201,38 +202,40 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
         }
       }
     }
-    return new MyIndexReader<>(Iterators.filter(retVal.iterator(), new Predicate<MemoryStoreEntry>() {
-      @Override
-      public boolean apply(final MemoryStoreEntry input) {
-        if ((readerParams.getFilter() != null) && options.isServerSideLibraryEnabled()) {
-          final PersistentDataset<CommonIndexValue> commonData =
-              new MultiFieldPersistentDataset<>();
-          final List<FlattenedUnreadData> unreadData = new ArrayList<>();
-          final List<String> commonIndexFieldNames =
-              DataStoreUtils.getUniqueDimensionFields(readerParams.getIndex().getIndexModel());
-          for (final GeoWaveValue v : input.getRow().getFieldValues()) {
-            unreadData.add(
-                DataStoreUtils.aggregateFieldData(
-                    input.getRow(),
-                    v,
-                    commonData,
-                    readerParams.getIndex().getIndexModel(),
-                    commonIndexFieldNames));
+    return new MyIndexReader<>(
+        Iterators.filter(retVal.iterator(), new Predicate<MemoryStoreEntry>() {
+          @Override
+          public boolean apply(final MemoryStoreEntry input) {
+            if ((readerParams.getFilter() != null) && options.isServerSideLibraryEnabled()) {
+              final PersistentDataset<CommonIndexValue> commonData =
+                  new MultiFieldPersistentDataset<>();
+              final List<FlattenedUnreadData> unreadData = new ArrayList<>();
+              final List<String> commonIndexFieldNames =
+                  DataStoreUtils.getUniqueDimensionFields(readerParams.getIndex().getIndexModel());
+              for (final GeoWaveValue v : input.getRow().getFieldValues()) {
+                unreadData.add(
+                    DataStoreUtils.aggregateFieldData(
+                        input.getRow(),
+                        v,
+                        commonData,
+                        readerParams.getIndex().getIndexModel(),
+                        commonIndexFieldNames));
+              }
+              return readerParams.getFilter().accept(
+                  readerParams.getIndex().getIndexModel(),
+                  new DeferredReadCommonIndexedPersistenceEncoding(
+                      input.getRow().getAdapterId(),
+                      input.getRow().getDataId(),
+                      input.getRow().getPartitionKey(),
+                      input.getRow().getSortKey(),
+                      input.getRow().getNumberOfDuplicates(),
+                      commonData,
+                      unreadData.isEmpty() ? null : new UnreadFieldDataList(unreadData)));
+            }
+            return true;
           }
-          return readerParams.getFilter().accept(
-              readerParams.getIndex().getIndexModel(),
-              new DeferredReadCommonIndexedPersistenceEncoding(
-                  input.getRow().getAdapterId(),
-                  input.getRow().getDataId(),
-                  input.getRow().getPartitionKey(),
-                  input.getRow().getSortKey(),
-                  input.getRow().getNumberOfDuplicates(),
-                  commonData,
-                  unreadData.isEmpty() ? null : new UnreadFieldDataList(unreadData)));
-        }
-        return true;
-      }
-    }), readerParams.getRowTransformer());
+        }),
+        readerParams.getRowTransformer());
   }
 
   private boolean isAuthorized(final MemoryStoreEntry row, final String... authorizations) {
@@ -494,57 +497,59 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
                   input.metadata.getValue(),
                   input.uuidBytes));
       // STATS_TODO: I don't think this is necessary anymore.
-//      if (MetadataType.STATS.equals(type)) {
-//        return new CloseableIterator.Wrapper(new Iterator<GeoWaveMetadata>() {
-//          final PeekingIterator<GeoWaveMetadata> peekingIt =
-//              Iterators.peekingIterator(itTransformed);
-//
-//          @Override
-//          public boolean hasNext() {
-//            return peekingIt.hasNext();
-//          }
-//
-//          @Override
-//          public GeoWaveMetadata next() {
-//            DataStatistics currentStat = null;
-//            GeoWaveMetadata currentMetadata = null;
-//            byte[] vis = null;
-//            while (peekingIt.hasNext()) {
-//              currentMetadata = peekingIt.next();
-//              vis = currentMetadata.getVisibility();
-//              if (!peekingIt.hasNext()) {
-//                break;
-//              }
-//              final GeoWaveMetadata next = peekingIt.peek();
-//              if (Objects.deepEquals(currentMetadata.getPrimaryId(), next.getPrimaryId())
-//                  && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
-//                if (currentStat == null) {
-//                  currentStat =
-//                      (DataStatistics) PersistenceUtils.fromBinary(currentMetadata.getValue());
-//                }
-//                currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));
-//                vis = combineVisibilities(vis, next.getVisibility());
-//              } else {
-//                break;
-//              }
-//            }
-//            if (currentStat == null) {
-//              return currentMetadata;
-//            }
-//            return new GeoWaveMetadata(
-//                currentMetadata.getPrimaryId(),
-//                currentMetadata.getSecondaryId(),
-//                vis,
-//                PersistenceUtils.toBinary(currentStat));
-//          }
-//        });
-//      }
+      // if (MetadataType.STATS.equals(type)) {
+      // return new CloseableIterator.Wrapper(new Iterator<GeoWaveMetadata>() {
+      // final PeekingIterator<GeoWaveMetadata> peekingIt =
+      // Iterators.peekingIterator(itTransformed);
+      //
+      // @Override
+      // public boolean hasNext() {
+      // return peekingIt.hasNext();
+      // }
+      //
+      // @Override
+      // public GeoWaveMetadata next() {
+      // DataStatistics currentStat = null;
+      // GeoWaveMetadata currentMetadata = null;
+      // byte[] vis = null;
+      // while (peekingIt.hasNext()) {
+      // currentMetadata = peekingIt.next();
+      // vis = currentMetadata.getVisibility();
+      // if (!peekingIt.hasNext()) {
+      // break;
+      // }
+      // final GeoWaveMetadata next = peekingIt.peek();
+      // if (Objects.deepEquals(currentMetadata.getPrimaryId(), next.getPrimaryId())
+      // && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
+      // if (currentStat == null) {
+      // currentStat =
+      // (DataStatistics) PersistenceUtils.fromBinary(currentMetadata.getValue());
+      // }
+      // currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));
+      // vis = combineVisibilities(vis, next.getVisibility());
+      // } else {
+      // break;
+      // }
+      // }
+      // if (currentStat == null) {
+      // return currentMetadata;
+      // }
+      // return new GeoWaveMetadata(
+      // currentMetadata.getPrimaryId(),
+      // currentMetadata.getSecondaryId(),
+      // vis,
+      // PersistenceUtils.toBinary(currentStat));
+      // }
+      // });
+      // }
       // convert to and from array just to avoid concurrent modification
       // issues on the iterator that is linked back to the metadataStore
       // sortedSet (basically clone the iterator, so for example deletes
       // can occur while iterating through this query result)
-      return new CloseableIterator.Wrapper(
-          Iterators.forArray(Iterators.toArray(itTransformed, GeoWaveMetadata.class)));
+      return new ClientMetadataFilteringIterator(
+          new CloseableIterator.Wrapper(
+              Iterators.forArray(Iterators.toArray(itTransformed, GeoWaveMetadata.class))),
+          query);
     }
   }
 

@@ -10,14 +10,14 @@ package org.locationtech.geowave.adapter.vector.stats;
 
 import java.nio.ByteBuffer;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
-import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import com.beust.jcommander.Parameter;
 import com.clearspring.analytics.stream.frequency.CountMinSketch;
 import com.clearspring.analytics.stream.frequency.FrequencyMergeException;
@@ -30,27 +30,28 @@ import com.clearspring.analytics.stream.frequency.FrequencyMergeException;
  * <p> Error factor of 0.001 with probability 0.98 of retrieving a correct estimate. The Algorithm
  * does not under-state the estimate.
  */
-public class CountMinSketchStatistics extends
-    FieldStatistic<CountMinSketchStatistics.CountMinSketchValue> {
-  public static final StatisticType STATS_TYPE = new StatisticType("COUNT_MIN_SKETCH");
-  
+public class CountMinSketchStatistic extends
+    FieldStatistic<CountMinSketchStatistic.CountMinSketchValue> {
+  public static final FieldStatisticType<CountMinSketchValue> STATS_TYPE =
+      new FieldStatisticType<>("COUNT_MIN_SKETCH");
+
   @Parameter(names = "--errorFactor", description = "Error factor.")
   private double errorFactor = 0.001;
-  
-  @Parameter(names = "--probabilityOfCorrectness", description = "Probability of retrieving a correct estimate.")
+
+  @Parameter(
+      names = "--probabilityOfCorrectness",
+      description = "Probability of retrieving a correct estimate.")
   private double probabilityOfCorrectness = 0.98;
-  
-  public CountMinSketchStatistics() {
+
+  public CountMinSketchStatistic() {
     super(STATS_TYPE);
   }
-  
-  public CountMinSketchStatistics(
-      final String typeName,
-      final String fieldName) {
+
+  public CountMinSketchStatistic(final String typeName, final String fieldName) {
     super(STATS_TYPE, typeName, fieldName);
   }
-  
-  public CountMinSketchStatistics(
+
+  public CountMinSketchStatistic(
       final String typeName,
       final String fieldName,
       final double errorFactor,
@@ -59,23 +60,23 @@ public class CountMinSketchStatistics extends
     this.errorFactor = errorFactor;
     this.probabilityOfCorrectness = probabilityOfCorrectness;
   }
-  
+
   public void setErrorFactor(double errorFactor) {
     this.errorFactor = errorFactor;
   }
-  
+
   public double getErrorFactor() {
     return this.errorFactor;
   }
-  
+
   public void setProbabilityOfCorrectness(double probabilityOfCorrectness) {
     this.probabilityOfCorrectness = probabilityOfCorrectness;
   }
-  
+
   public double getProbabilityOfCorrectness() {
     return this.probabilityOfCorrectness;
   }
-  
+
   @Override
   public String getDescription() {
     return "Maintains an estimate of how many of each attribute value occurs in a set of data.";
@@ -85,41 +86,47 @@ public class CountMinSketchStatistics extends
   public boolean isCompatibleWith(Class<?> fieldClass) {
     return true;
   }
-  
+
   @Override
   public CountMinSketchValue createEmpty() {
-    return new CountMinSketchValue(getFieldName(), errorFactor, probabilityOfCorrectness);
+    return new CountMinSketchValue(this, getFieldName(), errorFactor, probabilityOfCorrectness);
   }
-  
+
   @Override
   protected int byteLength() {
     return super.byteLength() + Double.BYTES * 2;
   }
-  
+
   @Override
   protected void writeBytes(ByteBuffer buffer) {
     super.writeBytes(buffer);
     buffer.putDouble(errorFactor);
     buffer.putDouble(probabilityOfCorrectness);
   }
-  
+
   @Override
   protected void readBytes(ByteBuffer buffer) {
     super.readBytes(buffer);
     errorFactor = buffer.getDouble();
     probabilityOfCorrectness = buffer.getDouble();
   }
-  
-  public static class CountMinSketchValue implements StatisticValue<CountMinSketch>, StatisticsIngestCallback {
-    
+
+  public static class CountMinSketchValue extends StatisticValue<CountMinSketch> implements
+      StatisticsIngestCallback {
+
     private final String fieldName;
     private CountMinSketch sketch;
-    
-    private CountMinSketchValue(String fieldName, double errorFactor, double probabilityOfCorrectness) {
+
+    private CountMinSketchValue(
+        final Statistic<?> statistic,
+        final String fieldName,
+        final double errorFactor,
+        final double probabilityOfCorrectness) {
+      super(statistic);
       this.fieldName = fieldName;
       sketch = new CountMinSketch(errorFactor, probabilityOfCorrectness, 7364181);
     }
-    
+
     public long totalSampleSize() {
       return sketch.size();
     }
@@ -129,7 +136,7 @@ public class CountMinSketchStatistics extends
     }
 
     @Override
-    public void merge(Mergeable merge) {
+    public void merge(StatisticValue<CountMinSketch> merge) {
       if (merge instanceof CountMinSketchValue) {
         try {
           sketch = CountMinSketch.merge(sketch, ((CountMinSketchValue) merge).sketch);
@@ -156,7 +163,8 @@ public class CountMinSketchStatistics extends
     @Override
     public byte[] toBinary() {
       final byte[] data = CountMinSketch.serialize(sketch);
-      final ByteBuffer buffer = ByteBuffer.allocate(VarintUtils.unsignedIntByteLength(data.length) + data.length);
+      final ByteBuffer buffer =
+          ByteBuffer.allocate(VarintUtils.unsignedIntByteLength(data.length) + data.length);
       VarintUtils.writeUnsignedInt(data.length, buffer);
       buffer.put(data);
       return buffer.array();
@@ -168,7 +176,7 @@ public class CountMinSketchStatistics extends
       final byte[] data = ByteArrayUtils.safeRead(buffer, VarintUtils.readUnsignedInt(buffer));
       sketch = CountMinSketch.deserialize(data);
     }
-    
+
   }
 
   @Override

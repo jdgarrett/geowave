@@ -67,6 +67,11 @@ public class ImageChipDataAdapter implements DataTypeAdapter<ImageChip> {
   }
 
   @Override
+  public boolean isCommonIndexField(final CommonIndexModel model, final String fieldName) {
+    return false;
+  }
+
+  @Override
   public FieldReader<Object> getReader(final String fieldId) {
     if (IMAGE_FIELD_NAME.equals(fieldId)) {
       return (FieldReader) FieldUtils.getDefaultReaderForClass(byte[].class);

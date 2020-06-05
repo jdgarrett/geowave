@@ -17,28 +17,29 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.opengis.coverage.grid.GridCoverage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RasterFootprintStatistics extends
-    AdapterStatistic<RasterFootprintStatistics.RasterFootprintValue> {
-  private static final Logger LOGGER = LoggerFactory.getLogger(RasterFootprintStatistics.class);
-  public static final StatisticType<RasterFootprintValue> STATS_TYPE = new StatisticType<>("RASTER_FOOTPRINT");
+public class RasterFootprintStatistic extends
+    AdapterStatistic<RasterFootprintStatistic.RasterFootprintValue> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RasterFootprintStatistic.class);
+  public static final AdapterStatisticType<RasterFootprintValue> STATS_TYPE =
+      new AdapterStatisticType<>("RASTER_FOOTPRINT");
 
-  public RasterFootprintStatistics() {
+  public RasterFootprintStatistic() {
     super(STATS_TYPE);
   }
 
-  public RasterFootprintStatistics(final String typeName) {
+  public RasterFootprintStatistic(final String typeName) {
     super(STATS_TYPE, typeName);
   }
-  
+
   @Override
   public boolean isCompatibleWith(final Class<?> adapterClass) {
     return GridCoverage.class.isAssignableFrom(adapterClass);
@@ -53,8 +54,9 @@ public class RasterFootprintStatistics extends
   public RasterFootprintValue createEmpty() {
     return new RasterFootprintValue(this);
   }
-  
-  public static class RasterFootprintValue extends StatisticValue<Geometry> implements StatisticsIngestCallback {
+
+  public static class RasterFootprintValue extends StatisticValue<Geometry> implements
+      StatisticsIngestCallback {
 
     private RasterFootprintValue(final Statistic<?> statistic) {
       super(statistic);
@@ -66,9 +68,7 @@ public class RasterFootprintStatistics extends
     public void merge(StatisticValue<Geometry> merge) {
       if (merge instanceof RasterFootprintValue) {
         footprint =
-            RasterUtils.combineIntoOneGeometry(
-                footprint,
-                ((RasterFootprintValue) merge).footprint);
+            RasterUtils.combineIntoOneGeometry(footprint, ((RasterFootprintValue) merge).footprint);
       }
     }
 
@@ -114,6 +114,6 @@ public class RasterFootprintStatistics extends
         footprint = null;
       }
     }
-    
+
   }
 }

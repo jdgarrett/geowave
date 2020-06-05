@@ -178,8 +178,7 @@ public interface DataStoreOperations {
   }
 
 
-  default boolean mergeStats(
-      final DataStatisticsStore statsStore) {
+  default boolean mergeStats(final DataStatisticsStore statsStore) {
     return statsStore.mergeStats();
   }
 }

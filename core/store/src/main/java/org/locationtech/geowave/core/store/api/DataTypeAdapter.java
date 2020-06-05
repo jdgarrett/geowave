@@ -60,6 +60,15 @@ public interface DataTypeAdapter<T> extends DataReader<Object>, DataWriter<T, Ob
   public AdapterPersistenceEncoding encode(T entry, CommonIndexModel indexModel);
 
   /**
+   * Determines if a given field is part of the given common index model.
+   * 
+   * @param indexModel the index model to check
+   * @param fieldName the field name
+   * @return {@code true} if the field is used in the common index model
+   */
+  public boolean isCommonIndexField(CommonIndexModel indexModel, String fieldName);
+
+  /**
    * for efficiency we assume fields have some pre-defined ordering. If the field belongs in the
    * common index model it should be one of the first n positions where n is the number of fields in
    * the common index model.

@@ -12,43 +12,48 @@ import java.util.Calendar;
 import java.util.Date;
 import org.locationtech.geowave.core.geotime.util.TimeUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import org.threeten.extra.Interval;
 
-public class FeatureTimeRangeStatistics extends
-    FieldStatistic<FeatureTimeRangeStatistics.FeatureTimeRangeValue> {
-  public static final StatisticType<FeatureTimeRangeValue> STATS_TYPE = new StatisticType<>("TIME_RANGE");
+public class TimeRangeStatistic extends FieldStatistic<TimeRangeStatistic.TimeRangeValue> {
+  public static final FieldStatisticType<TimeRangeValue> STATS_TYPE =
+      new FieldStatisticType<>("TIME_RANGE");
 
-  public FeatureTimeRangeStatistics() {
+  public TimeRangeStatistic() {
     super(STATS_TYPE);
   }
 
-  public FeatureTimeRangeStatistics(final String typeName, final String fieldName) {
+  public TimeRangeStatistic(final String typeName, final String fieldName) {
     super(STATS_TYPE, typeName, fieldName);
   }
-  
+
   @Override
   public String getDescription() {
     return "Maintains the time range of a temporal field.";
   }
 
   @Override
-  public FeatureTimeRangeValue createEmpty() {
-    return new FeatureTimeRangeValue(getFieldName());
+  public TimeRangeValue createEmpty() {
+    return new TimeRangeValue(this, getFieldName());
   }
 
   @Override
   public boolean isCompatibleWith(Class<?> fieldClass) {
-    return Date.class.isAssignableFrom(fieldClass) || Calendar.class.isAssignableFrom(fieldClass) || Number.class.isAssignableFrom(fieldClass);
+    return Date.class.isAssignableFrom(fieldClass)
+        || Calendar.class.isAssignableFrom(fieldClass)
+        || Number.class.isAssignableFrom(fieldClass);
   }
-  
-  public static class FeatureTimeRangeValue extends TimeRangeStatisticValue {
-    
+
+  public static class TimeRangeValue extends AbstractTimeRangeValue {
+
     private final String fieldName;
-    
-    public FeatureTimeRangeValue(final String fieldName) {
+
+    public TimeRangeValue(final Statistic<?> statistic, final String fieldName) {
+      super(statistic);
       this.fieldName = fieldName;
     }
 
@@ -57,6 +62,6 @@ public class FeatureTimeRangeStatistics extends
       Object fieldValue = adapter.getFieldValue(entry, fieldName);
       return TimeUtils.getInterval(fieldValue);
     }
-    
+
   }
 }

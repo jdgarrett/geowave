@@ -434,7 +434,7 @@ public class PersistenceEncodingTest {
 
     @Override
     public Class<?> getFieldClass(int fieldIndex) {
-      switch(fieldIndex) {
+      switch (fieldIndex) {
         case 0:
           return Geometry.class;
         case 1:
@@ -449,7 +449,7 @@ public class PersistenceEncodingTest {
 
     @Override
     public String getFieldName(int fieldIndex) {
-      switch(fieldIndex) {
+      switch (fieldIndex) {
         case 0:
           return GEOM;
         case 1:
@@ -464,7 +464,7 @@ public class PersistenceEncodingTest {
 
     @Override
     public Object getFieldValue(GeoObj entry, String fieldName) {
-      switch(fieldName) {
+      switch (fieldName) {
         case GEOM:
           return entry.geometry;
         case ID:

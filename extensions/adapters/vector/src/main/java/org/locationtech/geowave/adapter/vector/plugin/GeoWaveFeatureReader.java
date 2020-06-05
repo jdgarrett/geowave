@@ -27,6 +27,7 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.operation.transform.ProjectiveTransform;
 import org.geotools.renderer.lite.RendererUtilities;
 import org.locationtech.geowave.adapter.vector.plugin.transaction.GeoWaveTransaction;
+import org.locationtech.geowave.adapter.vector.plugin.transaction.StatisticsCache;
 import org.locationtech.geowave.adapter.vector.render.DistributedRenderAggregation;
 import org.locationtech.geowave.adapter.vector.render.DistributedRenderOptions;
 import org.locationtech.geowave.adapter.vector.render.DistributedRenderResult;
@@ -202,8 +203,12 @@ public class GeoWaveFeatureReader implements FeatureReader<SimpleFeatureType, Si
         && (Boolean) this.query.getHints().get(SubsampleProcess.SUBSAMPLE_ENABLED)) {
       spatialOnly = true;
     }
+    final StatisticsCache statsCache =
+        getComponents().getGTstore().getIndexQueryStrategy().requiresStats()
+            ? transaction.getDataStatistics()
+            : null;
     try (CloseableIterator<Index> indexIt =
-        getComponents().getIndices(query, spatialOnly)) {
+        getComponents().getIndices(statsCache, query, spatialOnly)) {
       while (indexIt.hasNext()) {
         final Index index = indexIt.next();
 
@@ -517,14 +522,14 @@ public class GeoWaveFeatureReader implements FeatureReader<SimpleFeatureType, Si
   protected TemporalConstraintsSet clipIndexedTemporalConstraints(
       final TemporalConstraintsSet constraintsSet) {
     return QueryIndexHelper.clipIndexedTemporalConstraints(
-        components.getStatsStore(),
+        transaction.getDataStatistics(),
         components.getAdapter().getTimeDescriptors(),
         constraintsSet);
   }
 
   protected Geometry clipIndexedBBOXConstraints(final Geometry bbox) {
     return QueryIndexHelper.clipIndexedBBOXConstraints(
-        components.getStatsStore(),
+        transaction.getDataStatistics(),
         getFeatureType(),
         bbox);
   }

@@ -22,6 +22,7 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.junit.Before;
 import org.junit.Test;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
+import org.locationtech.geowave.adapter.vector.stats.CountMinSketchStatistic.CountMinSketchValue;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -29,7 +30,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-public class FeatureCountMinSketchStaticticsTest {
+public class CountMinSketchStatisticsTest {
 
   private SimpleFeatureType schema;
   FeatureDataAdapter dataAdapter;
@@ -80,37 +81,36 @@ public class FeatureCountMinSketchStaticticsTest {
   @Test
   public void test() {
 
-    final FeatureCountMinSketchStatistics stat =
-        new FeatureCountMinSketchStatistics((short) -1, "pid");
+    final CountMinSketchStatistic stat = new CountMinSketchStatistic("", "pid");
+    final CountMinSketchValue statValue = stat.createEmpty();
 
     for (int i = 0; i < 10000; i++) {
-      stat.entryIngested(create());
+      statValue.entryIngested(dataAdapter, create());
     }
-    stat.entryIngested(create("barney"));
+    statValue.entryIngested(dataAdapter, create("barney"));
 
-    final FeatureCountMinSketchStatistics stat2 = new FeatureCountMinSketchStatistics(null, "pid");
+    final CountMinSketchValue statValue2 = stat.createEmpty();
 
     for (int i = 0; i < 10000; i++) {
-      stat2.entryIngested(create());
+      statValue2.entryIngested(dataAdapter, create());
     }
 
-    stat2.entryIngested(create("global"));
-    stat2.entryIngested(create("fred"));
+    statValue2.entryIngested(dataAdapter, create("global"));
+    statValue2.entryIngested(dataAdapter, create("fred"));
 
-    assertTrue(stat2.count("global") > 0);
-    assertTrue(stat2.count("fred") > 0);
-    assertTrue(stat.count("fred") == 0);
-    assertTrue(stat.count("barney") > 0);
-    assertTrue(stat2.count("barney") == 0);
+    assertTrue(statValue2.count("global") > 0);
+    assertTrue(statValue2.count("fred") > 0);
+    assertTrue(statValue.count("fred") == 0);
+    assertTrue(statValue.count("barney") > 0);
+    assertTrue(statValue2.count("barney") == 0);
 
-    stat.merge(stat2);
-    assertTrue(stat2.count("global") > 0);
-    assertTrue(stat2.count("fred") > 0);
+    statValue.merge(statValue);
+    assertTrue(statValue2.count("global") > 0);
+    assertTrue(statValue2.count("fred") > 0);
 
-    stat2.fromBinary(stat.toBinary());
-    assertTrue(stat2.count("barney") > 0);
+    statValue2.fromBinary(statValue.toBinary());
+    assertTrue(statValue2.count("barney") > 0);
 
-    assertEquals(stat2.toString(), stat.toString());
-    System.out.println(stat.toString());
+    assertEquals(statValue2.getValue().toString(), statValue.getValue().toString());
   }
 }

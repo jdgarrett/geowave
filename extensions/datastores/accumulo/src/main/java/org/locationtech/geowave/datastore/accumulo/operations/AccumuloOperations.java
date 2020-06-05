@@ -1366,23 +1366,25 @@ public class AccumuloOperations implements MapReduceDataStoreOperations, ServerS
   public MetadataWriter createMetadataWriter(final MetadataType metadataType) {
     // this checks for existence prior to create
     createTable(AbstractGeoWavePersistence.METADATA_TABLE, false, options.isEnableBlockCache());
-    if (MetadataType.STATS.equals(metadataType) && options.isServerSideLibraryEnabled()) {
-      synchronized (this) {
-        if (!iteratorsAttached) {
-          iteratorsAttached = true;
-
-          final BasicOptionProvider optionProvider = new BasicOptionProvider(new HashMap<>());
-          ServerOpHelper.addServerSideMerging(
-              this,
-              DataStatisticsStoreImpl.STATISTICS_COMBINER_NAME,
-              DataStatisticsStoreImpl.STATS_COMBINER_PRIORITY,
-              MergingCombiner.class.getName(),
-              MergingVisibilityCombiner.class.getName(),
-              optionProvider,
-              AbstractGeoWavePersistence.METADATA_TABLE);
-        }
-      }
-    }
+    // STATS_TODO: Server-side stat value merging is broken because we don't have the options for
+    // each stat available, and stat values themselves are not persistables.
+    // if (MetadataType.STATS.equals(metadataType) && options.isServerSideLibraryEnabled()) {
+    // synchronized (this) {
+    // if (!iteratorsAttached) {
+    // iteratorsAttached = true;
+    //
+    // final BasicOptionProvider optionProvider = new BasicOptionProvider(new HashMap<>());
+    // ServerOpHelper.addServerSideMerging(
+    // this,
+    // DataStatisticsStoreImpl.STATISTICS_COMBINER_NAME,
+    // DataStatisticsStoreImpl.STATS_COMBINER_PRIORITY,
+    // MergingCombiner.class.getName(),
+    // MergingVisibilityCombiner.class.getName(),
+    // optionProvider,
+    // AbstractGeoWavePersistence.METADATA_TABLE);
+    // }
+    // }
+    // }
     try {
       return new AccumuloMetadataWriter(
           createBatchWriter(AbstractGeoWavePersistence.METADATA_TABLE),
@@ -1424,8 +1426,7 @@ public class AccumuloOperations implements MapReduceDataStoreOperations, ServerS
   }
 
   @Override
-  public boolean mergeStats(
-      final DataStatisticsStore statsStore) {
+  public boolean mergeStats(final DataStatisticsStore statsStore) {
     if (options.isServerSideLibraryEnabled()) {
       return compactTable(AbstractGeoWavePersistence.METADATA_TABLE);
     } else {

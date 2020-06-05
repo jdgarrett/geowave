@@ -14,19 +14,17 @@ import java.util.Map;
 import java.util.Set;
 import org.locationtech.geowave.adapter.vector.index.IndexQueryStrategySPI.QueryHint;
 import org.locationtech.geowave.adapter.vector.plugin.transaction.GeoWaveTransaction;
+import org.locationtech.geowave.adapter.vector.plugin.transaction.StatisticsCache;
 import org.locationtech.geowave.adapter.vector.plugin.transaction.TransactionsAllocator;
 import org.locationtech.geowave.core.geotime.store.GeotoolsFeatureDataAdapter;
 import org.locationtech.geowave.core.geotime.store.query.api.VectorQueryBuilder;
-import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InitializeWithIndicesDataAdapter;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapterWrapper;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsId;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.Index;
-import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.data.VisibilityWriter;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
@@ -102,6 +100,7 @@ public class GeoWaveDataStoreComponents {
   }
 
   public CloseableIterator<Index> getIndices(
+      final StatisticsCache statisticsCache,
       final BasicQueryByClass query,
       final boolean spatialOnly) {
     final GeoWaveGTDataStore gtStore = getGTstore();
@@ -113,7 +112,12 @@ public class GeoWaveDataStoreComponents {
     if (spatialOnly && (indices.length == 0)) {
       throw new UnsupportedOperationException("Query required spatial index, but none were found.");
     }
-    return gtStore.getIndexQueryStrategy().getIndices(dataStatisticsStore, query, indices, adapter, queryHints);
+    return gtStore.getIndexQueryStrategy().getIndices(
+        dataStatisticsStore,
+        query,
+        indices,
+        adapter,
+        queryHints);
   }
 
   public void remove(final SimpleFeature feature, final GeoWaveTransaction transaction)

@@ -14,12 +14,12 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
 public class MaxDuplicatesStatistic extends
     IndexStatistic<MaxDuplicatesStatistic.MaxDuplicatesValue> {
-  public static final StatisticType<MaxDuplicatesValue> STATS_TYPE = new StatisticType<>("MAX_DUPLICATES");
+  public static final IndexStatisticType<MaxDuplicatesValue> STATS_TYPE =
+      new IndexStatisticType<>("MAX_DUPLICATES");
 
   public MaxDuplicatesStatistic() {
     super(STATS_TYPE);
@@ -41,7 +41,7 @@ public class MaxDuplicatesStatistic extends
 
   public static class MaxDuplicatesValue extends StatisticValue<Integer> implements
       StatisticsIngestCallback {
-    
+
     private MaxDuplicatesValue(Statistic<?> statistic) {
       super(statistic);
     }

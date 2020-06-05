@@ -23,6 +23,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
+import org.locationtech.geowave.core.store.statistics.field.FixedBinNumericHistogramStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FixedBinNumericHistogramStatistic.FixedBinNumericHistogramValue;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -30,7 +32,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-public class FeatureFixedBinNumericStaticticsTest {
+public class FixedBinNumericHistogramStatisticTest {
 
   private SimpleFeatureType schema;
   FeatureDataAdapter dataAdapter;
@@ -70,121 +72,115 @@ public class FeatureFixedBinNumericStaticticsTest {
   @Test
   public void testPositive() {
 
-    final FeatureFixedBinNumericStatistics stat =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    final FixedBinNumericHistogramStatistic stat = new FixedBinNumericHistogramStatistic("", "pop");
+    final FixedBinNumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
 
-    stat.entryIngested(create(100.0));
-    stat.entryIngested(create(101.0));
-    stat.entryIngested(create(2.0));
+    statValue.entryIngested(dataAdapter, create(100.0));
+    statValue.entryIngested(dataAdapter, create(101.0));
+    statValue.entryIngested(dataAdapter, create(2.0));
 
     double next = 1;
     for (int i = 0; i < 10000; i++) {
       next = next + (Math.round(rand.nextDouble()));
-      stat.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
     }
 
-    final FeatureFixedBinNumericStatistics stat2 =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    final FixedBinNumericHistogramValue statValue2 = stat.createEmpty();
 
     next += 1000;
     final double skewvalue = next + (1000 * rand.nextDouble());
     final SimpleFeature skewedFeature = create(skewvalue);
     for (int i = 0; i < 10000; i++) {
-      stat2.entryIngested(skewedFeature);
+      statValue2.entryIngested(dataAdapter, skewedFeature);
     }
 
     next += 1000;
     double max = 0;
     for (long i = 0; i < 10000; i++) {
       final double val = next + (1000 * rand.nextDouble());
-      stat2.entryIngested(create(val));
+      statValue2.entryIngested(dataAdapter, create(val));
       max = Math.max(val, max);
     }
 
-    final byte[] b = stat2.toBinary();
-    stat2.fromBinary(b);
-    assertEquals(1.0, stat2.cdf(max + 1), 0.00001);
+    final byte[] b = statValue2.toBinary();
+    statValue2.fromBinary(b);
+    assertEquals(1.0, statValue2.cdf(max + 1), 0.00001);
 
-    stat.merge(stat2);
+    statValue.merge(statValue2);
 
-    assertEquals(1.0, stat.cdf(max + 1), 0.00001);
+    assertEquals(1.0, statValue.cdf(max + 1), 0.00001);
 
-    assertEquals(.33, stat.cdf(skewvalue - 1000), 0.01);
-    assertEquals(30003, sum(stat.count(10)));
+    assertEquals(.33, statValue.cdf(skewvalue - 1000), 0.01);
+    assertEquals(30003, sum(statValue.count(10)));
 
-    final double r = stat.percentPopulationOverRange(skewvalue - 1000, skewvalue + 1000);
+    final double r = statValue.percentPopulationOverRange(skewvalue - 1000, skewvalue + 1000);
     assertTrue((r > 0.45) && (r < 0.55));
-
-    System.out.println(stat.toString());
   }
 
   @Test
   public void testRapidIncreaseInRange() {
 
-    final FeatureFixedBinNumericStatistics stat1 =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    final FixedBinNumericHistogramStatistic stat = new FixedBinNumericHistogramStatistic("", "pop");
+    final FixedBinNumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
     double next = 1;
     for (int i = 0; i < 10000; i++) {
       next = next + (rand.nextDouble() * 100.0);
-      stat1.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
     }
 
-    FeatureFixedBinNumericStatistics stat2 =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    FixedBinNumericHistogramValue statValue2 = stat.createEmpty();
 
     next = 4839434.547854578;
     for (long i = 0; i < 10000; i++) {
       final double val = next + (1000.0 * rand.nextDouble());
-      stat2.entryIngested(create(val));
+      statValue2.entryIngested(dataAdapter, create(val));
     }
 
-    byte[] b = stat2.toBinary();
-    stat2.fromBinary(b);
+    byte[] b = statValue2.toBinary();
+    statValue2.fromBinary(b);
 
-    b = stat1.toBinary();
-    stat1.fromBinary(b);
+    b = statValue.toBinary();
+    statValue.fromBinary(b);
 
-    stat1.merge(stat2);
+    statValue.merge(statValue2);
 
-    stat2 = new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    statValue2 = stat.createEmpty();
 
     for (int i = 0; i < 40000; i++) {
       next = (Math.round(rand.nextDouble()));
-      stat2.entryIngested(create(next));
+      statValue2.entryIngested(dataAdapter, create(next));
     }
 
-    final FeatureFixedBinNumericStatistics stat3 =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    final FixedBinNumericHistogramValue statValue3 = stat.createEmpty();
 
     next = 54589058545734.049454545458;
     for (long i = 0; i < 10000; i++) {
       final double val = next + (rand.nextDouble());
-      stat3.entryIngested(create(val));
+      statValue3.entryIngested(dataAdapter, create(val));
     }
 
-    b = stat2.toBinary();
-    stat2.fromBinary(b);
+    b = statValue2.toBinary();
+    statValue2.fromBinary(b);
 
-    b = stat3.toBinary();
-    stat3.fromBinary(b);
+    b = statValue3.toBinary();
+    statValue3.fromBinary(b);
 
-    stat1.merge(stat3);
-    stat1.merge(stat2);
+    statValue.merge(statValue3);
+    statValue.merge(statValue2);
 
-    b = stat1.toBinary();
-    stat1.fromBinary(b);
-    System.out.println(stat1);
+    b = statValue.toBinary();
+    statValue.fromBinary(b);
   }
 
   @Test
   public void testMix() {
 
-    final FeatureFixedBinNumericStatistics stat =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    final FixedBinNumericHistogramStatistic stat = new FixedBinNumericHistogramStatistic("", "pop");
+    final FixedBinNumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
 
@@ -194,37 +190,35 @@ public class FeatureFixedBinNumericStaticticsTest {
     double next = 0;
     for (int i = 0; i < 10000; i++) {
       next = next + (100 * rand.nextDouble());
-      stat.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
       max = Math.max(next, max);
     }
 
     next = 0;
     for (int i = 0; i < 10000; i++) {
       next = next - (100 * rand.nextDouble());
-      stat.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
       min = Math.min(next, min);
     }
 
-    assertEquals(0.0, stat.cdf(min), 0.00001);
+    assertEquals(0.0, statValue.cdf(min), 0.00001);
 
-    assertEquals(1.0, stat.cdf(max), 0.00001);
+    assertEquals(1.0, statValue.cdf(max), 0.00001);
 
-    assertEquals(0.5, stat.cdf(0), 0.05);
+    assertEquals(0.5, statValue.cdf(0), 0.05);
 
-    assertEquals(20000, sum(stat.count(10)));
+    assertEquals(20000, sum(statValue.count(10)));
 
-    final double r = stat.percentPopulationOverRange(min / 2, max / 2);
+    final double r = statValue.percentPopulationOverRange(min / 2, max / 2);
 
     assertEquals(0.5, r, 0.05);
-
-    System.out.println(stat.toString());
   }
 
   @Test
   public void testMix2() {
 
-    final FeatureFixedBinNumericStatistics stat =
-        new FeatureFixedBinNumericStatistics((short) -1, "pop");
+    final FixedBinNumericHistogramStatistic stat = new FixedBinNumericHistogramStatistic("", "pop");
+    final FixedBinNumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
 
@@ -234,17 +228,17 @@ public class FeatureFixedBinNumericStaticticsTest {
     double next = 0;
     for (int i = 0; i < 100000; i++) {
       next = 1000 * rand.nextGaussian();
-      stat.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
       max = Math.max(next, max);
     }
 
-    assertEquals(1.0, stat.cdf(max), 0.00001);
+    assertEquals(1.0, statValue.cdf(max), 0.00001);
 
-    assertEquals(0.5, stat.cdf(0), 0.05);
+    assertEquals(0.5, statValue.cdf(0), 0.05);
 
-    assertEquals(100000, sum(stat.count(10)));
+    assertEquals(100000, sum(statValue.count(10)));
 
-    final double r = stat.percentPopulationOverRange(min / 2, max / 2);
+    final double r = statValue.percentPopulationOverRange(min / 2, max / 2);
 
     assertEquals(0.5, r, 0.05);
 

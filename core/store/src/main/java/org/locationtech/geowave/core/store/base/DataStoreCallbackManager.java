@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
-import org.locationtech.geowave.core.store.adapter.statistics.StatisticsProvider;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.callback.DeleteCallback;
 import org.locationtech.geowave.core.store.callback.DeleteCallbackList;
@@ -47,7 +46,8 @@ public class DataStoreCallbackManager {
     if (!icache.containsKey(writableAdapter.getAdapterId())) {
       final List<IngestCallback<T>> callbackList = new ArrayList<>();
       if (persistStats) {
-        callbackList.add(statsStore.getUpdateCallback(writableAdapter, index));
+        callbackList.add(
+            statsStore.createUpdateCallback(index, writableAdapter, captureAdapterStats));
       }
       icache.put(writableAdapter.getAdapterId(), new IngestCallbackList<>(callbackList));
     }
@@ -63,8 +63,9 @@ public class DataStoreCallbackManager {
       final Index index) {
     if (!dcache.containsKey(writableAdapter.getAdapterId())) {
       final List<DeleteCallback<T, GeoWaveRow>> callbackList = new ArrayList<>();
-      if ((writableAdapter.getAdapter() instanceof StatisticsProvider) && persistStats) {
-        callbackList.add(statsStore.getUpdateCallback(writableAdapter, index));
+      if (persistStats) {
+        callbackList.add(
+            statsStore.createUpdateCallback(index, writableAdapter, captureAdapterStats));
       }
       dcache.put(writableAdapter.getAdapterId(), new DeleteCallbackList<>(callbackList));
     }

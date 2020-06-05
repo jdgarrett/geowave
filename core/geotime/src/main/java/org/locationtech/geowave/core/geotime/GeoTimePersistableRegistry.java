@@ -45,6 +45,8 @@ import org.locationtech.geowave.core.geotime.store.query.aggregate.OptimalVector
 import org.locationtech.geowave.core.geotime.store.query.aggregate.VectorBoundingBoxAggregation;
 import org.locationtech.geowave.core.geotime.store.query.aggregate.VectorTimeRangeAggregation;
 import org.locationtech.geowave.core.geotime.store.query.filter.SpatialQueryFilter;
+import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatistic;
+import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeStatistic;
 import org.locationtech.geowave.core.index.dimension.bin.BasicBinningStrategy;
 import org.locationtech.geowave.core.index.persist.PersistableRegistrySpi;
 
@@ -90,7 +92,9 @@ public class GeoTimePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 334, SimpleTimeDefinition::new),
         new PersistableIdAndConstructor((short) 335, SimpleTimeIndexStrategy::new),
         new PersistableIdAndConstructor((short) 336, CustomCRSBoundedSpatialDimensionX::new),
-        new PersistableIdAndConstructor((short) 337, CustomCRSBoundedSpatialDimensionY::new)};
+        new PersistableIdAndConstructor((short) 337, CustomCRSBoundedSpatialDimensionY::new),
+        new PersistableIdAndConstructor((short) 338, BoundingBoxStatistic::new),
+        new PersistableIdAndConstructor((short) 339, TimeRangeStatistic::new)};
 
   }
 }

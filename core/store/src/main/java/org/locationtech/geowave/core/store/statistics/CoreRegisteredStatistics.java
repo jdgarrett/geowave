@@ -15,14 +15,15 @@ public class CoreRegisteredStatistics implements StatisticsRegistrySPI {
         new RegisteredStatistic(
             DuplicateEntryCountStatistic.STATS_TYPE,
             DuplicateEntryCountStatistic::new),
+        new RegisteredStatistic(MaxDuplicatesStatistic.STATS_TYPE, MaxDuplicatesStatistic::new),
+        new RegisteredStatistic(PartitionsStatistic.STATS_TYPE, PartitionsStatistic::new),
         new RegisteredStatistic(
-            MaxDuplicatesStatistic.STATS_TYPE,
-            MaxDuplicatesStatistic::new),
-        new RegisteredStatistic(PartitionsStatistic.STATS_TYPE,
-            PartitionsStatistic::new),
-        new RegisteredStatistic(RowRangeHistogramStatistic.STATS_TYPE, RowRangeHistogramStatistic::new),
+            RowRangeHistogramStatistic.STATS_TYPE,
+            RowRangeHistogramStatistic::new),
+
         // Adapter Statistics
         new RegisteredStatistic(CountStatistic.STATS_TYPE, CountStatistic::new),
+
         // Field Statistics
         new RegisteredStatistic(
             FixedBinNumericHistogramStatistic.STATS_TYPE,
@@ -33,7 +34,6 @@ public class CoreRegisteredStatistics implements StatisticsRegistrySPI {
   @Override
   public RegisteredBinningStrategy[] getProvidedBinningStrategies() {
     return new RegisteredBinningStrategy[] {
-        new RegisteredBinningStrategy("PARTITION", PartitionBinningStrategy::new)
-    };
+        new RegisteredBinningStrategy("PARTITION", PartitionBinningStrategy::new)};
   }
 }

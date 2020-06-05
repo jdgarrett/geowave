@@ -11,6 +11,7 @@ package org.locationtech.geowave.adapter.vector;
 import java.net.MalformedURLException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigu
 import org.locationtech.geowave.core.geotime.store.GeotoolsFeatureDataAdapter;
 import org.locationtech.geowave.core.geotime.store.dimension.CustomCrsIndexModel;
 import org.locationtech.geowave.core.geotime.store.dimension.Time;
+import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatistic;
+import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeStatistic;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.geotime.util.TimeDescriptors;
 import org.locationtech.geowave.core.geotime.util.TimeDescriptors.TimeDescriptorConfiguration;
@@ -41,6 +44,8 @@ import org.locationtech.geowave.core.store.adapter.NativeFieldHandler;
 import org.locationtech.geowave.core.store.adapter.NativeFieldHandler.RowBuilder;
 import org.locationtech.geowave.core.store.adapter.PersistentIndexFieldHandler;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.data.field.FieldReader;
 import org.locationtech.geowave.core.store.data.field.FieldUtils;
 import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
@@ -49,9 +54,13 @@ import org.locationtech.geowave.core.store.data.visibility.VisibilityManagement;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
+import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
+import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.geowave.mapreduce.HadoopDataAdapter;
 import org.locationtech.geowave.mapreduce.HadoopWritableSerializer;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -60,6 +69,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.beust.jcommander.internal.Lists;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
@@ -90,7 +100,8 @@ import com.google.common.collect.HashBiMap;
 public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> implements
     GeotoolsFeatureDataAdapter<SimpleFeature>,
     HadoopDataAdapter<SimpleFeature, FeatureWritable>,
-    InitializeWithIndicesDataAdapter<SimpleFeature> {
+    InitializeWithIndicesDataAdapter<SimpleFeature>,
+    DefaultStatisticsProvider {
   private static final Logger LOGGER = LoggerFactory.getLogger(FeatureDataAdapter.class);
   // the original coordinate system will always be represented internally by
   // the persisted type
@@ -204,7 +215,7 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
         updateVisibility(featureType, defaultVisibilityManagement));
     setFeatureType(featureType);
   }
-  
+
   @Override
   public Class<SimpleFeature> getDataClass() {
     return SimpleFeature.class;
@@ -846,22 +857,22 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
       LOGGER.error("Unable to initialize position map, continuing anyways", e);
     }
   }
-  
+
   @Override
   public int getFieldCount() {
     return reprojectedFeatureType.getAttributeCount();
   }
-  
+
   @Override
   public Class<?> getFieldClass(final int fieldIndex) {
     return reprojectedFeatureType.getDescriptor(fieldIndex).getClass();
   }
-  
+
   @Override
   public String getFieldName(final int fieldIndex) {
     return reprojectedFeatureType.getDescriptor(fieldIndex).getLocalName();
   }
-  
+
   @Override
   public Object getFieldValue(final SimpleFeature entry, final String fieldName) {
     return entry.getAttribute(fieldName);
@@ -898,5 +909,27 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
       description.put(descriptor.getLocalName(), descriptor.getType().getBinding().getName());
     }
     return description;
+  }
+
+  @Override
+  public List<Statistic<? extends StatisticValue<?>>> getDefaultStatistics() {
+    List<Statistic<?>> statistics = Lists.newArrayList();
+    CountStatistic count = new CountStatistic(getTypeName());
+    count.setInternal();
+    statistics.add(count);
+    for (int i = 0; i < reprojectedFeatureType.getAttributeCount(); i++) {
+      final AttributeDescriptor ad = reprojectedFeatureType.getDescriptor(i);
+      if (Geometry.class.isAssignableFrom(ad.getType().getBinding())) {
+        BoundingBoxStatistic bbox = new BoundingBoxStatistic(getTypeName(), ad.getLocalName());
+        bbox.setInternal();
+        statistics.add(bbox);
+      }
+      if (Date.class.isAssignableFrom(ad.getType().getBinding())) {
+        TimeRangeStatistic timeRange = new TimeRangeStatistic(getTypeName(), ad.getLocalName());
+        timeRange.setInternal();
+        statistics.add(timeRange);
+      }
+    }
+    return statistics;
   }
 }

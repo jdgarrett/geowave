@@ -26,20 +26,23 @@ import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
 import org.opengis.coverage.grid.GridCoverage;
 
-public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.OverviewValue> {
-  public static final StatisticType<OverviewValue> STATS_TYPE = new StatisticType<>("RASTER_OVERVIEW");
+public class RasterOverviewStatistic extends
+    AdapterStatistic<RasterOverviewStatistic.OverviewValue> {
+  public static final AdapterStatisticType<OverviewValue> STATS_TYPE =
+      new AdapterStatisticType<>("RASTER_OVERVIEW");
 
 
-  public OverviewStatistics() {
+  public RasterOverviewStatistic() {
     super(STATS_TYPE);
   }
 
-  public OverviewStatistics(final String typeName) {
+  public RasterOverviewStatistic(final String typeName) {
     super(STATS_TYPE, typeName);
   }
-  
+
   @Override
   public boolean isCompatibleWith(final Class<?> adapterClass) {
     return GridCoverage.class.isAssignableFrom(adapterClass);
@@ -55,20 +58,15 @@ public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.Over
   public OverviewValue createEmpty() {
     return new OverviewValue(this);
   }
-  
-  public static class OverviewValue extends StatisticValue<Resolution[]> implements StatisticsIngestCallback {
+
+  public static class OverviewValue extends StatisticValue<Resolution[]> implements
+      StatisticsIngestCallback {
     private Resolution[] resolutions = new Resolution[] {};
-    
+
     private OverviewValue(final Statistic<?> statistic) {
       super(statistic);
     }
-    
-    public Resolution[] getResolutions() {
-      synchronized (this) {
-        return resolutions;
-      }
-    }
-    
+
     public boolean removeResolution(Resolution res) {
       synchronized (this) {
         int index = -1;
@@ -87,13 +85,12 @@ public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.Over
         return false;
       }
     }
-    
+
     @Override
     public void merge(StatisticValue<Resolution[]> merge) {
       if (merge instanceof OverviewValue) {
         synchronized (this) {
-          resolutions =
-              incorporateResolutions(resolutions, ((OverviewValue) merge).getResolutions());
+          resolutions = incorporateResolutions(resolutions, ((OverviewValue) merge).getValue());
         }
       }
     }
@@ -111,8 +108,9 @@ public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.Over
 
     @Override
     public Resolution[] getValue() {
-      // TODO Auto-generated method stub
-      return null;
+      synchronized (this) {
+        return resolutions;
+      }
     }
 
     @Override
@@ -154,7 +152,7 @@ public class OverviewStatistics extends AdapterStatistic<OverviewStatistics.Over
         }
       }
     }
-    
+
   }
 
   private static Resolution[] incorporateResolutions(

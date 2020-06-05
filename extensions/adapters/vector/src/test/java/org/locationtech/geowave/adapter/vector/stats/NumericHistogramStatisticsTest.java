@@ -23,6 +23,7 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.junit.Before;
 import org.junit.Test;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
+import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistic.NumericHistogramValue;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -31,7 +32,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-public class FeatureNumericHistogramStaticticsTest {
+public class NumericHistogramStatisticsTest {
 
   private SimpleFeatureType schema;
   FeatureDataAdapter dataAdapter;
@@ -71,147 +72,140 @@ public class FeatureNumericHistogramStaticticsTest {
   @Test
   public void testPositive() {
 
-    final NumericHistogramStatistics stat =
-        new NumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistic stat = new NumericHistogramStatistic("", "pop");
+    final NumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
 
-    stat.entryIngested(create(100.0));
-    stat.entryIngested(create(101.0));
-    stat.entryIngested(create(2.0));
+    statValue.entryIngested(dataAdapter, create(100.0));
+    statValue.entryIngested(dataAdapter, create(101.0));
+    statValue.entryIngested(dataAdapter, create(2.0));
 
     double next = 1;
     for (int i = 0; i < 10000; i++) {
       next = next + (Math.round(rand.nextDouble()));
-      stat.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
     }
 
-    final NumericHistogramStatistics stat2 =
-        new NumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramValue statValue2 = stat.createEmpty();
 
     final double start2 = next;
 
     double max = 0;
     for (long i = 0; i < 10000; i++) {
       final double val = next + (1000 * rand.nextDouble());
-      stat2.entryIngested(create(val));
+      statValue2.entryIngested(dataAdapter, create(val));
       max = Math.max(val, max);
     }
     final double skewvalue = next + (1000 * rand.nextDouble());
     final SimpleFeature skewedFeature = create(skewvalue);
     for (int i = 0; i < 10000; i++) {
-      stat2.entryIngested(skewedFeature);
+      statValue2.entryIngested(dataAdapter, skewedFeature);
       // skewedFeature.setAttribute("pop", Long.valueOf(next + (long)
       // (1000 * rand.nextDouble())));
     }
 
-    final byte[] b = stat2.toBinary();
-    stat2.fromBinary(b);
-    assertEquals(1.0, stat2.cdf(max + 1), 0.00001);
+    final byte[] b = statValue2.toBinary();
+    statValue2.fromBinary(b);
+    assertEquals(1.0, statValue2.cdf(max + 1), 0.00001);
 
-    stat.merge(stat2);
+    statValue.merge(statValue2);
 
-    assertEquals(1.0, stat.cdf(max + 1), 0.00001);
+    assertEquals(1.0, statValue.cdf(max + 1), 0.00001);
 
-    assertEquals(0.33, stat.cdf(start2), 0.01);
+    assertEquals(0.33, statValue.cdf(start2), 0.01);
 
-    assertEquals(30003, sum(stat.count(10)));
+    assertEquals(30003, sum(statValue.count(10)));
 
-    final double r = stat.percentPopulationOverRange(skewvalue - 1, skewvalue + 1);
+    final double r = statValue.percentPopulationOverRange(skewvalue - 1, skewvalue + 1);
     assertTrue((r > 0.3) && (r < 0.35));
-
-    System.out.println(stat.toString());
   }
 
   @Test
   public void testRapidIncreaseInRange() {
 
-    final NumericHistogramStatistics stat1 =
-        new NumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistic stat = new NumericHistogramStatistic("", "pop");
+    final NumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
     double next = 1;
     for (int i = 0; i < 100; i++) {
       next = next + (rand.nextDouble() * 100.0);
-      stat1.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
     }
 
     for (long i = 0; i < 100; i++) {
-      final NumericHistogramStatistics stat2 =
-          new NumericHistogramStatistics((short) -1, "pop");
+      final NumericHistogramValue statValue2 = stat.createEmpty();
       for (int j = 0; j < 100; j++) {
-        stat2.entryIngested(create(4839000434.547854578 * rand.nextDouble() * rand.nextGaussian()));
+        statValue2.entryIngested(
+            dataAdapter,
+            create(4839000434.547854578 * rand.nextDouble() * rand.nextGaussian()));
       }
-      byte[] b = stat2.toBinary();
-      stat2.fromBinary(b);
-      b = stat1.toBinary();
-      stat1.fromBinary(b);
-      stat1.merge(stat2);
+      byte[] b = statValue2.toBinary();
+      statValue2.fromBinary(b);
+      b = statValue.toBinary();
+      statValue.fromBinary(b);
+      statValue.merge(statValue2);
     }
-
-    System.out.println(stat1);
   }
 
   @Test
   public void testNegative() {
 
-    final NumericHistogramStatistics stat =
-        new NumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistic stat = new NumericHistogramStatistic("", "pop");
+    final NumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
 
-    stat.entryIngested(create(-100.0));
-    stat.entryIngested(create(-101.0));
-    stat.entryIngested(create(-2.0));
+    statValue.entryIngested(dataAdapter, create(-100.0));
+    statValue.entryIngested(dataAdapter, create(-101.0));
+    statValue.entryIngested(dataAdapter, create(-2.0));
 
     double next = -1;
     for (int i = 0; i < 10000; i++) {
       next = next - (Math.round(rand.nextDouble()));
-      stat.entryIngested(create(next));
+      statValue.entryIngested(dataAdapter, create(next));
     }
 
-    final NumericHistogramStatistics stat2 =
-        new NumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramValue statValue2 = stat.createEmpty();
 
     final double start2 = next;
 
     double min = 0;
     for (long i = 0; i < 10000; i++) {
       final double val = next - (long) (1000 * rand.nextDouble());
-      stat2.entryIngested(create(val));
+      statValue2.entryIngested(dataAdapter, create(val));
       min = Math.min(val, min);
     }
     final double skewvalue = next - (1000 * rand.nextDouble());
     final SimpleFeature skewedFeature = create(skewvalue);
     for (int i = 0; i < 10000; i++) {
-      stat2.entryIngested(skewedFeature);
+      statValue2.entryIngested(dataAdapter, skewedFeature);
     }
 
-    assertEquals(1.0, stat2.cdf(0), 0.00001);
-    final byte[] b = stat2.toBinary();
-    stat2.fromBinary(b);
+    assertEquals(1.0, statValue2.cdf(0), 0.00001);
+    final byte[] b = statValue2.toBinary();
+    statValue2.fromBinary(b);
 
-    assertEquals(0.0, stat2.cdf(min), 0.00001);
+    assertEquals(0.0, statValue2.cdf(min), 0.00001);
 
-    stat.merge(stat2);
+    statValue.merge(statValue2);
 
-    assertEquals(1.0, stat.cdf(0), 0.00001);
+    assertEquals(1.0, statValue.cdf(0), 0.00001);
 
-    assertEquals(0.66, stat.cdf(start2), 0.01);
+    assertEquals(0.66, statValue.cdf(start2), 0.01);
 
-    assertEquals(30003, sum(stat.count(10)));
+    assertEquals(30003, sum(statValue.count(10)));
 
-    final double r = stat.percentPopulationOverRange(skewvalue - 1, skewvalue + 1);
+    final double r = statValue.percentPopulationOverRange(skewvalue - 1, skewvalue + 1);
     assertTrue((r > 0.3) && (r < 0.35));
-
-    System.out.println(stat.toString());
   }
 
   @Test
   public void testMix() {
 
-    final NumericHistogramStatistics stat =
-        new NumericHistogramStatistics((short) -1, "pop");
+    final NumericHistogramStatistic stat = new NumericHistogramStatistic("", "pop");
+    final NumericHistogramValue statValue = stat.createEmpty();
 
     final Random rand = new Random(7777);
 
@@ -220,44 +214,38 @@ public class FeatureNumericHistogramStaticticsTest {
 
     double next = 0;
     for (int i = 1; i < 300; i++) {
-      final NumericHistogramStatistics stat2 =
-          new NumericHistogramStatistics((short) -1, "pop");
+      final NumericHistogramValue statValue2 = stat.createEmpty();
       final double m = 10000.0 * Math.pow(10.0, ((i / 100) + 1));
       if (i == 50) {
-        System.out.println("1");
         next = 0.0;
       } else if (i == 100) {
-        System.out.println("2");
         next = Double.NaN;
       } else if (i == 150) {
-        System.out.println("3");
         next = Double.MAX_VALUE;
       } else if (i == 200) {
-        System.out.println("4");
         next = Integer.MAX_VALUE;
       } else if (i == 225) {
-        System.out.println("");
         next = Integer.MIN_VALUE;
       } else {
         next = (m * rand.nextDouble() * MathUtils.sign(rand.nextGaussian()));
       }
-      stat2.entryIngested(create(next));
+      statValue2.entryIngested(dataAdapter, create(next));
       if (!Double.isNaN(next)) {
         max = Math.max(next, max);
         min = Math.min(next, min);
         stat.fromBinary(stat.toBinary());
-        stat2.fromBinary(stat2.toBinary());
-        stat.merge(stat2);
+        statValue2.fromBinary(statValue2.toBinary());
+        statValue.merge(statValue2);
       }
     }
 
-    assertEquals(0.5, stat.cdf(0), 0.1);
+    assertEquals(0.5, statValue.cdf(0), 0.1);
 
-    assertEquals(0.0, stat.cdf(min), 0.00001);
+    assertEquals(0.0, statValue.cdf(min), 0.00001);
 
-    assertEquals(1.0, stat.cdf(max), 0.00001);
+    assertEquals(1.0, statValue.cdf(max), 0.00001);
 
-    assertEquals(297, sum(stat.count(10)));
+    assertEquals(297, sum(statValue.count(10)));
   }
 
   private long sum(final long[] list) {

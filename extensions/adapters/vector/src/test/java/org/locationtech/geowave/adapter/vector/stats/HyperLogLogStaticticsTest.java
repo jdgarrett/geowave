@@ -23,6 +23,7 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.junit.Before;
 import org.junit.Test;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
+import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistic.HyperLogLogPlusValue;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -30,7 +31,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 
-public class FeatureHyperLogLogStaticticsTest {
+public class HyperLogLogStaticticsTest {
 
   private SimpleFeatureType schema;
   FeatureDataAdapter dataAdapter;
@@ -90,30 +91,29 @@ public class FeatureHyperLogLogStaticticsTest {
 
     final Set<String> firstSet = new HashSet<>();
     final Set<String> secondSet = new HashSet<>();
-    final HyperLogLogStatistics stat =
-        new HyperLogLogStatistics((short) -1, "pid", 16);
+    final HyperLogLogStatistic stat = new HyperLogLogStatistic("", "pid", 16);
+    final HyperLogLogPlusValue statValue = stat.createEmpty();
 
     for (int i = 0; i < 10000; i++) {
-      stat.entryIngested(create(pidSetOne, firstSet));
+      statValue.entryIngested(dataAdapter, create(pidSetOne, firstSet));
     }
 
-    final HyperLogLogStatistics stat2 =
-        new HyperLogLogStatistics((short) -1, "pid", 16);
+    final HyperLogLogPlusValue statValue2 = stat.createEmpty();
 
     for (int i = 0; i < 10000; i++) {
-      stat2.entryIngested(create(pidSetTwo, secondSet));
+      statValue2.entryIngested(dataAdapter, create(pidSetTwo, secondSet));
     }
 
-    assertTrue(Math.abs(firstSet.size() - stat.cardinality()) < 10);
-    assertTrue(Math.abs(secondSet.size() - stat2.cardinality()) < 10);
+    assertTrue(Math.abs(firstSet.size() - statValue.cardinality()) < 10);
+    assertTrue(Math.abs(secondSet.size() - statValue2.cardinality()) < 10);
 
     secondSet.addAll(firstSet);
 
-    stat.merge(stat2);
-    assertTrue(Math.abs(secondSet.size() - stat.cardinality()) < 10);
+    statValue.merge(statValue2);
+    assertTrue(Math.abs(secondSet.size() - statValue.cardinality()) < 10);
 
-    stat2.fromBinary(stat.toBinary());
-    assertTrue(Math.abs(secondSet.size() - stat2.cardinality()) < 10);
-    System.out.println(stat2.toString());
+    statValue2.fromBinary(statValue.toBinary());
+    assertTrue(Math.abs(secondSet.size() - statValue2.cardinality()) < 10);
+    System.out.println(statValue2.toString());
   }
 }

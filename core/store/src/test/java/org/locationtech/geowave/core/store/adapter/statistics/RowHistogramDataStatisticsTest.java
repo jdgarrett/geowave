@@ -49,7 +49,7 @@ public class RowHistogramDataStatisticsTest {
     assertEquals(0.0, value.cdf(genKey(0).getSortKey()), 0.00001);
 
     assertEquals(0.5, value.cdf(genKey(5000).getSortKey()), 0.04);
-    
+
     final RowRangeHistogramValue value2 = stats.createEmpty();
 
     for (long j = 10000; j < 20000; j++) {

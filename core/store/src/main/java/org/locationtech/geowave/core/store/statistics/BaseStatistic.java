@@ -1,7 +1,9 @@
 package org.locationtech.geowave.core.store.statistics;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.VarintUtils;
+import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -10,26 +12,30 @@ import com.beust.jcommander.Parameter;
 
 public abstract class BaseStatistic<V extends StatisticValue<?>> implements Statistic<V> {
 
-  @Parameter(names = "--name", description = "The name of the statistic.")
-  private String name = null;
+  @Parameter(names = "--tag", description = "A tag for the statistic.")
+  private String tag = "default";
 
   private final StatisticType<V> statisticType;
 
   private StatisticBinningStrategy binningStrategy = null;
-  
+
   protected StatisticId<V> cachedStatisticId = null;
 
   public BaseStatistic(final StatisticType<V> statisticType) {
     this.statisticType = statisticType;
   }
 
-  public void setName(final String name) {
-    this.name = name;
+  public void setTag(final String tag) {
+    this.tag = tag;
+  }
+
+  public void setInternal() {
+    this.tag = INTERNAL_TAG;
   }
 
   @Override
-  public final String getName() {
-    return name;
+  public final String getTag() {
+    return tag;
   }
 
   public void setBinningStrategy(final StatisticBinningStrategy binningStrategy) {
@@ -46,31 +52,39 @@ public abstract class BaseStatistic<V extends StatisticValue<?>> implements Stat
     return statisticType;
   }
 
+  private byte[] binningStrategyBytesCache = null;
+
   protected int byteLength() {
-    if (name == null) {
-      return VarintUtils.unsignedShortByteLength((short) 0);
-    }
-    return VarintUtils.unsignedShortByteLength((short) name.getBytes().length)
-        + name.getBytes().length;
+    binningStrategyBytesCache = PersistenceUtils.toBinary(binningStrategy);
+    return VarintUtils.unsignedShortByteLength((short) binningStrategyBytesCache.length)
+        + binningStrategyBytesCache.length
+        + VarintUtils.unsignedShortByteLength((short) tag.length())
+        + tag.length();
   }
 
   protected void writeBytes(ByteBuffer buffer) {
-    if (name == null) {
-      VarintUtils.writeUnsignedShort((short) 0, buffer);
-    } else {
-      VarintUtils.writeUnsignedShort((short) name.getBytes().length, buffer);
-      buffer.put(name.getBytes());
+    if (binningStrategyBytesCache == null) {
+      binningStrategyBytesCache = PersistenceUtils.toBinary(binningStrategy);
     }
+    VarintUtils.writeUnsignedShort((short) binningStrategyBytesCache.length, buffer);
+    buffer.put(binningStrategyBytesCache);
+    binningStrategyBytesCache = null;
+    byte[] stringBytes = StringUtils.stringToBinary(tag);
+    VarintUtils.writeUnsignedShort((short) stringBytes.length, buffer);
+    buffer.put(stringBytes);
   }
 
   protected void readBytes(ByteBuffer buffer) {
     short length = VarintUtils.readUnsignedShort(buffer);
-    if (length > 0) {
-      byte[] nameBytes = new byte[length];
-      name = new String(nameBytes);
-    } else {
-      name = null;
-    }
+    binningStrategyBytesCache = new byte[length];
+    buffer.get(binningStrategyBytesCache);
+    binningStrategy =
+        (StatisticBinningStrategy) PersistenceUtils.fromBinary(binningStrategyBytesCache);
+    binningStrategyBytesCache = null;
+    length = VarintUtils.readUnsignedShort(buffer);
+    byte[] tagBytes = new byte[length];
+    buffer.get(tagBytes);
+    tag = StringUtils.stringFromBinary(tagBytes);
   }
 
   @Override

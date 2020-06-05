@@ -2,6 +2,7 @@ package org.locationtech.geowave.core.store.statistics.adapter;
 
 import java.nio.ByteBuffer;
 import org.locationtech.geowave.core.index.ByteArray;
+import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.EntryVisibilityHandler;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -9,7 +10,6 @@ import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.statistics.BaseStatistic;
 import org.locationtech.geowave.core.store.statistics.StatisticId;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
 import com.beust.jcommander.Parameter;
 
@@ -21,11 +21,11 @@ public abstract class AdapterStatistic<V extends StatisticValue<?>> extends Base
       description = "The data type adapter for the statistic.")
   private String typeName = null;
 
-  public AdapterStatistic(final StatisticType<V> statisticsType) {
+  public AdapterStatistic(final AdapterStatisticType<V> statisticsType) {
     super(statisticsType);
   }
 
-  public AdapterStatistic(final StatisticType<V> statisticsType, final String typeName) {
+  public AdapterStatistic(final AdapterStatisticType<V> statisticsType, final String typeName) {
     super(statisticsType);
     this.typeName = typeName;
   }
@@ -46,7 +46,8 @@ public abstract class AdapterStatistic<V extends StatisticValue<?>> extends Base
   @Override
   public final StatisticId<V> getId() {
     if (cachedStatisticId == null) {
-      cachedStatisticId = new StatisticId<>(new ByteArray(typeName), getStatisticType(), getName());
+      cachedStatisticId =
+          generateStatisticId(typeName, (AdapterStatisticType<V>) getStatisticType(), getTag());
     }
     return cachedStatisticId;
   }
@@ -61,15 +62,15 @@ public abstract class AdapterStatistic<V extends StatisticValue<?>> extends Base
   @Override
   protected int byteLength() {
     return super.byteLength()
-        + VarintUtils.unsignedShortByteLength((short) typeName.getBytes().length)
-        + typeName.getBytes().length;
+        + VarintUtils.unsignedShortByteLength((short) typeName.length())
+        + typeName.length();
   }
 
   @Override
   protected void writeBytes(ByteBuffer buffer) {
     super.writeBytes(buffer);
-    VarintUtils.writeUnsignedShort((short) typeName.getBytes().length, buffer);
-    buffer.put(typeName.getBytes());
+    VarintUtils.writeUnsignedShort((short) typeName.length(), buffer);
+    buffer.put(StringUtils.stringToBinary(typeName));
   }
 
   @Override
@@ -77,7 +78,18 @@ public abstract class AdapterStatistic<V extends StatisticValue<?>> extends Base
     super.readBytes(buffer);
     byte[] nameBytes = new byte[VarintUtils.readUnsignedShort(buffer)];
     buffer.get(nameBytes);
-    typeName = new String(nameBytes);
+    typeName = StringUtils.stringFromBinary(nameBytes);
+  }
+
+  public static <V extends StatisticValue<?>> StatisticId<V> generateStatisticId(
+      final String typeName,
+      final AdapterStatisticType<V> statisticType,
+      final String tag) {
+    return new StatisticId<>(generateGroupId(typeName), statisticType, tag);
+  }
+
+  public static ByteArray generateGroupId(final String typeName) {
+    return new ByteArray("A" + typeName);
   }
 
 }

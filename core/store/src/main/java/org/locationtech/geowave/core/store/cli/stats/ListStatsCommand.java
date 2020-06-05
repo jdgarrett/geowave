@@ -56,28 +56,36 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
       final StatsCommandLineOptions statsOptions) throws IOException {
 
     final DataStatisticsStore statsStore = storeOptions.createDataStatisticsStore();
-    final InternalAdapterStore internalAdapterStore = storeOptions.createInternalAdapterStore();
     final IndexStore indexStore = storeOptions.createIndexStore();
-    
+
     final String[] authorizations = getAuthorizations(statsOptions.getAuthorizations());
 
     final StringBuilder builder = new StringBuilder();
     if (statsOptions.getIndexName() != null) {
       Index index = indexStore.getIndex(statsOptions.getIndexName());
       if (index == null) {
-        throw new ParameterException("An index called " + statsOptions.getIndexName() + " was not found");
+        throw new ParameterException(
+            "An index called " + statsOptions.getIndexName() + " was not found");
       }
-      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats = statsStore.getIndexStatistics(index, null, statsOptions.getName())) {
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+          statsStore.getIndexStatistics(index, null, statsOptions.getName())) {
         if (statsOptions.getTypeName() != null) {
           while (stats.hasNext()) {
-            Statistic<StatisticValue<Object>> next = (Statistic<StatisticValue<Object>>) stats.next();
-            if (next.getBinningStrategy() != null && next.getBinningStrategy() instanceof AdapterBinningStrategy) {
-              StatisticValue<Object> value = statsStore.getStatisticValue(next, new ByteArray(statsOptions.getTypeName()), authorizations);
+            Statistic<StatisticValue<Object>> next =
+                (Statistic<StatisticValue<Object>>) stats.next();
+            if (next.getBinningStrategy() != null
+                && next.getBinningStrategy() instanceof AdapterBinningStrategy) {
+              StatisticValue<Object> value =
+                  statsStore.getStatisticValue(
+                      next,
+                      new ByteArray(statsOptions.getTypeName()),
+                      authorizations);
               // List it...
             }
           }
         } else {
-          try (CloseableIterator<? extends StatisticValue<?>> statValues = statsStore.getStatisticValues(stats, authorizations)) {
+          try (CloseableIterator<? extends StatisticValue<?>> statValues =
+              statsStore.getStatisticValues(stats, null, authorizations)) {
             // STATS_TODO: List these
           }
         }
@@ -86,7 +94,8 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
       if (statsOptions.getFieldName() != null) {
         // List all field statistics
       } else {
-        // Get all indices used by this adapter, list the bin of any index statistics binned by adapter
+        // Get all indices used by this adapter, list the bin of any index statistics binned by
+        // adapter
         // Get all adapter statistics for it
         // Get all field statistics for it
       }
@@ -95,45 +104,45 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
     } else {
       // List all index, adapter, and field statistics that match the name (if supplied)
     }
-    
+
     // STATS_TODO: This used to support JSON output, is that still needed?
 
-//    try (CloseableIterator<DataStatistics<?, ?, ?>> statsIt =
-//        statsStore.getAllDataStatistics(authorizations)) {
-//      if (statsOptions.getJsonFormatFlag()) {
-//        final JSONArray resultsArray = new JSONArray();
-//        final JSONObject outputObject = new JSONObject();
-//
-//        try {
-//          // Output as JSON formatted strings
-//          outputObject.put("dataType", adapter.getTypeName());
-//          while (statsIt.hasNext()) {
-//            final DataStatistics<?, ?, ?> stats = statsIt.next();
-//            if (stats.getAdapterId() != adapter.getAdapterId()) {
-//              continue;
-//            }
-//            resultsArray.add(stats.toJSONObject(internalAdapterStore));
-//          }
-//          outputObject.put("stats", resultsArray);
-//          builder.append(outputObject.toString());
-//        } catch (final JSONException ex) {
-//          LOGGER.error("Unable to output statistic as JSON.  ", ex);
-//        }
-//      }
-//      // Output as strings
-//      else {
-//        while (statsIt.hasNext()) {
-//          final DataStatistics<?, ?, ?> stats = statsIt.next();
-//          if (stats.getAdapterId() != adapter.getAdapterId()) {
-//            continue;
-//          }
-//          builder.append("[");
-//          builder.append(String.format("%1$-20s", stats.getType().getString()));
-//          builder.append("] ");
-//          builder.append(stats.toString());
-//          builder.append("\n");
-//        }
-//      }
+    // try (CloseableIterator<DataStatistics<?, ?, ?>> statsIt =
+    // statsStore.getAllDataStatistics(authorizations)) {
+    // if (statsOptions.getJsonFormatFlag()) {
+    // final JSONArray resultsArray = new JSONArray();
+    // final JSONObject outputObject = new JSONObject();
+    //
+    // try {
+    // // Output as JSON formatted strings
+    // outputObject.put("dataType", adapter.getTypeName());
+    // while (statsIt.hasNext()) {
+    // final DataStatistics<?, ?, ?> stats = statsIt.next();
+    // if (stats.getAdapterId() != adapter.getAdapterId()) {
+    // continue;
+    // }
+    // resultsArray.add(stats.toJSONObject(internalAdapterStore));
+    // }
+    // outputObject.put("stats", resultsArray);
+    // builder.append(outputObject.toString());
+    // } catch (final JSONException ex) {
+    // LOGGER.error("Unable to output statistic as JSON. ", ex);
+    // }
+    // }
+    // // Output as strings
+    // else {
+    // while (statsIt.hasNext()) {
+    // final DataStatistics<?, ?, ?> stats = statsIt.next();
+    // if (stats.getAdapterId() != adapter.getAdapterId()) {
+    // continue;
+    // }
+    // builder.append("[");
+    // builder.append(String.format("%1$-20s", stats.getType().getString()));
+    // builder.append("] ");
+    // builder.append(stats.toString());
+    // builder.append("\n");
+    // }
+    // }
     retValue = builder.toString().trim();
     JCommander.getConsole().println(retValue);
 

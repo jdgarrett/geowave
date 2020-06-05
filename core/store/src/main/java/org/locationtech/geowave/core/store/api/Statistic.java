@@ -8,9 +8,9 @@ import org.locationtech.geowave.core.store.statistics.StatisticType;
 
 public interface Statistic<V extends StatisticValue<?>> extends Persistable {
 
-  public static String UNIQUE_ID_SEPARATOR = "|";
+  public static final String INTERNAL_TAG = "internal";
 
-  public String getName();
+  public String getTag();
 
   public StatisticType<V> getStatisticType();
 

@@ -229,7 +229,7 @@ public class TimeUtils {
   public static Interval getInterval(final SimpleFeature entry, final String fieldName) {
     return getInterval(entry.getAttribute(fieldName));
   }
-  
+
   public static Interval getInterval(final Object timeObject) {
     final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
     if (timeObject == null) {

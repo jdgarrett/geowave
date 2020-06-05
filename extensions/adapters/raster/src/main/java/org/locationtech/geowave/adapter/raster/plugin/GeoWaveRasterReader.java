@@ -45,14 +45,14 @@ import org.locationtech.geowave.adapter.auth.AuthorizationSPI;
 import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.adapter.raster.adapter.RasterDataAdapter;
-import org.locationtech.geowave.adapter.raster.stats.HistogramStatistics;
-import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics;
-import org.locationtech.geowave.adapter.raster.stats.OverviewStatistics.OverviewValue;
-import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistics;
-import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistics.RasterBoundingBoxValue;
+import org.locationtech.geowave.adapter.raster.stats.RasterHistogramStatistic;
+import org.locationtech.geowave.adapter.raster.stats.RasterHistogramStatistic.RasterHistogramValue;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic.OverviewValue;
+import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistic;
+import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistic.RasterBoundingBoxValue;
 import org.locationtech.geowave.core.geotime.index.SpatialDimensionalityTypeProvider;
 import org.locationtech.geowave.core.geotime.store.query.IndexOnlySpatialQuery;
-import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
 import org.locationtech.geowave.core.store.AdapterToIndexMapping;
 import org.locationtech.geowave.core.store.CloseableIterator;
@@ -61,7 +61,6 @@ import org.locationtech.geowave.core.store.adapter.AdapterIndexMappingStore;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
-import org.locationtech.geowave.core.store.adapter.statistics.DataStatistics;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
@@ -326,10 +325,27 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public GeneralEnvelope getOriginalEnvelope(final String coverageName) {
-    final Envelope envelope =
-        geowaveDataStore.aggregateStatistics(
-            RasterBoundingBoxStatistics.STATS_TYPE.newBuilder().setAuthorizations(
-                authorizationSPI.getAuthorizations()).dataType(coverageName).build());
+    // STATS_TODO: Use more efficient query method
+    Envelope envelope = null;
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
+        geowaveStatisticsStore.getAdapterStatistics(
+            getAdapter(coverageName),
+            RasterBoundingBoxStatistic.STATS_TYPE,
+            null)) {
+      while (statsIter.hasNext()) {
+        Statistic<?> next = statsIter.next();
+        if (next instanceof RasterBoundingBoxStatistic && next.getBinningStrategy() == null) {
+          RasterBoundingBoxValue boundingBox =
+              geowaveStatisticsStore.getStatisticValue(
+                  (RasterBoundingBoxStatistic) next,
+                  authorizationSPI.getAuthorizations());
+          if (boundingBox != null) {
+            envelope = boundingBox.getValue();
+            break;
+          }
+        }
+      }
+    }
     if (envelope == null) {
       final CoordinateReferenceSystem crs = getCoordinateReferenceSystem(coverageName);
       final double minX = crs.getCoordinateSystem().getAxis(0).getMinimumValue();
@@ -372,11 +388,14 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public GridEnvelope getOriginalGridRange(final String coverageName) {
+    // STATS_TODO: Clean up query process, it should be simpler than this.
+    // RasterBoundingBoxValue value = dataStore.aggregateStatistic(new
+    // AdapterStatisticQueryBuilder(RasterBoundingBoxStatistics.STATS_TYPE).setAdapter(adapter).build())
     DataTypeAdapter<?> adapter = getAdapter(coverageName);
     try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statisticsIt =
         geowaveStatisticsStore.getAdapterStatistics(
             adapter,
-            RasterBoundingBoxStatistics.STATS_TYPE,
+            RasterBoundingBoxStatistic.STATS_TYPE,
             null)) {
 
       int width = 0;
@@ -387,31 +406,35 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
       if (statisticsIt.hasNext()) {
         statistics = statisticsIt.next();
       }
-      if ((statistics != null) && (statistics instanceof RasterBoundingBoxStatistics)) {
+      if ((statistics != null) && (statistics instanceof RasterBoundingBoxStatistic)) {
         final RasterBoundingBoxValue bboxStats =
             geowaveStatisticsStore.getStatisticValue(
-                (RasterBoundingBoxStatistics) statistics,
+                (RasterBoundingBoxStatistic) statistics,
                 authorizationSPI.getAuthorizations());
-        try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> overviewStatisticsIt =
-            geowaveStatisticsStore.getAdapterStatistics(
-                adapter,
-                OverviewStatistics.STATS_TYPE, null)) {
+        try (
+            CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> overviewStatisticsIt =
+                geowaveStatisticsStore.getAdapterStatistics(
+                    adapter,
+                    RasterOverviewStatistic.STATS_TYPE,
+                    null)) {
           statistics = null;
           if (overviewStatisticsIt.hasNext()) {
             statistics = overviewStatisticsIt.next();
           }
-          if ((statistics != null) && (statistics instanceof OverviewStatistics)) {
-            final OverviewValue overviewStats = geowaveStatisticsStore.getStatisticValue((OverviewStatistics) statistics, 
-                authorizationSPI.getAuthorizations());
-            if (bboxStats != null && overviewStats!= null) {
+          if ((statistics != null) && (statistics instanceof RasterOverviewStatistic)) {
+            final OverviewValue overviewStats =
+                geowaveStatisticsStore.getStatisticValue(
+                    (RasterOverviewStatistic) statistics,
+                    authorizationSPI.getAuthorizations());
+            if (bboxStats != null && overviewStats != null) {
               width =
                   (int) Math.ceil(
                       ((bboxStats.getMaxX() - bboxStats.getMinX())
-                          / overviewStats.getResolutions()[0].getResolution(0)));
+                          / overviewStats.getValue()[0].getResolution(0)));
               height =
                   (int) Math.ceil(
                       ((bboxStats.getMaxY() - bboxStats.getMinY())
-                          / overviewStats.getResolutions()[0].getResolution(1)));
+                          / overviewStats.getValue()[0].getResolution(1)));
             }
           }
         }
@@ -936,10 +959,27 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public double[][] getResolutionLevels(final String coverageName) throws IOException {
-    final Resolution[] resolutions =
-        geowaveDataStore.aggregateStatistics(
-            OverviewStatistics.STATS_TYPE.newBuilder().setAuthorizations(
-                authorizationSPI.getAuthorizations()).dataType(coverageName).build());
+    // STATS_TODO: Use more efficient query method
+    Resolution[] resolutions = null;
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
+        geowaveStatisticsStore.getAdapterStatistics(
+            getAdapter(coverageName),
+            RasterOverviewStatistic.STATS_TYPE,
+            null)) {
+      while (statsIter.hasNext()) {
+        Statistic<?> next = statsIter.next();
+        if (next instanceof RasterOverviewStatistic && next.getBinningStrategy() == null) {
+          OverviewValue overview =
+              geowaveStatisticsStore.getStatisticValue(
+                  (RasterOverviewStatistic) next,
+                  authorizationSPI.getAuthorizations());
+          if (overview != null) {
+            resolutions = overview.getValue();
+            break;
+          }
+        }
+      }
+    }
     if (resolutions == null) {
       LOGGER.warn("Cannot find resolutions for coverage '" + coverageName + "'");
       return null;
@@ -954,10 +994,27 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   private Histogram getHistogram(final String coverageName, final double resX, final double resY)
       throws IOException {
-    final Map<Resolution, Histogram> histograms =
-        geowaveDataStore.aggregateStatistics(
-            HistogramStatistics.STATS_TYPE.newBuilder().setAuthorizations(
-                authorizationSPI.getAuthorizations()).dataType(coverageName).build());
+    // STATS_TODO: Use more efficient query method
+    Map<Resolution, Histogram> histograms = null;
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
+        geowaveStatisticsStore.getAdapterStatistics(
+            getAdapter(coverageName),
+            RasterHistogramStatistic.STATS_TYPE,
+            null)) {
+      while (statsIter.hasNext()) {
+        Statistic<?> next = statsIter.next();
+        if (next instanceof RasterHistogramStatistic && next.getBinningStrategy() == null) {
+          RasterHistogramValue histogram =
+              geowaveStatisticsStore.getStatisticValue(
+                  (RasterHistogramStatistic) next,
+                  authorizationSPI.getAuthorizations());
+          if (histogram != null) {
+            histograms = histogram.getValue();
+            break;
+          }
+        }
+      }
+    }
     if (histograms != null) {
       return histograms.get(new Resolution(new double[] {resX, resY}));
     } else {
@@ -999,7 +1056,7 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
     return geowaveInternalAdapterStore.getAdapterId(coverageName);
   }
-  
+
   private DataTypeAdapter<?> getAdapter(final String coverageName) {
     return geowaveAdapterStore.getAdapter(getAdapterId(coverageName));
   }

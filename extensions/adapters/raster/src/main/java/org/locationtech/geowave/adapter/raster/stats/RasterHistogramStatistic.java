@@ -40,6 +40,7 @@ import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.Polygon;
@@ -48,31 +49,33 @@ import org.opengis.parameter.ParameterValueGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.RasterHistogramValue> {
-  private static final Logger LOGGER = LoggerFactory.getLogger(HistogramStatistics.class);
-  public static final StatisticType<RasterHistogramValue> STATS_TYPE = new StatisticType<>("RASTER_HISTOGRAM");
+public class RasterHistogramStatistic extends
+    AdapterStatistic<RasterHistogramStatistic.RasterHistogramValue> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RasterHistogramStatistic.class);
+  public static final AdapterStatisticType<RasterHistogramValue> STATS_TYPE =
+      new AdapterStatisticType<>("RASTER_HISTOGRAM");
 
   // STATS_TODO: How can we initialize this?
   private HistogramConfig histogramConfig;
 
-  public HistogramStatistics() {
+  public RasterHistogramStatistic() {
     super(STATS_TYPE);
   }
-  
-  public HistogramStatistics(final String typeName) {
+
+  public RasterHistogramStatistic(final String typeName) {
     super(STATS_TYPE, typeName);
   }
 
-  public HistogramStatistics(final String typeName, final HistogramConfig histogramConfig) {
+  public RasterHistogramStatistic(final String typeName, final HistogramConfig histogramConfig) {
     super(STATS_TYPE, typeName);
     this.histogramConfig = histogramConfig;
   }
-  
+
   @Override
   public boolean isCompatibleWith(final Class<?> adapterClass) {
     return GridCoverage.class.isAssignableFrom(adapterClass);
   }
-  
+
   @Override
   public String getDescription() {
     // STATS_TODO: Better description
@@ -83,42 +86,49 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
   public RasterHistogramValue createEmpty() {
     return new RasterHistogramValue(this, histogramConfig);
   }
-  
+
   // Cache this so we don't have to serialize the histogram multiple times
   private byte[] histogramConfigBytes = null;
-  
+
   @Override
   protected int byteLength() {
     if (histogramConfigBytes == null) {
       histogramConfigBytes = PersistenceUtils.toBinary(histogramConfig);
     }
-    return super.byteLength() + histogramConfigBytes.length + VarintUtils.unsignedIntByteLength(histogramConfigBytes.length);
+    return super.byteLength()
+        + histogramConfigBytes.length
+        + VarintUtils.unsignedIntByteLength(histogramConfigBytes.length);
   }
-  
+
   @Override
   protected void writeBytes(ByteBuffer buffer) {
     super.writeBytes(buffer);
-    VarintUtils.writeUnsignedInt(histogramConfigBytes.length);
+    VarintUtils.writeUnsignedInt(histogramConfigBytes.length, buffer);
     buffer.put(histogramConfigBytes);
     histogramConfigBytes = null;
   }
-  
+
   @Override
   protected void readBytes(ByteBuffer buffer) {
     super.readBytes(buffer);
-    final byte[] configBinary = ByteArrayUtils.safeRead(buffer, VarintUtils.readUnsignedInt(buffer));
+    final byte[] configBinary =
+        ByteArrayUtils.safeRead(buffer, VarintUtils.readUnsignedInt(buffer));
     histogramConfig = (HistogramConfig) PersistenceUtils.fromBinary(configBinary);
   }
-  
-  public static class RasterHistogramValue extends StatisticValue<Map<Resolution, javax.media.jai.Histogram>> implements StatisticsIngestCallback {
+
+  public static class RasterHistogramValue extends
+      StatisticValue<Map<Resolution, javax.media.jai.Histogram>> implements
+      StatisticsIngestCallback {
     private final Map<Resolution, javax.media.jai.Histogram> histograms = new HashMap<>();
     private final HistogramConfig histogramConfig;
-    
-    private RasterHistogramValue(final Statistic<?> statistic, final HistogramConfig histogramConfig) {
-      super (statistic);
+
+    private RasterHistogramValue(
+        final Statistic<?> statistic,
+        final HistogramConfig histogramConfig) {
+      super(statistic);
       this.histogramConfig = histogramConfig;
     }
-    
+
     public Set<Resolution> getResolutions() {
       return histograms.keySet();
     }
@@ -166,7 +176,8 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
       } else {
         // this is a condition that isn't going to be exercised typically in
         // any code, but at this point we will assume default CRS
-        footprint = RasterUtils.getFootprint((GridCoverage) entry, GeoWaveGTRasterFormat.DEFAULT_CRS);
+        footprint =
+            RasterUtils.getFootprint((GridCoverage) entry, GeoWaveGTRasterFormat.DEFAULT_CRS);
       }
 
       final GridCoverage originalCoverage;
@@ -194,7 +205,7 @@ public class HistogramStatistics extends AdapterStatistic<HistogramStatistics.Ra
     public Map<Resolution, javax.media.jai.Histogram> getValue() {
       return histograms;
     }
-    
+
     private void mergePoly(
         final GridCoverage originalCoverage,
         final Polygon poly,

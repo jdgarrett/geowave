@@ -45,6 +45,7 @@ import org.locationtech.geowave.core.store.api.IngestOptions;
 import org.locationtech.geowave.core.store.api.Query;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.api.StatisticQuery;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.base.dataidx.DataIndexUtils;
@@ -85,12 +86,16 @@ import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.query.constraints.TypeConstraintQuery;
 import org.locationtech.geowave.core.store.query.filter.DedupeFilter;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
 import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
-import org.locationtech.geowave.core.store.statistics.query.StatisticsQuery;
+import org.locationtech.geowave.core.store.statistics.query.AdapterStatisticQuery;
+import org.locationtech.geowave.core.store.statistics.query.FieldStatisticQuery;
+import org.locationtech.geowave.core.store.statistics.query.IndexStatisticQuery;
 import org.locationtech.geowave.core.store.util.NativeEntryIteratorWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class BaseDataStore implements DataStore {
@@ -128,12 +133,20 @@ public class BaseDataStore implements DataStore {
   public void store(final Index index) {
     if (!indexStore.indexExists(index.getName())) {
       indexStore.addIndex(index);
+      if (index instanceof DefaultStatisticsProvider) {
+        ((DefaultStatisticsProvider) index).getDefaultStatistics().forEach(
+            stat -> statisticsStore.addStatistic(stat));
+      }
     }
   }
 
   protected synchronized void store(final InternalDataAdapter<?> adapter) {
     if (!adapterStore.adapterExists(adapter.getAdapterId())) {
       adapterStore.addAdapter(adapter);
+      if (adapter.getAdapter() instanceof DefaultStatisticsProvider) {
+        ((DefaultStatisticsProvider) adapter.getAdapter()).getDefaultStatistics().forEach(
+            stat -> statisticsStore.addStatistic(stat));
+      }
     }
   }
 
@@ -1061,7 +1074,7 @@ public class BaseDataStore implements DataStore {
 
   @Override
   public void addIndex(final Index index) {
-    indexStore.addIndex(index);
+    store(index);
   }
 
   @Override
@@ -1169,15 +1182,33 @@ public class BaseDataStore implements DataStore {
 
   @Override
   public <T> void addType(final DataTypeAdapter<T> dataTypeAdapter, final Index... initialIndices) {
+    addTypeInternal(dataTypeAdapter, initialIndices);
+  }
+
+  @Override
+  public <T> void addType(
+      DataTypeAdapter<T> dataTypeAdapter,
+      List<Statistic<?>> statistics,
+      Index... initialIndices) {
+    if (addTypeInternal(dataTypeAdapter, initialIndices)) {
+      statistics.stream().forEach(stat -> statisticsStore.addStatistic(stat));
+    }
+  }
+
+  protected <T> boolean addTypeInternal(
+      final DataTypeAdapter<T> dataTypeAdapter,
+      final Index... initialIndices) {
     // add internal adapter
     final InternalDataAdapter<T> adapter =
         new InternalDataAdapterWrapper<>(
             dataTypeAdapter,
             internalAdapterStore.addTypeName(dataTypeAdapter.getTypeName()));
+    boolean newAdapter = !adapterStore.adapterExists(adapter.getAdapterId());
     final Index[] initialIndicesUnique =
         Arrays.stream(initialIndices).distinct().toArray(size -> new Index[size]);
     internalAddIndices(adapter, initialIndicesUnique, false);
     store(adapter);
+    return newAdapter;
   }
 
   /** Returns an index writer to perform batched write operations for the given typename */
@@ -1265,95 +1296,123 @@ public class BaseDataStore implements DataStore {
     }
   }
 
-  protected <V extends StatisticValue<R>, R> CloseableIterator<StatisticValue<R>> internalQueryStatistics(
-      final StatisticsQuery<V, R> query) {
-    // sanity check, although using the builders should disallow this type
-    // of query
-//    if ((query.getStatsType() == null)
-//        && (query.getExtendedId() != null)
-//        && (query.getExtendedId().length() > 0)) {
-//      LOGGER.error(
-//          "Cannot query by extended ID '"
-//              + query.getExtendedId()
-//              + "' if statistic type is not provided");
-//      return new CloseableIterator.Empty<>();
-//    }
-    CloseableIterator<StatisticValue<R>> it = null;
-    // TODO_STATS: Query implementation.
-    // if ((query.getTypeName() != null) && (query.getTypeName().length() > 0)) {
-    // final Short adapterId = internalAdapterStore.getAdapterId(query.getTypeName());
-    // if (adapterId == null) {
-    // LOGGER.error("DataTypeAdapter does not exist for type '" + query.getTypeName() + "'");
-    // return new CloseableIterator.Empty<>();
-    // }
-    // if (query.getStatsType() != null) {
-    // if ((query.getExtendedId() != null) && (query.getExtendedId().length() > 0)) {
-    //
-    // it =
-    // (CloseableIterator) statisticsStore.getDataStatistics(
-    // adapterId,
-    // query.getExtendedId(),
-    // query.getStatsType(),
-    // query.getAuthorizations());
-    // } else {
-    // it =
-    // (CloseableIterator) statisticsStore.getDataStatistics(
-    // adapterId,
-    // query.getStatsType(),
-    // query.getAuthorizations());
-    // }
-    // } else {
-    // it =
-    // (CloseableIterator) statisticsStore.getDataStatistics(
-    // adapterId,
-    // query.getAuthorizations());
-    // }
-    // } else {
-    // if (query.getStatsType() != null) {
-    // if (query.getExtendedId() != null) {
-    // it =
-    // (CloseableIterator) statisticsStore.getDataStatistics(
-    // query.getExtendedId(),
-    // query.getStatsType(),
-    // query.getAuthorizations());
-    // } else {
-    // it =
-    // (CloseableIterator) statisticsStore.getDataStatistics(
-    // query.getStatsType(),
-    // query.getAuthorizations());
-    // }
-    // } else {
-    // it = (CloseableIterator) statisticsStore.getAllDataStatistics(query.getAuthorizations());
-    // }
-    // }
-    return it;
+  @SuppressWarnings("unchecked")
+  protected <V extends StatisticValue<R>, R> CloseableIterator<V> internalQueryStatistics(
+      final StatisticQuery<V, R> query) {
+    List<Statistic<V>> statistics = Lists.newLinkedList();
+    if (query instanceof IndexStatisticQuery) {
+      IndexStatisticQuery<V, R> statQuery = (IndexStatisticQuery<V, R>) query;
+      if (statQuery.indexName() == null) {
+        Index[] indices = getIndices();
+        for (Index index : indices) {
+          getIndexStatistics(index, statQuery, statistics);
+
+        }
+      } else {
+        Index index = indexStore.getIndex(statQuery.indexName());
+        if (index != null) {
+          getIndexStatistics(index, statQuery, statistics);
+        }
+      }
+    } else if (query instanceof AdapterStatisticQuery) {
+      AdapterStatisticQuery<V, R> statQuery = (AdapterStatisticQuery<V, R>) query;
+      if (statQuery.typeName() == null) {
+        DataTypeAdapter<?>[] adapters = getTypes();
+        for (DataTypeAdapter<?> adapter : adapters) {
+          getAdapterStatistics(adapter, statQuery, statistics);
+        }
+      } else {
+        DataTypeAdapter<?> adapter = getType(statQuery.typeName());
+        if (adapter != null) {
+          getAdapterStatistics(adapter, statQuery, statistics);
+        }
+      }
+    } else if (query instanceof FieldStatisticQuery) {
+      FieldStatisticQuery<V, R> statQuery = (FieldStatisticQuery<V, R>) query;
+      if (statQuery.typeName() == null) {
+        DataTypeAdapter<?>[] adapters = getTypes();
+        for (DataTypeAdapter<?> adapter : adapters) {
+          getFieldStatistics(adapter, statQuery, statistics);
+        }
+      } else {
+        DataTypeAdapter<?> adapter = getType(statQuery.typeName());
+        if (adapter != null) {
+          getFieldStatistics(adapter, statQuery, statistics);
+        }
+      }
+    }
+    return (CloseableIterator<V>) statisticsStore.getStatisticValues(
+        statistics.iterator(),
+        query.bins(),
+        query.authorizations());
   }
 
   @Override
-  public <V extends StatisticValue<R>, R> CloseableIterator<V> queryStatistics(final StatisticsQuery<V, R> query) {
-    // STATS_TODO: Stat queries
-    return null;
-    // try (CloseableIterator<StatisticValue<R>> it = internalQueryStatistics(query)) {
-    // return Streams.stream(it).toArray(
-    // size -> new StatisticValueImpl<R>[size]);
-    // }
+  public <V extends StatisticValue<R>, R> CloseableIterator<V> queryStatistics(
+      final StatisticQuery<V, R> query) {
+    return internalQueryStatistics(query);
   }
 
   @Override
-  public <V extends StatisticValue<R>, R> V aggregateStatistics(final StatisticsQuery<V, R> query) {
-    return null;
-    // STATS_TODO: stat aggregation
-//    if (query.getStatsType() == null) {
-//      LOGGER.error("Statistic Type must be provided for a statistical aggregation");
-//      return null;
-//    }
-//    try (CloseableIterator<StatisticValue<R>> it = internalQueryStatistics(query)) {
-//      if (it.hasNext()) {
-//        return it.next().getValue();
-//      }
-//      LOGGER.warn("No statistics found matching query criteria for statistical aggregation");
-//      return null;
-//    }
+  public <V extends StatisticValue<R>, R> V aggregateStatistics(final StatisticQuery<V, R> query) {
+    if (query.statisticType() == null) {
+      LOGGER.error("Statistic Type must be provided for a statistical aggregation");
+      return null;
+    }
+    try (CloseableIterator<V> values = internalQueryStatistics(query)) {
+      V value = null;
+      while (values.hasNext()) {
+        if (value == null) {
+          value = values.next();
+        } else {
+          value.merge(values.next());
+        }
+      }
+      return value;
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private <V extends StatisticValue<R>, R> void getIndexStatistics(
+      final Index index,
+      final IndexStatisticQuery<V, R> query,
+      final List<Statistic<V>> statistics) {
+    try (CloseableIterator<? extends Statistic<?>> statsIter =
+        statisticsStore.getIndexStatistics(index, query.statisticType(), query.tag())) {
+      while (statsIter.hasNext()) {
+        statistics.add((Statistic<V>) statsIter.next());
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private <V extends StatisticValue<R>, R> void getAdapterStatistics(
+      final DataTypeAdapter<?> adapter,
+      final AdapterStatisticQuery<V, R> query,
+      final List<Statistic<V>> statistics) {
+    try (CloseableIterator<? extends Statistic<?>> statsIter =
+        statisticsStore.getAdapterStatistics(adapter, query.statisticType(), query.tag())) {
+      while (statsIter.hasNext()) {
+        statistics.add((Statistic<V>) statsIter.next());
+      }
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private <V extends StatisticValue<R>, R> void getFieldStatistics(
+      final DataTypeAdapter<?> adapter,
+      final FieldStatisticQuery<V, R> query,
+      final List<Statistic<V>> statistics) {
+    try (CloseableIterator<? extends Statistic<?>> statsIter =
+        statisticsStore.getFieldStatistics(
+            adapter,
+            query.statisticType(),
+            query.fieldName(),
+            query.tag())) {
+      while (statsIter.hasNext()) {
+        statistics.add((Statistic<V>) statsIter.next());
+      }
+    }
   }
 
   @Override
@@ -1608,7 +1667,45 @@ public class BaseDataStore implements DataStore {
     // need
     // to throw an exception first (no deletion will occur).
     Index index = indexStore.getIndex(indexName);
+    if (index == null) {
+      LOGGER.warn("Unable to remove index '" + indexName + "' because it was not found.");
+      return;
+    }
+    final ArrayList<Short> markedAdapters = new ArrayList<>();
+    try (CloseableIterator<InternalDataAdapter<?>> it = adapterStore.getAdapters()) {
+      while (it.hasNext()) {
+
+        final InternalDataAdapter<?> dataAdapter = it.next();
+        final AdapterToIndexMapping adapterIndexMap =
+            indexMappingStore.getIndicesForAdapter(dataAdapter.getAdapterId());
+        final String[] indexNames = adapterIndexMap.getIndexNames();
+        for (int i = 0; i < indexNames.length; i++) {
+          if (indexNames[i].equals(indexName) && !baseOptions.isSecondaryIndexing()) {
+            // check if it is the only index for the current adapter
+            if (indexNames.length == 1) {
+              throw new IllegalStateException(
+                  "Index removal failed. Adapters require at least one index.");
+            } else {
+              // mark the index for removal and continue looking
+              // for
+              // others
+              markedAdapters.add(adapterIndexMap.getAdapterId());
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // take out the index from the data statistics, and mapping
+    for (int i = 0; i < markedAdapters.size(); i++) {
+      final short adapterId = markedAdapters.get(i);
+      baseOperations.deleteAll(indexName, internalAdapterStore.getTypeName(adapterId), adapterId);
+      indexMappingStore.remove(adapterId, indexName);
+    }
+
     statisticsStore.removeStatistics(index);
+
     // remove the actual index
     indexStore.removeIndex(indexName);
   }
@@ -1686,7 +1783,9 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public void addStatistic(Statistic<? extends StatisticValue<?>> statistic, boolean calculateStat) {
+  public void addStatistic(
+      Statistic<? extends StatisticValue<?>> statistic,
+      boolean calculateStat) {
     if (statisticsStore.exists(statistic)) {
       throw new IllegalArgumentException("The statistic already exists.");
     }
@@ -1706,17 +1805,9 @@ public class BaseDataStore implements DataStore {
   }
 
   @Override
-  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(String typeName) {
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(
+      String typeName) {
     short adapterId = internalAdapterStore.getAdapterId(typeName);
     return statisticsStore.getAdapterStatistics(adapterStore.getAdapter(adapterId), null, null);
-  }
-
-  @Override
-  public <T> void addType(
-      DataTypeAdapter<T> dataTypeAdapter,
-      List<Statistic<? extends StatisticValue<?>>> statistics,
-      Index... initialIndices) {
-    addType(dataTypeAdapter, initialIndices);
-    statistics.stream().forEach(stat -> statisticsStore.addStatistic(stat));
   }
 }
