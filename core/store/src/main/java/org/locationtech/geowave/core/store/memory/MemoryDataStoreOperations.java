@@ -496,52 +496,6 @@ public class MemoryDataStoreOperations implements DataStoreOperations {
                   input.metadata.getVisibility(),
                   input.metadata.getValue(),
                   input.uuidBytes));
-      // STATS_TODO: I don't think this is necessary anymore.
-      // if (MetadataType.STATS.equals(type)) {
-      // return new CloseableIterator.Wrapper(new Iterator<GeoWaveMetadata>() {
-      // final PeekingIterator<GeoWaveMetadata> peekingIt =
-      // Iterators.peekingIterator(itTransformed);
-      //
-      // @Override
-      // public boolean hasNext() {
-      // return peekingIt.hasNext();
-      // }
-      //
-      // @Override
-      // public GeoWaveMetadata next() {
-      // DataStatistics currentStat = null;
-      // GeoWaveMetadata currentMetadata = null;
-      // byte[] vis = null;
-      // while (peekingIt.hasNext()) {
-      // currentMetadata = peekingIt.next();
-      // vis = currentMetadata.getVisibility();
-      // if (!peekingIt.hasNext()) {
-      // break;
-      // }
-      // final GeoWaveMetadata next = peekingIt.peek();
-      // if (Objects.deepEquals(currentMetadata.getPrimaryId(), next.getPrimaryId())
-      // && Objects.deepEquals(currentMetadata.getSecondaryId(), next.getSecondaryId())) {
-      // if (currentStat == null) {
-      // currentStat =
-      // (DataStatistics) PersistenceUtils.fromBinary(currentMetadata.getValue());
-      // }
-      // currentStat.merge((Mergeable) PersistenceUtils.fromBinary(next.getValue()));
-      // vis = combineVisibilities(vis, next.getVisibility());
-      // } else {
-      // break;
-      // }
-      // }
-      // if (currentStat == null) {
-      // return currentMetadata;
-      // }
-      // return new GeoWaveMetadata(
-      // currentMetadata.getPrimaryId(),
-      // currentMetadata.getSecondaryId(),
-      // vis,
-      // PersistenceUtils.toBinary(currentStat));
-      // }
-      // });
-      // }
       // convert to and from array just to avoid concurrent modification
       // issues on the iterator that is linked back to the metadataStore
       // sortedSet (basically clone the iterator, so for example deletes

@@ -166,7 +166,7 @@ public class DataStoreUtils {
       final byte[] source,
       final byte[] match,
       final MetadataType metadataType) {
-    if (!metadataType.equals(MetadataType.STATS)) {
+    if (!(metadataType.equals(MetadataType.STATS) || metadataType.equals(MetadataType.STAT_VALUES))) {
       if (match.length != (source.length)) {
         return false;
       }

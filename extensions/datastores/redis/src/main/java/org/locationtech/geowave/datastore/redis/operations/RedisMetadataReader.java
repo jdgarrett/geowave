@@ -37,7 +37,7 @@ public class RedisMetadataReader implements MetadataReader {
       final boolean mergeStats) {
     Iterable<GeoWaveMetadata> results;
     if (query.getPrimaryId() != null) {
-      if (metadataType.equals(MetadataType.STATS) || (query.getPrimaryId().length > 6)) {
+      if (metadataType.equals(MetadataType.STATS) || metadataType.equals(MetadataType.STAT_VALUES) || (query.getPrimaryId().length > 6)) {
         // this primary ID and next prefix are going to be the same
         // score
         final double score = RedisUtils.getScore(query.getPrimaryId());
@@ -75,7 +75,7 @@ public class RedisMetadataReader implements MetadataReader {
         }
       });
     }
-    final boolean isStats = MetadataType.STATS.equals(metadataType) && mergeStats;
+    final boolean isStats = MetadataType.STAT_VALUES.equals(metadataType) && mergeStats;
     final CloseableIterator<GeoWaveMetadata> retVal;
     if (isStats) {
       retVal = new CloseableIterator.Wrapper<>(RedisUtils.groupByIds(results));

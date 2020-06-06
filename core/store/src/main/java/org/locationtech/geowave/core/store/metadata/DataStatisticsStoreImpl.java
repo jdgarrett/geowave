@@ -135,8 +135,10 @@ public class DataStatisticsStoreImpl extends
 
   @Override
   public boolean removeStatistics(final DataTypeAdapter<?> type, final Index... adapterIndices) {
-    boolean removed = removeStatistics(getAdapterStatistics(type, null, null));
-    removed = removed || removeStatistics(getFieldStatistics(type, null, null, null));
+    boolean removed = deleteObjects(AdapterStatistic.generateGroupId(type.getTypeName()));
+    removed = removed || deleteObjects(null, AdapterStatistic.generateGroupId(type.getTypeName()), operations, MetadataType.STAT_VALUES, this);
+    removed = removed || deleteObjects(FieldStatistic.generateGroupId(type.getTypeName()));
+    removed = removed || deleteObjects(null, FieldStatistic.generateGroupId(type.getTypeName()), operations, MetadataType.STAT_VALUES, this);
     final ByteArray adapterBin = AdapterBinningStrategy.getBin(type);
     for (Index index : adapterIndices) {
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
@@ -147,7 +149,6 @@ public class DataStatisticsStoreImpl extends
         }
       }
     }
-    // STATS_TODO: Remove all bins for this type for index statistics that are binned by adapter.
     return removed;
   }
 

@@ -269,6 +269,7 @@ public class TestUtils {
     addStore.execute(params);
 
     IndexStore indexStore = dataStore.createIndexStore();
+    org.locationtech.geowave.core.store.api.DataStore geowaveDS = dataStore.createDataStore();
 
     // Add indices
     final StringBuilder indexParam = new StringBuilder();
@@ -276,7 +277,7 @@ public class TestUtils {
       String indexName = "test-index" + i;
       if (indexStore.getIndex(indexName) == null) {
         indexOptions.get(i).setName(indexName);
-        indexStore.addIndex(indexOptions.get(i).createIndex());
+        geowaveDS.addIndex(indexOptions.get(i).createIndex());
       }
       indexParam.append(indexName + ",");
     }
