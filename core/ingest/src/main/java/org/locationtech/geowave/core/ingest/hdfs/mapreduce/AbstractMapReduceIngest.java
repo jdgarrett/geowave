@@ -164,7 +164,8 @@ public abstract class AbstractMapReduceIngest<T extends Persistable & DataAdapte
     // this is done primarily to ensure stats merging is enabled before the
     // distributed ingest
     if (dataStoreOptions.getFactoryOptions().getStoreOptions().isPersistDataStatistics()) {
-      dataStoreOptions.createDataStoreOperations().createMetadataWriter(MetadataType.STAT_VALUES).close();
+      dataStoreOptions.createDataStoreOperations().createMetadataWriter(
+          MetadataType.STAT_VALUES).close();
     }
     job.setSpeculativeExecution(false);
 
