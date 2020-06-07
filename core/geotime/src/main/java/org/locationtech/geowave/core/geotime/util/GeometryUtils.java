@@ -928,4 +928,20 @@ public class GeometryUtils {
 
     return crsEntry;
   }
+
+  public static Geometry crsTransform(final Geometry geometry, final MathTransform transform) {
+    if (transform != null) {
+      // we can use the transform we have already calculated for this
+      // feature
+      try {
+        return JTS.transform(geometry, transform);
+      } catch (MismatchedDimensionException | TransformException e) {
+        LOGGER.warn(
+            "Unable to perform transform to specified CRS of the index, the feature geometry will remain in its original CRS",
+            e);
+      }
+    }
+
+    return null;
+  }
 }

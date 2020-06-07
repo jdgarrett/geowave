@@ -122,7 +122,7 @@ public class GeoWaveGrpcIT extends AbstractGeoWaveBasicVectorIT {
     indexBuilder.setName(GeoWaveGrpcTestUtils.indexName);
 
     IndexStore indexStore = dataStore.createIndexStore();
-    indexStore.addIndex(indexBuilder.createIndex());
+    dataStore.createDataStore().addIndex(indexBuilder.createIndex());
 
 
     // variables for storing results and test returns

@@ -593,10 +593,12 @@ public class DataStatisticsStoreImpl extends
       DataTypeAdapter<T> adapter,
       boolean updateAdapterStats) {
     List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayList();
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> indexStats =
-        getIndexStatistics(index, null, null)) {
-      while (indexStats.hasNext()) {
-        statistics.add(indexStats.next());
+    if (index != null) {
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> indexStats =
+          getIndexStatistics(index, null, null)) {
+        while (indexStats.hasNext()) {
+          statistics.add(indexStats.next());
+        }
       }
     }
     if (updateAdapterStats) {

@@ -85,7 +85,7 @@ public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseSt
   public <T> EntryVisibilityHandler<T> getVisibilityHandler(
       CommonIndexModel indexModel,
       DataTypeAdapter<T> adapter) {
-    if (adapter.isCommonIndexField(indexModel, fieldName)) {
+    if (indexModel != null && adapter.isCommonIndexField(indexModel, fieldName)) {
       return new DefaultFieldStatisticVisibility<>();
     }
     return new FieldNameStatisticVisibility<>(fieldName, indexModel, adapter);

@@ -48,7 +48,7 @@ public class StatisticUpdateCallback<T> implements
       StatisticUpdateHandler handler = new StatisticUpdateHandler(statistic, index, adapter);
       statisticUpdateHandlers.add(handler);
     }
-    // STATS_TODO: Is this system property even needed?
+
     final Object v = System.getProperty("StatsCompositionTool.skipFlush");
     skipFlush = ((v != null) && v.toString().equalsIgnoreCase("true"));
   }

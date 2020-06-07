@@ -70,6 +70,7 @@ import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.index.IndexStore;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -325,28 +326,14 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public GeneralEnvelope getOriginalEnvelope(final String coverageName) {
-    // STATS_TODO: Use more efficient query method
-    Envelope envelope = null;
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
-        geowaveStatisticsStore.getAdapterStatistics(
-            getAdapter(coverageName),
+    RasterBoundingBoxValue rasterBbox =
+        InternalStatisticsHelper.getAdapterStatistic(
+            geowaveStatisticsStore,
             RasterBoundingBoxStatistic.STATS_TYPE,
-            null)) {
-      while (statsIter.hasNext()) {
-        Statistic<?> next = statsIter.next();
-        if (next instanceof RasterBoundingBoxStatistic && next.getBinningStrategy() == null) {
-          RasterBoundingBoxValue boundingBox =
-              geowaveStatisticsStore.getStatisticValue(
-                  (RasterBoundingBoxStatistic) next,
-                  authorizationSPI.getAuthorizations());
-          if (boundingBox != null) {
-            envelope = boundingBox.getValue();
-            break;
-          }
-        }
-      }
-    }
-    if (envelope == null) {
+            coverageName,
+            authorizationSPI.getAuthorizations());
+
+    if (rasterBbox == null) {
       final CoordinateReferenceSystem crs = getCoordinateReferenceSystem(coverageName);
       final double minX = crs.getCoordinateSystem().getAxis(0).getMinimumValue();
       final double maxX = crs.getCoordinateSystem().getAxis(0).getMaximumValue();
@@ -362,10 +349,10 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
     final GeneralEnvelope env =
         new GeneralEnvelope(
             new Rectangle2D.Double(
-                envelope.getMinX(),
-                envelope.getMinY(),
-                envelope.getWidth(),
-                envelope.getHeight()));
+                rasterBbox.getMinX(),
+                rasterBbox.getMinY(),
+                rasterBbox.getWidth(),
+                rasterBbox.getHeight()));
     env.setCoordinateReferenceSystem(getCoordinateReferenceSystem(coverageName));
     return env;
   }
@@ -388,60 +375,33 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public GridEnvelope getOriginalGridRange(final String coverageName) {
-    // STATS_TODO: Clean up query process, it should be simpler than this.
-    // RasterBoundingBoxValue value = dataStore.aggregateStatistic(new
-    // AdapterStatisticQueryBuilder(RasterBoundingBoxStatistics.STATS_TYPE).setAdapter(adapter).build())
-    DataTypeAdapter<?> adapter = getAdapter(coverageName);
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statisticsIt =
-        geowaveStatisticsStore.getAdapterStatistics(
-            adapter,
+    int width = 0;
+    int height = 0;
+    RasterBoundingBoxValue bbox =
+        InternalStatisticsHelper.getAdapterStatistic(
+            geowaveStatisticsStore,
             RasterBoundingBoxStatistic.STATS_TYPE,
-            null)) {
+            coverageName,
+            authorizationSPI.getAuthorizations());
 
-      int width = 0;
-      int height = 0;
-      // try to use both the bounding box and the overview statistics to
-      // determine the width and height at the highest resolution
-      Statistic<?> statistics = null;
-      if (statisticsIt.hasNext()) {
-        statistics = statisticsIt.next();
-      }
-      if ((statistics != null) && (statistics instanceof RasterBoundingBoxStatistic)) {
-        final RasterBoundingBoxValue bboxStats =
-            geowaveStatisticsStore.getStatisticValue(
-                (RasterBoundingBoxStatistic) statistics,
-                authorizationSPI.getAuthorizations());
-        try (
-            CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> overviewStatisticsIt =
-                geowaveStatisticsStore.getAdapterStatistics(
-                    adapter,
-                    RasterOverviewStatistic.STATS_TYPE,
-                    null)) {
-          statistics = null;
-          if (overviewStatisticsIt.hasNext()) {
-            statistics = overviewStatisticsIt.next();
-          }
-          if ((statistics != null) && (statistics instanceof RasterOverviewStatistic)) {
-            final OverviewValue overviewStats =
-                geowaveStatisticsStore.getStatisticValue(
-                    (RasterOverviewStatistic) statistics,
-                    authorizationSPI.getAuthorizations());
-            if (bboxStats != null && overviewStats != null) {
-              width =
-                  (int) Math.ceil(
-                      ((bboxStats.getMaxX() - bboxStats.getMinX())
-                          / overviewStats.getValue()[0].getResolution(0)));
-              height =
-                  (int) Math.ceil(
-                      ((bboxStats.getMaxY() - bboxStats.getMinY())
-                          / overviewStats.getValue()[0].getResolution(1)));
-            }
-          }
-        }
-      }
+    if (bbox != null) {
+      OverviewValue overview =
+          InternalStatisticsHelper.getAdapterStatistic(
+              geowaveStatisticsStore,
+              RasterOverviewStatistic.STATS_TYPE,
+              coverageName,
+              authorizationSPI.getAuthorizations());
 
-      return new GridEnvelope2D(0, 0, width, height);
+      if (overview != null) {
+        width =
+            (int) Math.ceil(
+                ((bbox.getMaxX() - bbox.getMinX()) / overview.getValue()[0].getResolution(0)));
+        height =
+            (int) Math.ceil(
+                ((bbox.getMaxY() - bbox.getMinY()) / overview.getValue()[0].getResolution(1)));
+      }
     }
+    return new GridEnvelope2D(0, 0, width, height);
   }
 
   @Override
@@ -959,34 +919,20 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public double[][] getResolutionLevels(final String coverageName) throws IOException {
-    // STATS_TODO: Use more efficient query method
-    Resolution[] resolutions = null;
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
-        geowaveStatisticsStore.getAdapterStatistics(
-            getAdapter(coverageName),
+    OverviewValue overview =
+        InternalStatisticsHelper.getAdapterStatistic(
+            geowaveStatisticsStore,
             RasterOverviewStatistic.STATS_TYPE,
-            null)) {
-      while (statsIter.hasNext()) {
-        Statistic<?> next = statsIter.next();
-        if (next instanceof RasterOverviewStatistic && next.getBinningStrategy() == null) {
-          OverviewValue overview =
-              geowaveStatisticsStore.getStatisticValue(
-                  (RasterOverviewStatistic) next,
-                  authorizationSPI.getAuthorizations());
-          if (overview != null) {
-            resolutions = overview.getValue();
-            break;
-          }
-        }
-      }
-    }
-    if (resolutions == null) {
+            coverageName,
+            authorizationSPI.getAuthorizations());
+
+    if (overview == null) {
       LOGGER.warn("Cannot find resolutions for coverage '" + coverageName + "'");
       return null;
     }
-    final double[][] retVal = new double[resolutions.length][];
+    final double[][] retVal = new double[overview.getValue().length][];
     int i = 0;
-    for (final Resolution res : resolutions) {
+    for (final Resolution res : overview.getValue()) {
       retVal[i++] = res.getResolutionPerDimension();
     }
     return retVal;
@@ -994,29 +940,15 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   private Histogram getHistogram(final String coverageName, final double resX, final double resY)
       throws IOException {
-    // STATS_TODO: Use more efficient query method
-    Map<Resolution, Histogram> histograms = null;
-    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
-        geowaveStatisticsStore.getAdapterStatistics(
-            getAdapter(coverageName),
+    RasterHistogramValue histogram =
+        InternalStatisticsHelper.getAdapterStatistic(
+            geowaveStatisticsStore,
             RasterHistogramStatistic.STATS_TYPE,
-            null)) {
-      while (statsIter.hasNext()) {
-        Statistic<?> next = statsIter.next();
-        if (next instanceof RasterHistogramStatistic && next.getBinningStrategy() == null) {
-          RasterHistogramValue histogram =
-              geowaveStatisticsStore.getStatisticValue(
-                  (RasterHistogramStatistic) next,
-                  authorizationSPI.getAuthorizations());
-          if (histogram != null) {
-            histograms = histogram.getValue();
-            break;
-          }
-        }
-      }
-    }
-    if (histograms != null) {
-      return histograms.get(new Resolution(new double[] {resX, resY}));
+            coverageName,
+            authorizationSPI.getAuthorizations());
+
+    if (histogram != null) {
+      return histogram.getValue().get(new Resolution(new double[] {resX, resY}));
     } else {
       LOGGER.warn("Cannot find histogram for coverage '" + coverageName + "'");
     }

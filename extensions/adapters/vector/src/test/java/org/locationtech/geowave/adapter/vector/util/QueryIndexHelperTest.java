@@ -48,6 +48,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -392,19 +393,23 @@ public class QueryIndexHelperTest {
     // approximately 180.0, 85.0
     final SimpleFeature defaultCRSFeat = GeometryUtils.crsTransform(mercFeat, geoType, transform);
 
-    // STATS_TODO: Bounding Box projection
-    // final FeatureBoundingBoxStatistics geoStats = new FeatureBoundingBoxStatistics("geometry",
-    // geoType, transform);
-    //
-    // geoStats.entryIngested(mercFeat);
-    //
-    // final Coordinate coord = ((Point) defaultCRSFeat.getDefaultGeometry()).getCoordinate();
-    //
-    // // coordinate should match reprojected feature
-    // assertEquals(coord.x, geoStats.getMinX(), 0.0001);
-    // assertEquals(coord.x, geoStats.getMaxX(), 0.0001);
-    // assertEquals(coord.y, geoStats.getMinY(), 0.0001);
-    // assertEquals(coord.y, geoStats.getMaxY(), 0.0001);
+    final BoundingBoxStatistic bboxStat =
+        new BoundingBoxStatistic(
+            geoType.getTypeName(),
+            geoType.getGeometryDescriptor().getLocalName(),
+            geoMercType.getCoordinateReferenceSystem(),
+            geoType.getCoordinateReferenceSystem());
+
+    final BoundingBoxValue bboxValue = bboxStat.createEmpty();
+    bboxValue.entryIngested(new FeatureDataAdapter(geoType), mercFeat);
+
+    final Coordinate coord = ((Point) defaultCRSFeat.getDefaultGeometry()).getCoordinate();
+
+    // coordinate should match reprojected feature
+    assertEquals(coord.x, bboxValue.getMinX(), 0.0001);
+    assertEquals(coord.x, bboxValue.getMaxX(), 0.0001);
+    assertEquals(coord.y, bboxValue.getMinY(), 0.0001);
+    assertEquals(coord.y, bboxValue.getMaxY(), 0.0001);
   }
 
   private SimpleFeature createGeoFeature(final Geometry geo) {

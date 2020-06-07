@@ -56,7 +56,6 @@ import org.locationtech.geowave.core.store.index.CommonIndexModel;
 import org.locationtech.geowave.core.store.index.CommonIndexValue;
 import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
-import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.geowave.mapreduce.HadoopDataAdapter;
 import org.locationtech.geowave.mapreduce.HadoopWritableSerializer;
@@ -64,6 +63,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
@@ -921,6 +921,15 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
       final AttributeDescriptor ad = reprojectedFeatureType.getDescriptor(i);
       if (Geometry.class.isAssignableFrom(ad.getType().getBinding())) {
         BoundingBoxStatistic bbox = new BoundingBoxStatistic(getTypeName(), ad.getLocalName());
+        if (reprojectedFeatureType.getGeometryDescriptor().equals(ad) && transform != null) {
+          CoordinateReferenceSystem persistedCRS =
+              persistedFeatureType.getCoordinateReferenceSystem();
+          if (persistedCRS == null) {
+            persistedCRS = GeometryUtils.getDefaultCRS();
+          }
+          bbox.setSourceCrs(persistedCRS);
+          bbox.setDestinationCrs(((GeometryDescriptor) ad).getCoordinateReferenceSystem());
+        }
         bbox.setInternal();
         statistics.add(bbox);
       }

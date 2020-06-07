@@ -734,7 +734,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
           if (adapter instanceof DefaultStatisticsProvider) {
             StatisticsCache cachedValues = statsCache.get(adapter.getTypeName());
             if (cachedValues == null) {
-              cachedValues = new StatisticsCache(adapter);
+              cachedValues = new StatisticsCache(adapter, crs);
               statsCache.put(adapter.getTypeName(), cachedValues);
             }
             cachedValues.entryIngested(
@@ -792,7 +792,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
                       (Statistic<StatisticValue<Object>>) expectedStat.getKey(),
                       expectedValues.getKey());
             }
-            assertEquals(expectedValues.getValue(), actual.getValue());
+            assertEquals(expectedValues.getValue().getValue(), actual.getValue());
           }
         }
         // finally check the one stat that is more manually calculated -
@@ -868,10 +868,15 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
 
     // otherwise use the statistics interface to calculate every statistic
     // and compare results to what is available in the statistics data store
-    private StatisticsCache(final DataTypeAdapter<SimpleFeature> adapter) {
+    private StatisticsCache(
+        final DataTypeAdapter<SimpleFeature> adapter,
+        final CoordinateReferenceSystem crs) {
       this.adapter = adapter;
       final List<Statistic<?>> stats = ((DefaultStatisticsProvider) adapter).getDefaultStatistics();
       for (final Statistic<?> stat : stats) {
+        if (stat instanceof BoundingBoxStatistic) {
+          ((BoundingBoxStatistic) stat).setSourceCrs(crs);
+        }
         statsCache.put(stat, Maps.newHashMap());
       }
     }

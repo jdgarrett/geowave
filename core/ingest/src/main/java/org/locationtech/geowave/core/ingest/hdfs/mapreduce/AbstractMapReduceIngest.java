@@ -150,7 +150,7 @@ public abstract class AbstractMapReduceIngest<T extends Persistable & DataAdapte
       // if the adapter is unknown by the ingest format, at least add the
       // indices from the client
       for (final Index index : indices) {
-        dataStoreOptions.createIndexStore().addIndex(index);
+        store.addIndex(index);
       }
       if (indices.length > 0) {
         for (final MetadataType type : MetadataType.values()) {

@@ -325,13 +325,15 @@ public class TestUtils {
     addStore.execute(operationParams);
 
     final IndexStore indexStore = dataStore.createIndexStore();
+    final org.locationtech.geowave.core.store.api.DataStore geowaveDataStore =
+        dataStore.createDataStore();
 
     final StringBuilder indexParam = new StringBuilder();
     for (int i = 0; i < indexOptions.size(); i++) {
       String indexName = "test-index" + i;
       if (indexStore.getIndex(indexName) == null) {
         indexOptions.get(i).setName(indexName);
-        indexStore.addIndex(indexOptions.get(i).createIndex());
+        geowaveDataStore.addIndex(indexOptions.get(i).createIndex());
       }
       indexParam.append(indexName + ",");
     }
@@ -395,6 +397,8 @@ public class TestUtils {
     addStore.execute(operationParams);
 
     final IndexStore indexStore = dataStore.createIndexStore();
+    final org.locationtech.geowave.core.store.api.DataStore geowaveDataStore =
+        dataStore.createDataStore();
 
     final String[] indexTypes = dimensionalityType.getDimensionalityArg().split(",");
     for (final String indexType : indexTypes) {
@@ -403,7 +407,7 @@ public class TestUtils {
         pluginOptions.selectPlugin(indexType);
         pluginOptions.setName(indexType);
         pluginOptions.save(props, IndexPluginOptions.getIndexNamespace(indexType));
-        indexStore.addIndex(pluginOptions.createIndex());
+        geowaveDataStore.addIndex(pluginOptions.createIndex());
       }
 
     }

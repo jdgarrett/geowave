@@ -755,7 +755,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
     CountValue countStat =
         store.aggregateStatistics(
             StatisticQueryBuilder.newBuilder(CountStatistic.STATS_TYPE).typeName(
-                getType().getTypeName()).build());
+                getType().getTypeName()).authorizations(auths).build());
     assertNotNull(countStat);
     Assert.assertEquals(
         "Unexpected stats result count for "

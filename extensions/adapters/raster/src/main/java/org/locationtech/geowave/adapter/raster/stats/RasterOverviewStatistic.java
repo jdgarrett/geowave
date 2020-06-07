@@ -50,8 +50,7 @@ public class RasterOverviewStatistic extends
 
   @Override
   public String getDescription() {
-    // STATS_TODO: Better description.
-    return "Provides an overview of a raster dataset.";
+    return "Provides an overview of the resolutions of a raster dataset.";
   }
 
   @Override

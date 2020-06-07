@@ -13,6 +13,7 @@ import java.util.Iterator;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
+import org.locationtech.geowave.core.store.metadata.MetadataIterators;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
@@ -30,9 +31,8 @@ public class RocksDBMetadataReader implements MetadataReader {
     this.metadataType = metadataType;
   }
 
-  public CloseableIterator<GeoWaveMetadata> query(
-      final MetadataQuery query,
-      final boolean mergeStats) {
+  @Override
+  public CloseableIterator<GeoWaveMetadata> query(final MetadataQuery query) {
     CloseableIterator<GeoWaveMetadata> originalResults;
     Iterator<GeoWaveMetadata> resultsIt;
     if (query.hasPrimaryId()) {
@@ -62,11 +62,11 @@ public class RocksDBMetadataReader implements MetadataReader {
         }
       });
     }
-    return new CloseableIteratorWrapper<>(originalResults, resultsIt);
-  }
-
-  @Override
-  public CloseableIterator<GeoWaveMetadata> query(final MetadataQuery query) {
-    return query(query, true);
+    CloseableIterator<GeoWaveMetadata> retVal =
+        new CloseableIteratorWrapper<>(originalResults, resultsIt);
+    if (MetadataType.STAT_VALUES.equals(metadataType)) {
+      return MetadataIterators.clientVisibilityFilter(retVal, query.getAuthorizations());
+    }
+    return retVal;
   }
 }

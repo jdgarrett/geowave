@@ -21,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.locationtech.geowave.adapter.raster.util.ZipUtils;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.core.geotime.store.query.ExplicitSpatialQuery;
-import org.locationtech.geowave.core.geotime.store.statistics.GeotimeInternalStatisticsHelper;
+import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatistic;
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatistic.BoundingBoxValue;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
@@ -32,6 +32,7 @@ import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
 import org.locationtech.geowave.test.GeoWaveITRunner;
 import org.locationtech.geowave.test.TestUtils;
@@ -108,7 +109,6 @@ public class BasicKafkaIT extends AbstractGeoWaveIT {
     LOGGER.warn("-----------------------------------------");
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void testBasicIngestGpx() throws Exception {
     KafkaTestUtils.testKafkaStage(OSM_GPX_INPUT_DIR);
@@ -123,12 +123,17 @@ public class BasicKafkaIT extends AbstractGeoWaveIT {
         final InternalDataAdapter<?> internalDataAdapter = adapterIterator.next();
         final FeatureDataAdapter adapter = (FeatureDataAdapter) internalDataAdapter.getAdapter();
         BoundingBoxValue bboxValue =
-            GeotimeInternalStatisticsHelper.getBbox(
+            InternalStatisticsHelper.getFieldStatistic(
                 statsStore,
+                BoundingBoxStatistic.STATS_TYPE,
                 adapter.getTypeName(),
                 adapter.getFeatureType().getGeometryDescriptor().getLocalName());
 
-        CountValue count = InternalStatisticsHelper.getCount(statsStore, adapter.getTypeName());
+        CountValue count =
+            InternalStatisticsHelper.getAdapterStatistic(
+                statsStore,
+                CountStatistic.STATS_TYPE,
+                adapter.getTypeName());
 
         // then query it
         final GeometryFactory factory = new GeometryFactory();

@@ -15,8 +15,9 @@ import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.
 import org.locationtech.geowave.core.store.index.IndexMetaDataSet;
 import org.locationtech.geowave.core.store.index.IndexMetaDataSet.IndexMetaDataSetValue;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
-import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
-import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
@@ -28,15 +29,32 @@ import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountS
 
 public class InternalStatisticsHelper {
 
-  public static CountValue getCount(
+  public static <V extends StatisticValue<R>, R> V getAdapterStatistic(
       final DataStatisticsStore statisticsStore,
+      final AdapterStatisticType<V> statisticType,
       final String typeName,
       final String... authorizations) {
-    Statistic<CountValue> statistic =
+    Statistic<V> statistic =
         statisticsStore.getStatisticById(
-            AdapterStatistic.generateStatisticId(
+            AdapterStatistic.generateStatisticId(typeName, statisticType, Statistic.INTERNAL_TAG));
+    if (statistic != null) {
+      return statisticsStore.getStatisticValue(statistic, authorizations);
+    }
+    return null;
+  }
+
+  public static <V extends StatisticValue<R>, R> V getFieldStatistic(
+      final DataStatisticsStore statisticsStore,
+      final FieldStatisticType<V> statisticType,
+      final String typeName,
+      final String fieldName,
+      final String... authorizations) {
+    Statistic<V> statistic =
+        statisticsStore.getStatisticById(
+            FieldStatistic.generateStatisticId(
                 typeName,
-                CountStatistic.STATS_TYPE,
+                statisticType,
+                fieldName,
                 Statistic.INTERNAL_TAG));
     if (statistic != null) {
       return statisticsStore.getStatisticValue(statistic, authorizations);

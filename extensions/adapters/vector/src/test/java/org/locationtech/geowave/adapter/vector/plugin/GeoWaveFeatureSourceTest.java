@@ -39,6 +39,7 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
+import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
 import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
 import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic.NumericRangeValue;
@@ -107,7 +108,11 @@ public class GeoWaveFeatureSourceTest extends BaseDataStoreTest {
     TimeRangeValue timeRangeStats = null;
     NumericRangeValue popStats = null;
     int count = 1;
-    cStats = InternalStatisticsHelper.getCount(statsStore, typeName);
+    cStats =
+        InternalStatisticsHelper.getAdapterStatistic(
+            statsStore,
+            CountStatistic.STATS_TYPE,
+            typeName);
     assertNotNull(cStats);
 
     try (final CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =

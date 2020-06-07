@@ -61,18 +61,12 @@ public class GeoWaveDataStoreComponents {
     this.transactionAllocator = transactionAllocator;
   }
 
+  @SuppressWarnings("unchecked")
   public void initForWrite() {
     // this is ensuring the adapter is properly initialized with the
     // indices and writing it to the adapterStore, in cases where the
     // featuredataadapter was created from geotools datastore's createSchema
-    if (adapter instanceof InitializeWithIndicesDataAdapter) {
-      ((InitializeWithIndicesDataAdapter) adapter).init(adapterIndices);
-    }
-    final short internalAdapterId =
-        gtStore.getInternalAdapterStore().getAdapterId(adapter.getTypeName());
-    final InternalDataAdapter<?> internalDataAdapter =
-        new InternalDataAdapterWrapper(adapter, internalAdapterId);
-    gtStore.adapterStore.addAdapter(internalDataAdapter);
+    dataStore.addType(adapter, adapterIndices);
   }
 
   public IndexStore getIndexStore() {

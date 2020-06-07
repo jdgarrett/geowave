@@ -28,8 +28,6 @@ import org.locationtech.geowave.core.store.util.VisibilityExpression;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-// STATS_TODO: This could really just be a count statistic that uses a binning strategy based on
-// visibility.
 public class FieldVisibilityCount extends
     IndexStatistic<FieldVisibilityCount.FieldVisibilityCountValue> {
   public static final IndexStatisticType<FieldVisibilityCountValue> STATS_TYPE =

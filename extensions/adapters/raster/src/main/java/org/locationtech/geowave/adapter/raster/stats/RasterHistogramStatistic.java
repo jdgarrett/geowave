@@ -55,7 +55,6 @@ public class RasterHistogramStatistic extends
   public static final AdapterStatisticType<RasterHistogramValue> STATS_TYPE =
       new AdapterStatisticType<>("RASTER_HISTOGRAM");
 
-  // STATS_TODO: How can we initialize this?
   private HistogramConfig histogramConfig;
 
   public RasterHistogramStatistic() {
@@ -78,7 +77,6 @@ public class RasterHistogramStatistic extends
 
   @Override
   public String getDescription() {
-    // STATS_TODO: Better description
     return "Histogram for raster data.";
   }
 
