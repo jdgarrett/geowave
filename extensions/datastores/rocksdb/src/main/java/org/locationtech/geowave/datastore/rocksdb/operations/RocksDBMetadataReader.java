@@ -48,10 +48,10 @@ public class RocksDBMetadataReader implements MetadataReader {
         @Override
         public boolean apply(final GeoWaveMetadata input) {
           if (query.hasPrimaryId()
-              && !DataStoreUtils.startsWithIfStats(
+              && !DataStoreUtils.startsWithIfPrefix(
                   input.getPrimaryId(),
                   query.getPrimaryId(),
-                  metadataType)) {
+                  query.isPrefix())) {
             return false;
           }
           if (query.hasSecondaryId()

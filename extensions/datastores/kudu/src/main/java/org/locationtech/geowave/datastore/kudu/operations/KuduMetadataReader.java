@@ -21,6 +21,7 @@ import org.apache.kudu.client.RowResultIterator;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
+import org.locationtech.geowave.core.store.metadata.MetadataIterators;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
@@ -50,7 +51,8 @@ public class KuduMetadataReader implements MetadataReader {
       final Schema schema = table.getSchema();
       KuduScanner.KuduScannerBuilder scannerBuilder = operations.getScannerBuilder(table);
       if (query.hasPrimaryId()) {
-        if (metadataType.equals(MetadataType.STATS)) {
+        if (metadataType.equals(MetadataType.STATS)
+            || metadataType.equals(MetadataType.STAT_VALUES)) {
           final KuduPredicate primaryLowerPred =
               KuduPredicate.newComparisonPredicate(
                   schema.getColumn(KuduMetadataField.GW_PRIMARY_ID_KEY.getFieldName()),
@@ -95,11 +97,11 @@ public class KuduMetadataReader implements MetadataReader {
                 getVisibility(result),
                 result.getBinaryCopy(KuduMetadataField.GW_VALUE_KEY.getFieldName()))).iterator();
     final CloseableIterator<GeoWaveMetadata> retVal = new CloseableIterator.Wrapper<>(temp);
-    return retVal;
+    return MetadataIterators.clientVisibilityFilter(retVal, query.getAuthorizations());
   }
 
   private byte[] getVisibility(final RowResult result) {
-    if (MetadataType.STATS.equals(metadataType)) {
+    if (MetadataType.STAT_VALUES.equals(metadataType)) {
       return result.getBinaryCopy(KuduMetadataField.GW_VISIBILITY_KEY.getFieldName());
     }
     return null;

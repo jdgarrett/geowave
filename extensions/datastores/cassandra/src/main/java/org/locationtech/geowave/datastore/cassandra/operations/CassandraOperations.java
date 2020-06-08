@@ -417,12 +417,13 @@ public class CassandraOperations implements MapReduceDataStoreOperations {
           final Create create = getCreateTable(tableName);
           create.addPartitionKey(CassandraMetadataWriter.PRIMARY_ID_KEY, DataType.blob());
           if (MetadataType.STATS.equals(metadataType)
+              || MetadataType.STAT_VALUES.equals(metadataType)
               || MetadataType.INTERNAL_ADAPTER.equals(metadataType)) {
             create.addClusteringColumn(CassandraMetadataWriter.SECONDARY_ID_KEY, DataType.blob());
             create.addClusteringColumn(
                 CassandraMetadataWriter.TIMESTAMP_ID_KEY,
                 DataType.timeuuid());
-            if (MetadataType.STATS.equals(metadataType)) {
+            if (MetadataType.STAT_VALUES.equals(metadataType)) {
               create.addColumn(CassandraMetadataWriter.VISIBILITY_KEY, DataType.blob());
             }
           }

@@ -125,6 +125,7 @@ public class CassandraMetadataReader implements MetadataReader {
 
   private boolean useSecondaryId(final MetadataQuery query) {
     return !(MetadataType.STATS.equals(metadataType)
+        || MetadataType.STAT_VALUES.equals(metadataType)
         || MetadataType.INTERNAL_ADAPTER.equals(metadataType)) || query.hasSecondaryId();
   }
 

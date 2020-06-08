@@ -90,6 +90,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.ParameterException;
 import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Bytes;
 
 /*
  */
@@ -162,25 +163,18 @@ public class DataStoreUtils {
   }
 
 
-  public static boolean startsWithIfStats(
+  public static boolean startsWithIfPrefix(
       final byte[] source,
       final byte[] match,
-      final MetadataType metadataType) {
-    if (!(metadataType.equals(MetadataType.STATS)
-        || metadataType.equals(MetadataType.STAT_VALUES))) {
+      final boolean prefix) {
+    if (!prefix) {
       if (match.length != (source.length)) {
         return false;
       }
     } else if (match.length > (source.length)) {
       return false;
     }
-
-    for (int i = 0; i < match.length; i++) {
-      if (source[i] != match[i]) {
-        return false;
-      }
-    }
-    return true;
+    return ByteArrayUtils.startsWith(source, match);
   }
 
   public static List<String> getUniqueDimensionFields(final CommonIndexModel model) {

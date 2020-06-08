@@ -12,6 +12,7 @@ import java.util.Arrays;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
+import org.locationtech.geowave.core.store.metadata.MetadataIterators;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
@@ -32,14 +33,11 @@ public class RedisMetadataReader implements MetadataReader {
     this.metadataType = metadataType;
   }
 
-  public CloseableIterator<GeoWaveMetadata> query(
-      final MetadataQuery query,
-      final boolean mergeStats) {
+  @Override
+  public CloseableIterator<GeoWaveMetadata> query(final MetadataQuery query) {
     Iterable<GeoWaveMetadata> results;
     if (query.getPrimaryId() != null) {
-      if (metadataType.equals(MetadataType.STATS)
-          || metadataType.equals(MetadataType.STAT_VALUES)
-          || (query.getPrimaryId().length > 6)) {
+      if (!query.isPrefix() || (query.getPrimaryId().length > 6)) {
         // this primary ID and next prefix are going to be the same
         // score
         final double score = RedisUtils.getScore(query.getPrimaryId());
@@ -63,10 +61,10 @@ public class RedisMetadataReader implements MetadataReader {
         @Override
         public boolean apply(final GeoWaveMetadata input) {
           if (query.hasPrimaryId()
-              && !DataStoreUtils.startsWithIfStats(
+              && !DataStoreUtils.startsWithIfPrefix(
                   input.getPrimaryId(),
                   query.getPrimaryId(),
-                  metadataType)) {
+                  query.isPrefix())) {
             return false;
           }
           if (query.hasSecondaryId()
@@ -77,18 +75,16 @@ public class RedisMetadataReader implements MetadataReader {
         }
       });
     }
-    final boolean isStats = MetadataType.STAT_VALUES.equals(metadataType) && mergeStats;
     final CloseableIterator<GeoWaveMetadata> retVal;
-    if (isStats) {
-      retVal = new CloseableIterator.Wrapper<>(RedisUtils.groupByIds(results));
+    if (MetadataType.STAT_VALUES.equals(metadataType)) {
+      retVal =
+          MetadataIterators.clientVisibilityFilter(
+              new CloseableIterator.Wrapper<>(RedisUtils.groupByIds(results)),
+              query.getAuthorizations());
     } else {
       retVal = new CloseableIterator.Wrapper<>(results.iterator());
     }
     return retVal;
   }
 
-  @Override
-  public CloseableIterator<GeoWaveMetadata> query(final MetadataQuery query) {
-    return query(query, true);
-  }
 }

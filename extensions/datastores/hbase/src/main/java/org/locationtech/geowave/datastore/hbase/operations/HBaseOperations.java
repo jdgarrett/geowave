@@ -55,7 +55,6 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter.RowRange;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.protobuf.generated.AdminProtos.GetRegionInfoResponse.CompactionState;
 import org.apache.hadoop.hbase.security.visibility.Authorizations;
 import org.apache.hadoop.hbase.shaded.com.google.protobuf.ByteString;
 import org.locationtech.geowave.core.cli.VersionUtils;
@@ -67,7 +66,6 @@ import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.CloseableIterator.Wrapper;
-import org.locationtech.geowave.core.store.adapter.AdapterIndexMappingStore;
 import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
 import org.locationtech.geowave.core.store.adapter.PersistentAdapterStore;
@@ -100,7 +98,6 @@ import org.locationtech.geowave.core.store.query.filter.QueryFilter;
 import org.locationtech.geowave.core.store.server.BasicOptionProvider;
 import org.locationtech.geowave.core.store.server.RowMergingAdapterOptionProvider;
 import org.locationtech.geowave.core.store.server.ServerOpConfig.ServerOpScope;
-import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.server.ServerOpHelper;
 import org.locationtech.geowave.core.store.server.ServerSideOperations;
 import org.locationtech.geowave.core.store.util.DataAdapterAndIndexCache;
@@ -158,7 +155,8 @@ public class HBaseOperations implements MapReduceDataStoreOperations, ServerSide
       new Pair[] {
           ImmutablePair.of(new StringColumnFamily(MetadataType.AIM.name()), true),
           ImmutablePair.of(new StringColumnFamily(MetadataType.ADAPTER.name()), true),
-          ImmutablePair.of(new StringColumnFamily(MetadataType.STATS.name()), false),
+          ImmutablePair.of(new StringColumnFamily(MetadataType.STATS.name()), true),
+          ImmutablePair.of(new StringColumnFamily(MetadataType.STAT_VALUES.name()), false),
           ImmutablePair.of(new StringColumnFamily(MetadataType.INDEX.name()), true),
           ImmutablePair.of(new StringColumnFamily(MetadataType.INTERNAL_ADAPTER.name()), true),};
 
@@ -875,7 +873,7 @@ public class HBaseOperations implements MapReduceDataStoreOperations, ServerSide
           METADATA_CFS_VERSIONING,
           StringColumnFamilyFactory.getSingletonInstance(),
           tableName);
-      if (MetadataType.STATS.equals(metadataType) && options.isServerSideLibraryEnabled()) {
+      if (MetadataType.STAT_VALUES.equals(metadataType) && options.isServerSideLibraryEnabled()) {
         synchronized (this) {
           if (!iteratorsAttached) {
             iteratorsAttached = true;
