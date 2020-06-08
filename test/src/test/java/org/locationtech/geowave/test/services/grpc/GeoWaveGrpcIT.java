@@ -341,7 +341,7 @@ public class GeoWaveGrpcIT extends AbstractGeoWaveBasicVectorIT {
     // Add the index again
     // Index store could be invalid after running deleteAll, so recreate it
     indexStore = dataStore.createIndexStore();
-    indexStore.addIndex(indexBuilder.createIndex());
+    dataStore.createDataStore().addIndex(indexBuilder.createIndex());
 
     client.vectorIngest(0, 10, 0, 10, 5, 5);
 

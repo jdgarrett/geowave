@@ -34,17 +34,6 @@ public interface StatService {
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @Consumes(MediaType.MULTIPART_FORM_DATA)
-  @Path("/calc")
-  public Response calcStat(
-      @QueryParam("storeName") String storeName,
-      @QueryParam("datatypeName") String typeName,
-      @QueryParam("statType") String statType,
-      @QueryParam("authorizations") String authorizations,
-      @QueryParam("jsonFormatFlag") Boolean jsonFormatFlag);
-
-  @POST
-  @Produces(MediaType.APPLICATION_JSON)
-  @Consumes(MediaType.MULTIPART_FORM_DATA)
   @Path("/compact")
   public Response combineStats(@QueryParam("store_name") String store_name);
 
@@ -64,8 +53,11 @@ public interface StatService {
   @Path("/rm")
   public Response removeStat(
       @QueryParam("storeName") String storeName,
-      @QueryParam("datatypeName") String typeName,
       @QueryParam("statType") String statType,
-      @QueryParam("authorizations") String authorizations,
-      @QueryParam("jsonFormatFlag") Boolean jsonFormatFlag);
+      @QueryParam("indexName") String indexName,
+      @QueryParam("typeName") String typeName,
+      @QueryParam("fieldName") String fieldName,
+      @QueryParam("tag") String tag,
+      @QueryParam("all") Boolean all,
+      @QueryParam("force") Boolean force);
 }

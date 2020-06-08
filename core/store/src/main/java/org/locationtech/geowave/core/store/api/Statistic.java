@@ -18,6 +18,8 @@ public interface Statistic<V extends StatisticValue<?>> extends Persistable {
 
   public V createEmpty();
 
+  public boolean isInternal();
+
   public <T> EntryVisibilityHandler<T> getVisibilityHandler(
       CommonIndexModel indexModel,
       DataTypeAdapter<T> adapter);

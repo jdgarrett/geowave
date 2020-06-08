@@ -9,5 +9,4 @@ public class IndexStatisticType<V extends StatisticValue<?>> extends StatisticTy
   public IndexStatisticType(final String id) {
     super(id);
   }
-
 }

@@ -534,11 +534,10 @@ public class GeoWaveGrpcTestClient {
   public boolean RemoveStatCommand() {
     final ArrayList<String> params = new ArrayList<>();
     params.add(GeoWaveGrpcTestUtils.storeName);
-    params.add(GeoWaveGrpcTestUtils.typeName);
     params.add("BOUNDING_BOX");
     final RemoveStatCommandParametersProtos request =
-        RemoveStatCommandParametersProtos.newBuilder().addAllParameters(params).setFieldName(
-            "geometry").build();
+        RemoveStatCommandParametersProtos.newBuilder().addAllParameters(params).setTypeName(
+            GeoWaveGrpcTestUtils.typeName).setFieldName("geometry").setForce(true).build();
     coreStoreBlockingStub.removeStatCommand(request);
     return true;
   }

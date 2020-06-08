@@ -160,27 +160,27 @@ public class StatServicesIT extends BaseServiceIT {
     TestUtils.assertStatusCode(
         "Should successfully remove stat for existent store, adapterID, and statID",
         200,
-        statServiceClient.removeStat(store_name, "GridPoint", "COUNT"));
+        statServiceClient.removeStat(store_name, "COUNT", "GridPoint", true));
 
     // The following case should probably return a 404 based on the
     // situation described in the test description
     TestUtils.assertStatusCode(
-        "Returns a successful 200 status for removing stat for existent store and type name, but a nonexistent stat type.  A warning is output.",
-        200,
-        statServiceClient.removeStat(store_name, "GridPoint", "nonexistent-stat"));
+        "Should fail to remove a nonexistent stat.",
+        400,
+        statServiceClient.removeStat(store_name, "nonexistent-stat", "GridPoint", true));
 
     // The following case should probably return a 404 based on the
     // situation described in the test description
     TestUtils.assertStatusCode(
-        "Returns a successful 200 status for removing stat for existent store and stat type, but nonexistent type name.  A warning is output",
-        200,
-        statServiceClient.removeStat(store_name, "nonexistent-type", "COUNT"));
+        "Should fail to remove a stat from a nonexistent type.",
+        400,
+        statServiceClient.removeStat(store_name, "COUNT", "nonexistent-type", true));
 
     muteLogging();
     TestUtils.assertStatusCode(
         "Should fail to remove for existent data type name and stat type, but nonexistent store",
         400,
-        statServiceClient.removeStat("nonexistent-store", "GridPoint", "COUNT"));
+        statServiceClient.removeStat("nonexistent-store", "COUNT", "GridPoint", true));
     unmuteLogging();
   }
 

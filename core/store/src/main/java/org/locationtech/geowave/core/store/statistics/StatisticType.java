@@ -43,4 +43,9 @@ public abstract class StatisticType<V extends StatisticValue<?>> extends ByteArr
     final StatisticType<?> other = (StatisticType<?>) obj;
     return Arrays.equals(bytes, other.getBytes());
   }
+
+  @Override
+  public String toString() {
+    return getString();
+  }
 }

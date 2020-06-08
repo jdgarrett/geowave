@@ -23,12 +23,10 @@ public class StatsCommandLineOptions {
   @Parameter(names = "--fieldName", description = "The name of the field, for field statistics.")
   private String fieldName;
 
-  @Parameter(names = "--name", description = "The name of the statistic.")
-  private String name;
+  @Parameter(names = "--tag", description = "The tag of the statistic.")
+  private String tag;
 
-  @Parameter(
-      names = "--auth",
-      description = "The authorizations used for the statistics calculation as a subset of the accumulo user authorization; by default all authorizations are used.")
+  @Parameter(names = "--auth", description = "The authorizations used when querying statistics.")
   private String authorizations;
 
   @Parameter(names = "--json", description = "Output in JSON format.")
@@ -76,12 +74,12 @@ public class StatsCommandLineOptions {
     return fieldName;
   }
 
-  public void setName(final String name) {
-    this.name = name;
+  public void setTag(final String tag) {
+    this.tag = tag;
   }
 
-  public String getName() {
-    return name;
+  public String getTag() {
+    return tag;
   }
 
 }

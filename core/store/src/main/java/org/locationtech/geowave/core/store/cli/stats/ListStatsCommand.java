@@ -68,7 +68,7 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
             "An index called " + statsOptions.getIndexName() + " was not found");
       }
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
-          statsStore.getIndexStatistics(index, null, statsOptions.getName())) {
+          statsStore.getIndexStatistics(index, null, statsOptions.getTag())) {
         if (statsOptions.getTypeName() != null) {
           while (stats.hasNext()) {
             Statistic<StatisticValue<Object>> next =

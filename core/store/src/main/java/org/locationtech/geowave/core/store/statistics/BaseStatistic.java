@@ -34,6 +34,11 @@ public abstract class BaseStatistic<V extends StatisticValue<?>> implements Stat
   }
 
   @Override
+  public boolean isInternal() {
+    return INTERNAL_TAG.equals(tag);
+  }
+
+  @Override
   public final String getTag() {
     return tag;
   }

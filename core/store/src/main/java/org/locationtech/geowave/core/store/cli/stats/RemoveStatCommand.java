@@ -14,6 +14,8 @@ import java.util.List;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.OperationParams;
 import org.locationtech.geowave.core.store.CloseableIterator;
+import org.locationtech.geowave.core.store.api.DataStore;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -22,6 +24,9 @@ import org.locationtech.geowave.core.store.index.IndexStore;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
+import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
@@ -38,6 +43,12 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
       names = "--all",
       description = "If specified, all matching statistics will be removed.")
   private boolean all = false;
+
+  @Parameter(
+      names = "--force",
+      description = "Force the statistic to be removed.  IMPORTANT: Removing statistics "
+          + "that are marked as \"internal\" can have a detrimental impact on performance!")
+  private boolean force = false;
 
   private String statType = null;
 
@@ -63,10 +74,10 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
 
     List<Statistic<? extends StatisticValue<?>>> toRemove = Lists.newArrayList();
 
-    if (statsOptions.getIndexName() != null) {
-      if (statsOptions.getTypeName() != null || statsOptions.getFieldName() != null) {
+    if (statisticType instanceof IndexStatisticType) {
+      if (statsOptions.getIndexName() == null) {
         throw new ParameterException(
-            "Unable to supply both an index and a type/field when removing a statistic.  If removing an index statistic, supply an index name, otherwise, supply a type name.");
+            "An index name must be specified when removing an index statistic.");
       }
       final IndexStore indexStore = storeOptions.createIndexStore();
       final Index index = indexStore.getIndex(statsOptions.getIndexName());
@@ -75,31 +86,74 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
             "Unable to find an index named: " + statsOptions.getIndexName());
       }
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
-          statStore.getIndexStatistics(index, statisticType, statsOptions.getName())) {
-        while (stats.hasNext()) {
-          toRemove.add(stats.next());
-        }
+          statStore.getIndexStatistics(index, statisticType, statsOptions.getTag())) {
+        markForRemoval(stats, toRemove);
       }
-    } else if (statsOptions.getTypeName() != null) {
-      if (statsOptions.getFieldName() != null) {
-        // remove field statistics that match the given name (if supplied)
+    } else if (statisticType instanceof AdapterStatisticType) {
+      if (statsOptions.getTypeName() == null) {
+        throw new ParameterException(
+            "A type name must be specified when removing an adapter statistic.");
+      }
+      final DataStore dataStore = storeOptions.createDataStore();
+      dataStore.getTypes();
+      dataStore.getIndices();
+      DataTypeAdapter<?> adapter = dataStore.getType(statsOptions.getTypeName());
+      if (adapter == null) {
+        throw new ParameterException("Unable to find an type named: " + statsOptions.getTypeName());
+      }
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+          statStore.getAdapterStatistics(adapter, statisticType, statsOptions.getTag())) {
+        markForRemoval(stats, toRemove);
+      }
+    } else if (statisticType instanceof FieldStatisticType) {
+      if (statsOptions.getTypeName() == null) {
+        throw new ParameterException(
+            "A type name must be specified when removing a field statistic.");
+      }
+      final DataStore dataStore = storeOptions.createDataStore();
+      DataTypeAdapter<?> adapter = dataStore.getType(statsOptions.getTypeName());
+      if (adapter == null) {
+        throw new ParameterException("Unable to find an type named: " + statsOptions.getTypeName());
+      }
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+          statStore.getFieldStatistics(
+              adapter,
+              statisticType,
+              statsOptions.getFieldName(),
+              statsOptions.getTag())) {
+        markForRemoval(stats, toRemove);
       }
     }
+
 
     if (toRemove.isEmpty()) {
       throw new ParameterException("A matching statistic could not be found");
-    }
-
-    if (!all && toRemove.size() > 1) {
+    } else if (toRemove.size() > 1 && !all) {
       throw new ParameterException(
-          "Multiple statistics matched the given parameters, if this is intentional, please supply the --all option.");
+          "Multiple statistics matched the given parameters.  If this is intentional, "
+              + "supply the --all option, otherwise provide additional parameters to "
+              + "specify which statistic to delete.");
     }
 
     if (!statStore.removeStatistics(toRemove.iterator())) {
-      throw new RuntimeException("Unable to remove statistic: " + statType);
+      throw new RuntimeException("Unable to remove statistics of type: " + statType);
     }
 
     return true;
+  }
+
+  private void markForRemoval(
+      CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats,
+      List<Statistic<? extends StatisticValue<?>>> toRemove) {
+    while (stats.hasNext()) {
+      Statistic<? extends StatisticValue<?>> stat = stats.next();
+      if (!force && stat.isInternal()) {
+        throw new ParameterException(
+            "Unable to remove an internal statistic without specifying the --force option. "
+                + "Removing an internal statistic can have a detrimental impact on performance.");
+      }
+      toRemove.add(stat);
+    }
   }
 
   @Override
