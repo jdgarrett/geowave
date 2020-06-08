@@ -49,6 +49,10 @@ public class RasterBoundingBoxStatistic extends
 
   public static class RasterBoundingBoxValue extends AbstractBoundingBoxValue {
 
+    public RasterBoundingBoxValue() {
+      this(null);
+    }
+
     public RasterBoundingBoxValue(final Statistic<?> statistic) {
       super(statistic);
     }

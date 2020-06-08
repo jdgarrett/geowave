@@ -1,5 +1,6 @@
 package org.locationtech.geowave.core.store.statistics;
 
+import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
@@ -36,7 +37,7 @@ public class StatisticValueWriter<V extends StatisticValue<?>> implements AutoCl
             primaryId,
             statistic.getId().getGroupId().getBytes(),
             visibility,
-            value.toBinary()));
+            PersistenceUtils.toBinary(value)));
   }
 
 }

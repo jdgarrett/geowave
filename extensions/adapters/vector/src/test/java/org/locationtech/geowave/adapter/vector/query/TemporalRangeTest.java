@@ -83,5 +83,7 @@ public class TemporalRangeTest extends BaseDataStoreTest {
     assertEquals(
         DateUtilities.parseISO("2005-05-19T23:32:56Z"),
         statValue.asTemporalRange().getStartTime());
+    writer.close();
+    transaction1.close();
   }
 }

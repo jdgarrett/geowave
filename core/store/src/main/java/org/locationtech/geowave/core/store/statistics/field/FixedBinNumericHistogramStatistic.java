@@ -10,6 +10,7 @@ package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.FixedBinNumericHistogram;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -97,7 +98,12 @@ public class FixedBinNumericHistogramStatistic extends
 
     private FixedBinNumericHistogram histogram;
 
-    private FixedBinNumericHistogramValue(FixedBinNumericHistogramStatistic statistic) {
+    public FixedBinNumericHistogramValue() {
+      super(null);
+      histogram = null;
+    }
+
+    public FixedBinNumericHistogramValue(FixedBinNumericHistogramStatistic statistic) {
       super(statistic);
       if (statistic.minValue == null || statistic.maxValue == null) {
         histogram = new FixedBinNumericHistogram(statistic.numBins);
@@ -108,9 +114,9 @@ public class FixedBinNumericHistogramStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<FixedBinNumericHistogram> merge) {
+    public void merge(Mergeable merge) {
       if (merge != null && merge instanceof FixedBinNumericHistogramValue) {
-        histogram.merge(merge.getValue());
+        histogram.merge(((FixedBinNumericHistogramValue) merge).getValue());
       }
     }
 

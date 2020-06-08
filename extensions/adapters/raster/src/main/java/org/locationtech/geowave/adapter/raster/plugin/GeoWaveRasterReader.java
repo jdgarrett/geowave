@@ -48,7 +48,7 @@ import org.locationtech.geowave.adapter.raster.adapter.RasterDataAdapter;
 import org.locationtech.geowave.adapter.raster.stats.RasterHistogramStatistic;
 import org.locationtech.geowave.adapter.raster.stats.RasterHistogramStatistic.RasterHistogramValue;
 import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic;
-import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic.OverviewValue;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic.RasterOverviewValue;
 import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistic;
 import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistic.RasterBoundingBoxValue;
 import org.locationtech.geowave.core.geotime.index.SpatialDimensionalityTypeProvider;
@@ -385,7 +385,7 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
             authorizationSPI.getAuthorizations());
 
     if (bbox != null) {
-      OverviewValue overview =
+      RasterOverviewValue overview =
           InternalStatisticsHelper.getAdapterStatistic(
               geowaveStatisticsStore,
               RasterOverviewStatistic.STATS_TYPE,
@@ -919,7 +919,7 @@ public class GeoWaveRasterReader extends AbstractGridCoverage2DReader implements
 
   @Override
   public double[][] getResolutionLevels(final String coverageName) throws IOException {
-    OverviewValue overview =
+    RasterOverviewValue overview =
         InternalStatisticsHelper.getAdapterStatistic(
             geowaveStatisticsStore,
             RasterOverviewStatistic.STATS_TYPE,

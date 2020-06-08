@@ -6,11 +6,12 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.core.store.data.visibility;
+package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import org.locationtech.geowave.core.index.ByteArray;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -18,20 +19,18 @@ import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 
-public class DifferingFieldVisibilityEntryCount extends
-    IndexStatistic<DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue> {
-  public static final IndexStatisticType<DifferingFieldVisibilityEntryCountValue> STATS_TYPE =
+public class DifferingVisibilityCountStatistic extends
+    IndexStatistic<DifferingVisibilityCountStatistic.DifferingVisibilityCountValue> {
+  public static final IndexStatisticType<DifferingVisibilityCountValue> STATS_TYPE =
       new IndexStatisticType<>("DIFFERING_VISIBILITY_COUNT");
 
 
-  public DifferingFieldVisibilityEntryCount() {
+  public DifferingVisibilityCountStatistic() {
     super(STATS_TYPE);
   }
 
-  public DifferingFieldVisibilityEntryCount(final String indexName) {
+  public DifferingVisibilityCountStatistic(final String indexName) {
     super(STATS_TYPE, indexName);
   }
 
@@ -41,18 +40,21 @@ public class DifferingFieldVisibilityEntryCount extends
   }
 
   @Override
-  public DifferingFieldVisibilityEntryCountValue createEmpty() {
-    return new DifferingFieldVisibilityEntryCountValue(this);
+  public DifferingVisibilityCountValue createEmpty() {
+    return new DifferingVisibilityCountValue(this);
   }
 
-  public static class DifferingFieldVisibilityEntryCountValue extends StatisticValue<Long>
-      implements
+  public static class DifferingVisibilityCountValue extends StatisticValue<Long> implements
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
 
     private long entriesWithDifferingFieldVisibilities = 0;
 
-    private DifferingFieldVisibilityEntryCountValue(Statistic<?> statistic) {
+    public DifferingVisibilityCountValue() {
+      this(null);
+    }
+
+    public DifferingVisibilityCountValue(Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -61,10 +63,10 @@ public class DifferingFieldVisibilityEntryCount extends
     }
 
     @Override
-    public void merge(StatisticValue<Long> merge) {
-      if ((merge != null) && (merge instanceof DifferingFieldVisibilityEntryCountValue)) {
+    public void merge(Mergeable merge) {
+      if ((merge != null) && (merge instanceof DifferingVisibilityCountValue)) {
         entriesWithDifferingFieldVisibilities +=
-            ((DifferingFieldVisibilityEntryCountValue) merge).entriesWithDifferingFieldVisibilities;
+            ((DifferingVisibilityCountValue) merge).entriesWithDifferingFieldVisibilities;
       }
     }
 

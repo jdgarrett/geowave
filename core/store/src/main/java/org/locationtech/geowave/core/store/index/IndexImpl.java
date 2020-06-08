@@ -17,13 +17,14 @@ import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
 import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
 import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexMetaDataSetStatistic;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import com.google.common.collect.Lists;
@@ -109,7 +110,8 @@ public class IndexImpl implements Index, DefaultStatisticsProvider {
   @Override
   public List<Statistic<? extends StatisticValue<?>>> getDefaultStatistics() {
     List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayListWithCapacity(6);
-    IndexMetaDataSet metadata = new IndexMetaDataSet(getName(), indexStrategy.createMetaData());
+    IndexMetaDataSetStatistic metadata =
+        new IndexMetaDataSetStatistic(getName(), indexStrategy.createMetaData());
     metadata.setBinningStrategy(new AdapterBinningStrategy());
     metadata.setInternal();
     statistics.add(metadata);
@@ -124,13 +126,14 @@ public class IndexImpl implements Index, DefaultStatisticsProvider {
     partitions.setInternal();
     statistics.add(partitions);
 
-    DifferingFieldVisibilityEntryCount differingFieldVisibility =
-        new DifferingFieldVisibilityEntryCount(getName());
+    DifferingVisibilityCountStatistic differingFieldVisibility =
+        new DifferingVisibilityCountStatistic(getName());
     differingFieldVisibility.setBinningStrategy(new AdapterBinningStrategy());
     differingFieldVisibility.setInternal();
     statistics.add(differingFieldVisibility);
 
-    FieldVisibilityCount fieldVisibilityCount = new FieldVisibilityCount(getName());
+    FieldVisibilityCountStatistic fieldVisibilityCount =
+        new FieldVisibilityCountStatistic(getName());
     fieldVisibilityCount.setBinningStrategy(new AdapterBinningStrategy());
     fieldVisibilityCount.setInternal();
     statistics.add(fieldVisibilityCount);

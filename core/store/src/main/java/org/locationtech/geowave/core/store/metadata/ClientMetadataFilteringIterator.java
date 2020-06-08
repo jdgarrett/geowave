@@ -40,17 +40,12 @@ public class ClientMetadataFilteringIterator implements CloseableIterator<GeoWav
   private void computeNext() {
     while (next == null && source.hasNext()) {
       GeoWaveMetadata possibleNext = source.next();
-      switch (query.getPrimaryIdQueryType()) {
-        case EXACT:
-          if (passesExactFilter(possibleNext)) {
-            next = possibleNext;
-          }
-          break;
-        case PREFIX:
-          if (passesPrefixFilter(possibleNext)) {
-            next = possibleNext;
-          }
-          break;
+      if (query.isPrefix()) {
+        if (passesPrefixFilter(possibleNext)) {
+          next = possibleNext;
+        }
+      } else if (passesExactFilter(possibleNext)) {
+        next = possibleNext;
       }
     }
   }

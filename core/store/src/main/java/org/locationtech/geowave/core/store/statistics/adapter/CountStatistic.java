@@ -9,6 +9,7 @@
 package org.locationtech.geowave.core.store.statistics.adapter;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -51,7 +52,11 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
       StatisticsIngestCallback,
       StatisticsDeleteCallback {
 
-    private CountValue(Statistic<?> statistic) {
+    public CountValue() {
+      this(null);
+    }
+
+    public CountValue(Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -83,9 +88,9 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
     }
 
     @Override
-    public void merge(StatisticValue<Long> merge) {
+    public void merge(Mergeable merge) {
       if (merge != null && merge instanceof CountValue) {
-        count = count + merge.getValue();
+        count = count + ((CountValue) merge).getValue();
       }
     }
 

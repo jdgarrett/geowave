@@ -24,7 +24,7 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
-import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -75,14 +75,13 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
 
     final DataStore dataStore = storeOptions.createDataStore();
 
-    final DataStatisticsStore statsStore = storeOptions.createDataStatisticsStore();
     final DataTypeAdapter<?> adapter = typeName != null ? dataStore.getType(typeName) : null;
     if (typeName != null && adapter == null) {
       throw new ParameterException("Unrecognized type name: " + typeName);
     }
 
     List<? extends Statistic<? extends StatisticValue<?>>> indexStats =
-        statsStore.getRegisteredIndexStatistics();
+        StatisticsRegistry.instance().getRegisteredIndexStatistics();
 
     ConsolePrinter printer = new ConsolePrinter(0, Integer.MAX_VALUE);
     Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> adapterStats =
@@ -94,19 +93,20 @@ public class ListStatTypesCommand extends ServiceEnabledCommand<Void> {
       for (DataTypeAdapter<?> dataAdapter : adapters) {
         adapterStats.put(
             dataAdapter.getTypeName(),
-            statsStore.getRegisteredAdapterStatistics(dataAdapter.getDataClass()));
+            StatisticsRegistry.instance().getRegisteredAdapterStatistics(
+                dataAdapter.getDataClass()));
         fieldStats.put(
             dataAdapter.getTypeName(),
-            statsStore.getRegisteredFieldStatistics(dataAdapter, null));
+            StatisticsRegistry.instance().getRegisteredFieldStatistics(dataAdapter, null));
       }
 
     } else {
       adapterStats.put(
           adapter.getTypeName(),
-          statsStore.getRegisteredAdapterStatistics(adapter.getDataClass()));
+          StatisticsRegistry.instance().getRegisteredAdapterStatistics(adapter.getDataClass()));
       fieldStats.put(
           adapter.getTypeName(),
-          statsStore.getRegisteredFieldStatistics(adapter, fieldName));
+          StatisticsRegistry.instance().getRegisteredFieldStatistics(adapter, fieldName));
     }
 
     displayIndexStats(printer, indexStats);

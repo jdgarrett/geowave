@@ -9,6 +9,7 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.ByteUtils;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.NumericHistogram;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.TDigestNumericHistogram;
@@ -48,7 +49,11 @@ public class RowRangeHistogramStatistic extends
       StatisticsIngestCallback {
     private NumericHistogram histogram;
 
-    private RowRangeHistogramValue(final Statistic<?> statistic) {
+    public RowRangeHistogramValue() {
+      this(null);
+    }
+
+    public RowRangeHistogramValue(final Statistic<?> statistic) {
       super(statistic);
       histogram = createHistogram();
     }
@@ -86,7 +91,7 @@ public class RowRangeHistogramStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<NumericHistogram> merge) {
+    public void merge(Mergeable merge) {
       if (merge instanceof RowRangeHistogramValue) {
         final NumericHistogram otherHistogram = ((RowRangeHistogramValue) merge).histogram;
         if (histogram == null) {

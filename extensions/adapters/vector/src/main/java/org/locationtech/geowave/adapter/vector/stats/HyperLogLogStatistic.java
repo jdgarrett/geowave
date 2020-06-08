@@ -9,6 +9,7 @@
 package org.locationtech.geowave.adapter.vector.stats;
 
 import java.io.IOException;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -58,7 +59,7 @@ public class HyperLogLogStatistic extends
 
   @Override
   public HyperLogLogPlusValue createEmpty() {
-    return new HyperLogLogPlusValue(this, getFieldName(), precision);
+    return new HyperLogLogPlusValue(this);
   }
 
   @Override
@@ -69,15 +70,15 @@ public class HyperLogLogStatistic extends
   public static class HyperLogLogPlusValue extends StatisticValue<HyperLogLogPlus> implements
       StatisticsIngestCallback {
     private HyperLogLogPlus loglog;
-    private final String fieldName;
 
-    public HyperLogLogPlusValue(
-        final Statistic<?> statistic,
-        final String fieldName,
-        final int precision) {
+    public HyperLogLogPlusValue() {
+      super(null);
+      loglog = null;
+    }
+
+    public HyperLogLogPlusValue(final HyperLogLogStatistic statistic) {
       super(statistic);
-      this.fieldName = fieldName;
-      loglog = new HyperLogLogPlus(precision);
+      loglog = new HyperLogLogPlus(statistic.precision);
     }
 
     public long cardinality() {
@@ -85,7 +86,7 @@ public class HyperLogLogStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<HyperLogLogPlus> merge) {
+    public void merge(Mergeable merge) {
       if (merge instanceof HyperLogLogPlusValue) {
         try {
           loglog = (HyperLogLogPlus) ((HyperLogLogPlusValue) merge).loglog.merge(loglog);
@@ -97,7 +98,8 @@ public class HyperLogLogStatistic extends
 
     @Override
     public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      final Object o = adapter.getFieldValue(entry, fieldName);
+      final Object o =
+          adapter.getFieldValue(entry, ((HyperLogLogStatistic) statistic).getFieldName());
       if (o == null) {
         return;
       }

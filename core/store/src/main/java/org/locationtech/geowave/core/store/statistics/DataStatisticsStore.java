@@ -11,6 +11,7 @@ package org.locationtech.geowave.core.store.statistics;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
@@ -18,38 +19,14 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
+import org.locationtech.geowave.core.store.statistics.StatisticsRegistrySPI.RegisteredStatistic;
+import com.google.common.collect.Maps;
 
 /**
  * This is responsible for persisting data statistics (either in memory or to disk depending on the
  * implementation).
  */
 public interface DataStatisticsStore {
-  /**
-   * Get registered index statistics.
-   * 
-   * @return a list of index statistics
-   */
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics();
-
-  /**
-   * Get registered adapter statistics that are compatible with the the provided type.
-   * 
-   * @param type the type to get compatible statistics for
-   * @return a list of compatible statistics
-   */
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(
-      final Class<?> adapterDataClass);
-
-  /**
-   * Get registered field statistics that are compatible with the the provided type.
-   * 
-   * @param type the type to get compatible statistics for
-   * @param fieldName the field to get compatible statistics for
-   * @return a map of compatible statistics, keyed by field name
-   */
-  public Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> getRegisteredFieldStatistics(
-      final DataTypeAdapter<?> type,
-      final @Nullable String fieldName);
 
   /**
    * Determines if the given statistic exists in the data store.

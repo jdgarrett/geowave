@@ -6,7 +6,7 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.core.store.data.visibility;
+package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -14,6 +14,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -22,22 +23,20 @@ import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveValue;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import org.locationtech.geowave.core.store.util.VisibilityExpression;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class FieldVisibilityCount extends
-    IndexStatistic<FieldVisibilityCount.FieldVisibilityCountValue> {
+public class FieldVisibilityCountStatistic extends
+    IndexStatistic<FieldVisibilityCountStatistic.FieldVisibilityCountValue> {
   public static final IndexStatisticType<FieldVisibilityCountValue> STATS_TYPE =
       new IndexStatisticType<>("FIELD_VISIBILITY_COUNT");
 
-  public FieldVisibilityCount() {
+  public FieldVisibilityCountStatistic() {
     super(STATS_TYPE);
   }
 
-  public FieldVisibilityCount(final String indexName) {
+  public FieldVisibilityCountStatistic(final String indexName) {
     super(STATS_TYPE, indexName);
   }
 
@@ -57,7 +56,11 @@ public class FieldVisibilityCount extends
       StatisticsDeleteCallback {
     private final Map<ByteArray, Long> countsPerVisibility = Maps.newHashMap();
 
-    private FieldVisibilityCountValue(final Statistic<?> statistic) {
+    public FieldVisibilityCountValue() {
+      this(null);
+    }
+
+    public FieldVisibilityCountValue(final Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -75,7 +78,7 @@ public class FieldVisibilityCount extends
     }
 
     @Override
-    public void merge(StatisticValue<Map<ByteArray, Long>> merge) {
+    public void merge(Mergeable merge) {
       if ((merge != null) && (merge instanceof FieldVisibilityCountValue)) {
         final Map<ByteArray, Long> otherCounts =
             ((FieldVisibilityCountValue) merge).countsPerVisibility;

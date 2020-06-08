@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -52,12 +53,16 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
 
     private Set<ByteArray> partitions = new HashSet<>();
 
-    private PartitionsValue(Statistic<?> statistic) {
+    public PartitionsValue() {
+      this(null);
+    }
+
+    public PartitionsValue(Statistic<?> statistic) {
       super(statistic);
     }
 
     @Override
-    public void merge(StatisticValue<Set<ByteArray>> merge) {
+    public void merge(Mergeable merge) {
       if (merge instanceof PartitionsValue) {
         partitions.addAll(((PartitionsValue) merge).partitions);
       }

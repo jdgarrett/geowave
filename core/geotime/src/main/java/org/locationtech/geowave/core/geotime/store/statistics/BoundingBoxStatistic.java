@@ -168,19 +168,23 @@ public class BoundingBoxStatistic extends FieldStatistic<BoundingBoxStatistic.Bo
 
   public static class BoundingBoxValue extends AbstractBoundingBoxValue {
 
-    private BoundingBoxValue(final Statistic<?> statistic) {
+    public BoundingBoxValue() {
+      this(null);
+    }
+
+    public BoundingBoxValue(final Statistic<?> statistic) {
       super(statistic);
     }
 
     @Override
     public <T> Envelope getEnvelope(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      BoundingBoxStatistic statistic = (BoundingBoxStatistic) getStatistic();
-      Object fieldValue = adapter.getFieldValue(entry, statistic.getFieldName());
+      BoundingBoxStatistic bboxStatistic = (BoundingBoxStatistic) statistic;
+      Object fieldValue = adapter.getFieldValue(entry, bboxStatistic.getFieldName());
 
       if ((fieldValue != null) && (fieldValue instanceof Geometry)) {
         Geometry geometry = (Geometry) fieldValue;
-        if (statistic.getTransform() != null) {
-          geometry = GeometryUtils.crsTransform(geometry, statistic.getTransform());
+        if (bboxStatistic.getTransform() != null) {
+          geometry = GeometryUtils.crsTransform(geometry, bboxStatistic.getTransform());
         }
         if (geometry != null && !geometry.isEmpty()) {
           return geometry.getEnvelopeInternal();

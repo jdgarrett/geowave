@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.locationtech.geowave.core.geotime.index.dimension.LatitudeDefinition;
 import org.locationtech.geowave.core.geotime.index.dimension.LongitudeDefinition;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.dimension.NumericDimensionDefinition;
 import org.locationtech.geowave.core.index.sfc.data.NumericRange;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -80,7 +81,7 @@ public abstract class AbstractBoundingBoxValue extends StatisticValue<Envelope> 
   }
 
   @Override
-  public void merge(StatisticValue<Envelope> merge) {
+  public void merge(Mergeable merge) {
     if ((merge != null) && (merge instanceof AbstractBoundingBoxValue)) {
       final AbstractBoundingBoxValue bboxStats = (AbstractBoundingBoxValue) merge;
       if (bboxStats.isSet()) {

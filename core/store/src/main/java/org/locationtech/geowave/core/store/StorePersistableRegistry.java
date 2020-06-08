@@ -14,13 +14,10 @@ import org.locationtech.geowave.core.store.adapter.InternalDataAdapterWrapper;
 import org.locationtech.geowave.core.store.adapter.SimpleRowTransform;
 import org.locationtech.geowave.core.store.api.AggregationQuery;
 import org.locationtech.geowave.core.store.api.Query;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
 import org.locationtech.geowave.core.store.index.BasicIndexModel;
 import org.locationtech.geowave.core.store.index.CustomIndex;
 import org.locationtech.geowave.core.store.index.CustomNameIndex;
 import org.locationtech.geowave.core.store.index.IndexImpl;
-import org.locationtech.geowave.core.store.index.IndexMetaDataSet;
 import org.locationtech.geowave.core.store.index.NullIndex;
 import org.locationtech.geowave.core.store.query.aggregate.CountAggregation;
 import org.locationtech.geowave.core.store.query.aggregate.DataStatisticsAggregation;
@@ -54,15 +51,6 @@ import org.locationtech.geowave.core.store.query.options.FilterByTypeQueryOption
 import org.locationtech.geowave.core.store.query.options.QueryAllIndices;
 import org.locationtech.geowave.core.store.query.options.QueryAllTypes;
 import org.locationtech.geowave.core.store.query.options.QuerySingleIndex;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
-import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
-import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
-import org.locationtech.geowave.core.store.statistics.index.MaxDuplicatesStatistic;
-import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
-import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 
 public class StorePersistableRegistry implements PersistableRegistrySpi {
 
@@ -70,13 +58,7 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
   public PersistableIdAndConstructor[] getSupportedPersistables() {
     return new PersistableIdAndConstructor[] {
         new PersistableIdAndConstructor((short) 200, AdapterToIndexMapping::new),
-        new PersistableIdAndConstructor((short) 201, CountStatistic::new),
-        new PersistableIdAndConstructor((short) 202, DuplicateEntryCountStatistic::new),
-        new PersistableIdAndConstructor((short) 203, MaxDuplicatesStatistic::new),
-        new PersistableIdAndConstructor((short) 204, NumericRangeStatistic::new),
-        new PersistableIdAndConstructor((short) 205, RowRangeHistogramStatistic::new),
-        new PersistableIdAndConstructor((short) 206, DifferingFieldVisibilityEntryCount::new),
-        new PersistableIdAndConstructor((short) 207, FieldVisibilityCount::new),
+        // 201-207 Unused
         new PersistableIdAndConstructor((short) 208, AdapterIdQueryFilter::new),
         new PersistableIdAndConstructor((short) 209, BasicQueryFilter::new),
         new PersistableIdAndConstructor((short) 210, DataIdQueryFilter::new),
@@ -84,15 +66,12 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 212, DataIdQuery::new),
         new PersistableIdAndConstructor((short) 213, PrefixIdQueryFilter::new),
         new PersistableIdAndConstructor((short) 215, BasicIndexModel::new),
-        new PersistableIdAndConstructor((short) 216, IndexMetaDataSet::new),
+        // 216 Unused
         new PersistableIdAndConstructor((short) 217, IndexImpl::new),
         new PersistableIdAndConstructor((short) 218, CustomNameIndex::new),
         new PersistableIdAndConstructor((short) 219, NullIndex::new),
         new PersistableIdAndConstructor((short) 220, DataIdRangeQuery::new),
-        new PersistableIdAndConstructor((short) 221, AdapterBinningStrategy::new),
-        new PersistableIdAndConstructor((short) 222, PartitionBinningStrategy::new),
-        new PersistableIdAndConstructor((short) 223, CompositeBinningStrategy::new),
-        // 224-227 Unused
+        // 221-227 Unused
         new PersistableIdAndConstructor((short) 228, BasicQueryByClass::new),
         new PersistableIdAndConstructor((short) 229, CoordinateRangeQuery::new),
         new PersistableIdAndConstructor((short) 230, CoordinateRangeQueryFilter::new),
@@ -101,7 +80,7 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         new PersistableIdAndConstructor((short) 233, CountAggregation::new),
         new PersistableIdAndConstructor((short) 234, DataStatisticsAggregation::new),
         new PersistableIdAndConstructor((short) 235, InsertionIdQueryFilter::new),
-        new PersistableIdAndConstructor((short) 236, PartitionsStatistic::new),
+        // 236 Unused
         new PersistableIdAndConstructor((short) 237, FilterByTypeQueryOptions::new),
         new PersistableIdAndConstructor((short) 238, QueryAllIndices::new),
         // 239-240 Unused

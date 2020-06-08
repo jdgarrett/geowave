@@ -19,10 +19,6 @@ import org.locationtech.geowave.adapter.raster.adapter.merge.nodata.NoDataByFilt
 import org.locationtech.geowave.adapter.raster.adapter.merge.nodata.NoDataBySampleIndex;
 import org.locationtech.geowave.adapter.raster.adapter.merge.nodata.NoDataMergeStrategy;
 import org.locationtech.geowave.adapter.raster.stats.HistogramConfig;
-import org.locationtech.geowave.adapter.raster.stats.RasterHistogramStatistic;
-import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic;
-import org.locationtech.geowave.adapter.raster.stats.RasterBoundingBoxStatistic;
-import org.locationtech.geowave.adapter.raster.stats.RasterFootprintStatistic;
 import org.locationtech.geowave.core.index.persist.PersistableRegistrySpi;
 import org.locationtech.geowave.core.store.util.CompoundHierarchicalIndexStrategyWrapper;
 
@@ -41,10 +37,6 @@ public class RasterAdapterPersistableRegistry implements PersistableRegistrySpi 
         new PersistableIdAndConstructor((short) 607, NoDataBySampleIndex::new),
         new PersistableIdAndConstructor((short) 608, NoDataMergeStrategy::new),
         new PersistableIdAndConstructor((short) 609, HistogramConfig::new),
-        new PersistableIdAndConstructor((short) 610, RasterHistogramStatistic::new),
-        new PersistableIdAndConstructor((short) 611, RasterOverviewStatistic::new),
-        new PersistableIdAndConstructor((short) 612, RasterBoundingBoxStatistic::new),
-        new PersistableIdAndConstructor((short) 613, RasterFootprintStatistic::new),
         new PersistableIdAndConstructor((short) 614, ServerMergeableRasterTile::new),
         new PersistableIdAndConstructor((short) 615, SingleAdapterServerMergeStrategy::new),
         new PersistableIdAndConstructor((short) 616, ClientMergeableRasterTile::new),};

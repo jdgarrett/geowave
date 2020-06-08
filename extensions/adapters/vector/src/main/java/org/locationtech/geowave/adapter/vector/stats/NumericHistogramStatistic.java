@@ -15,6 +15,7 @@ import org.HdrHistogram.AbstractHistogram;
 import org.HdrHistogram.DoubleHistogram;
 import org.HdrHistogram.Histogram;
 import org.apache.commons.lang3.tuple.Pair;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -46,7 +47,7 @@ public class NumericHistogramStatistic extends
 
   @Override
   public NumericHistogramValue createEmpty() {
-    return new NumericHistogramValue(this, getFieldName());
+    return new NumericHistogramValue(this);
   }
 
   @Override
@@ -61,14 +62,16 @@ public class NumericHistogramStatistic extends
     // formula provided
     private final double maxValue = (Math.pow(2, 63) / Math.pow(2, 14)) - 1;
     private final double minValue = -(maxValue);
-    private final String fieldName;
 
     private DoubleHistogram positiveHistogram = new LocalDoubleHistogram();
     private DoubleHistogram negativeHistogram = null;
 
-    private NumericHistogramValue(final Statistic<?> statistic, final String fieldName) {
+    public NumericHistogramValue() {
+      this(null);
+    }
+
+    private NumericHistogramValue(final Statistic<?> statistic) {
       super(statistic);
-      this.fieldName = fieldName;
     }
 
     private double percentageNegative() {
@@ -150,7 +153,7 @@ public class NumericHistogramStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<Pair<DoubleHistogram, DoubleHistogram>> merge) {
+    public void merge(Mergeable merge) {
       if (merge instanceof NumericHistogramValue) {
         positiveHistogram.add(((NumericHistogramValue) merge).positiveHistogram);
         if (((NumericHistogramValue) merge).negativeHistogram != null) {
@@ -165,7 +168,8 @@ public class NumericHistogramStatistic extends
 
     @Override
     public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      final Object o = adapter.getFieldValue(entry, fieldName);
+      final Object o =
+          adapter.getFieldValue(entry, ((NumericHistogramStatistic) statistic).getFieldName());
       if (o == null) {
         return;
       }

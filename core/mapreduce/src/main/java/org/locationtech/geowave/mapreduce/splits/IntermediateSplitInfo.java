@@ -29,10 +29,10 @@ import org.locationtech.geowave.core.store.adapter.TransientAdapterStore;
 import org.locationtech.geowave.core.store.adapter.statistics.histogram.ByteUtils;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.base.BaseDataStoreUtils;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.FieldVisibilityCountValue;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
+import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic.FieldVisibilityCountValue;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic.RowRangeHistogramValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -309,7 +309,7 @@ public class IntermediateSplitInfo implements Comparable<IntermediateSplitInfo> 
       final List<Short> adapterIds = indexIdToAdaptersMap.get(si.getIndex().getName());
       final PersistentAdapterStore persistentAdapterStore =
           new AdapterStoreWrapper(adapterStore, internalAdapterStore);
-      final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts =
+      final DifferingVisibilityCountValue differingVisibilityCounts =
           InternalStatisticsHelper.getDifferingVisibilityCounts(
               si.getIndex(),
               adapterIds,

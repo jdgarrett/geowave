@@ -15,7 +15,7 @@ import org.bouncycastle.util.Arrays;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.adapter.raster.adapter.RasterDataAdapter;
 import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic;
-import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic.OverviewValue;
+import org.locationtech.geowave.adapter.raster.stats.RasterOverviewStatistic.RasterOverviewValue;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.Command;
 import org.locationtech.geowave.core.cli.api.DefaultOperation;
@@ -155,7 +155,7 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
           final Statistic<? extends StatisticValue<?>> next = it.next();
           if (next instanceof RasterOverviewStatistic && next.getBinningStrategy() == null) {
             RasterOverviewStatistic statistic = (RasterOverviewStatistic) next;
-            OverviewValue value = statsStore.getStatisticValue(statistic);
+            RasterOverviewValue value = statsStore.getStatisticValue(statistic);
             if (!value.removeResolution(res)) {
               LOGGER.error("Unable to remove resolution for pyramid level " + level);
               return;

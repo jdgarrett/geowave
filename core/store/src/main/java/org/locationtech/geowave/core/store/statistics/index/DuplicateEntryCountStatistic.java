@@ -9,6 +9,7 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -46,7 +47,11 @@ public class DuplicateEntryCountStatistic extends
 
     private long entriesWithDuplicates = 0L;
 
-    private DuplicateEntryCountValue(final Statistic<?> statistic) {
+    public DuplicateEntryCountValue() {
+      this(null);
+    }
+
+    public DuplicateEntryCountValue(final Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -60,9 +65,9 @@ public class DuplicateEntryCountStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<Long> merge) {
+    public void merge(Mergeable merge) {
       if ((merge != null) && (merge instanceof DuplicateEntryCountValue)) {
-        entriesWithDuplicates += merge.getValue();
+        entriesWithDuplicates += ((DuplicateEntryCountValue) merge).getValue();
       }
     }
 

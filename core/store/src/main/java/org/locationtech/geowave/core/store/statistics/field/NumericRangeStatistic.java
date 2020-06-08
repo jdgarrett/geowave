@@ -10,6 +10,7 @@ package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
 import org.apache.commons.lang3.Range;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -41,19 +42,20 @@ public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.
 
   @Override
   public NumericRangeValue createEmpty() {
-    return new NumericRangeValue(this, getFieldName());
+    return new NumericRangeValue(this);
   }
 
   public static class NumericRangeValue extends StatisticValue<Range<Double>> implements
       StatisticsIngestCallback {
-    private final String fieldName;
-
     private double min = Double.MAX_VALUE;
     private double max = -Double.MAX_VALUE;
 
-    private NumericRangeValue(final Statistic<?> statistic, final String fieldName) {
+    public NumericRangeValue() {
+      this(null);
+    }
+
+    private NumericRangeValue(final Statistic<?> statistic) {
       super(statistic);
-      this.fieldName = fieldName;
     }
 
     public boolean isSet() {
@@ -76,7 +78,7 @@ public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.
     }
 
     @Override
-    public void merge(StatisticValue<Range<Double>> merge) {
+    public void merge(Mergeable merge) {
       if (merge != null && merge instanceof NumericRangeValue) {
         final NumericRangeValue other = (NumericRangeValue) merge;
         if (other.isSet()) {
@@ -88,8 +90,8 @@ public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.
 
     @Override
     public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      // TODO Auto-generated method stub
-      final Object o = adapter.getFieldValue(entry, fieldName);
+      final Object o =
+          adapter.getFieldValue(entry, ((NumericRangeStatistic) getStatistic()).getFieldName());
       if (o == null) {
         return;
       }

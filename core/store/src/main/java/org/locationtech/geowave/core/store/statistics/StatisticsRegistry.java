@@ -9,9 +9,12 @@
 package org.locationtech.geowave.core.store.statistics;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -77,6 +80,56 @@ public class StatisticsRegistry {
   }
 
   /**
+   * Get registered index statistics.
+   * 
+   * @return a list of index statistics
+   */
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics() {
+    return statistics.values().stream().filter(RegisteredStatistic::isIndexStatistic).map(
+        s -> s.getStatisticConstructor().get()).collect(Collectors.toList());
+  }
+
+  /**
+   * Get registered adapter statistics that are compatible with the the provided type.
+   * 
+   * @param type the type to get compatible statistics for
+   * @return a list of compatible statistics
+   */
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(
+      Class<?> adapterDataClass) {
+    return statistics.values().stream().filter(
+        s -> s.isAdapterStatistic() && s.isCompatibleWith(adapterDataClass)).map(
+            s -> s.getStatisticConstructor().get()).collect(Collectors.toList());
+  }
+
+  /**
+   * Get registered field statistics that are compatible with the the provided type.
+   * 
+   * @param type the type to get compatible statistics for
+   * @param fieldName the field to get compatible statistics for
+   * @return a map of compatible statistics, keyed by field name
+   */
+  public Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> getRegisteredFieldStatistics(
+      DataTypeAdapter<?> type,
+      String fieldName) {
+    Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> fieldStatistics =
+        Maps.newHashMap();
+    final int fieldCount = type.getFieldCount();
+    for (int i = 0; i < fieldCount; i++) {
+      String name = type.getFieldName(i);
+      Class<?> fieldClass = type.getFieldClass(i);
+      if (fieldName == null || fieldName.equals(name)) {
+        List<Statistic<StatisticValue<Object>>> fieldOptions =
+            statistics.values().stream().filter(
+                s -> s.isFieldStatistic() && s.isCompatibleWith(fieldClass)).map(
+                    s -> s.getStatisticConstructor().get()).collect(Collectors.toList());
+        fieldStatistics.put(name, fieldOptions);
+      }
+    }
+    return fieldStatistics;
+  }
+
+  /**
    * Retrieves the options class for the given statistics type.
    * 
    * @param statType the statistics type
@@ -97,7 +150,7 @@ public class StatisticsRegistry {
     if (statistic == null) {
       return null;
     }
-    return statistic.getOptionsConstructor().get();
+    return statistic.getStatisticConstructor().get();
   }
 
 

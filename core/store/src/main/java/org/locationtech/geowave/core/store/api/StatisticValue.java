@@ -1,14 +1,15 @@
 package org.locationtech.geowave.core.store.api;
 
 import org.locationtech.geowave.core.index.ByteArray;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.statistics.StatisticId;
 import com.google.common.primitives.Bytes;
 
-public abstract class StatisticValue<R> {
+public abstract class StatisticValue<R> implements Mergeable {
   public static final ByteArray NO_BIN = new ByteArray();
-  private final Statistic<?> statistic;
+  protected final Statistic<?> statistic;
 
-  private ByteArray bin = NO_BIN;
+  protected ByteArray bin = NO_BIN;
 
   public StatisticValue(final Statistic<?> statistic) {
     this.statistic = statistic;
@@ -42,13 +43,16 @@ public abstract class StatisticValue<R> {
     return bin;
   }
 
+  /**
+   * Merge another statistic value into this one.
+   * 
+   * IMPORTANT: This function cannot guarantee that the Statistic will be available. Any variables
+   * needed from the statistic for merging must be serialized with the value.
+   */
+  @Override
+  public abstract void merge(Mergeable merge);
+
   public abstract R getValue();
-
-  public abstract byte[] toBinary();
-
-  public abstract void fromBinary(byte[] bytes);
-
-  public abstract void merge(StatisticValue<R> merge);
 
   public static byte[] getValueId(StatisticId<?> statisticId, ByteArray bin) {
     if (bin != null) {

@@ -41,12 +41,12 @@ import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.data.VisibilityWriter;
 import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
 import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
 import org.locationtech.geowave.test.GeoWaveITRunner;
 import org.locationtech.geowave.test.TestUtils;
 import org.locationtech.geowave.test.annotation.GeoWaveTestStore;
@@ -532,7 +532,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
   public static void testIngestAndQueryVisibilityFields(
       final DataStorePluginOptions dataStoreOptions,
       final VisibilityWriter<SimpleFeature> visibilityWriter,
-      final Consumer<DifferingFieldVisibilityEntryCountValue> verifyDifferingVisibilities,
+      final Consumer<DifferingVisibilityCountValue> verifyDifferingVisibilities,
       final QuadConsumer<DataStore, DataStatisticsStore, Short, Boolean> verifyQuery,
       final int totalFeatures) {
     final SimpleFeatureBuilder bldr = new SimpleFeatureBuilder(getType());
@@ -553,10 +553,10 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
     final InternalAdapterStore internalDataStore = dataStoreOptions.createInternalAdapterStore();
     final short internalAdapterId = internalDataStore.getAdapterId(adapter.getTypeName());
 
-    DifferingFieldVisibilityEntryCountValue count =
+    DifferingVisibilityCountValue count =
         dataStore.aggregateStatistics(
             StatisticQueryBuilder.newBuilder(
-                DifferingFieldVisibilityEntryCount.STATS_TYPE).indexName(
+                DifferingVisibilityCountStatistic.STATS_TYPE).indexName(
                     TestUtils.DEFAULT_SPATIAL_INDEX.getName()).addBin(
                         AdapterBinningStrategy.getBin(adapter)).build());
     verifyDifferingVisibilities.accept(count);

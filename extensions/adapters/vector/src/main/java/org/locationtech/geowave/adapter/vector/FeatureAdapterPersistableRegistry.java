@@ -26,8 +26,6 @@ import org.locationtech.geowave.adapter.vector.render.DistributedRenderResult;
 import org.locationtech.geowave.adapter.vector.render.DistributedRenderResult.CompositeGroupResult;
 import org.locationtech.geowave.adapter.vector.render.PersistableComposite;
 import org.locationtech.geowave.adapter.vector.render.PersistableRenderedImage;
-import org.locationtech.geowave.adapter.vector.stats.HyperLogLogStatistic;
-import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistic;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection.SimpleFeatureStatsConfigurationCollection;
 import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureCountMinSketchConfig;
@@ -38,8 +36,6 @@ import org.locationtech.geowave.adapter.vector.stats.legacy.FeatureNumericRangeC
 import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigurationSet;
 import org.locationtech.geowave.core.geotime.store.query.ExplicitCQLQuery;
 import org.locationtech.geowave.core.geotime.store.query.filter.CQLQueryFilter;
-import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatistic;
-import org.locationtech.geowave.core.geotime.store.statistics.TimeRangeStatistic;
 import org.locationtech.geowave.core.geotime.util.TimeDescriptors.TimeDescriptorConfiguration;
 import org.locationtech.geowave.core.index.persist.PersistableList;
 import org.locationtech.geowave.core.index.persist.PersistableRegistrySpi;
@@ -63,8 +59,6 @@ public class FeatureAdapterPersistableRegistry implements PersistableRegistrySpi
         new PersistableIdAndConstructor((short) 511, DistributedRenderResult::new),
         new PersistableIdAndConstructor((short) 512, PersistableComposite::new),
         new PersistableIdAndConstructor((short) 513, PersistableRenderedImage::new),
-        new PersistableIdAndConstructor((short) 517, HyperLogLogStatistic::new),
-        new PersistableIdAndConstructor((short) 518, NumericHistogramStatistic::new),
         new PersistableIdAndConstructor((short) 521, DistributedRenderAggregation::new),
         new PersistableIdAndConstructor((short) 522, SimpleFeatureUserDataConfigurationSet::new),
         new PersistableIdAndConstructor((short) 523, TimeDescriptorConfiguration::new),

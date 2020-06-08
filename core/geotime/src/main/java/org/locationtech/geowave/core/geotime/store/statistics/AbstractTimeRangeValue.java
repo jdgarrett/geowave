@@ -6,6 +6,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import org.locationtech.geowave.core.geotime.store.query.TemporalRange;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -92,7 +93,7 @@ public abstract class AbstractTimeRangeValue extends StatisticValue<Interval> im
       final GeoWaveRow... rows);
 
   @Override
-  public void merge(final StatisticValue<Interval> merge) {
+  public void merge(final Mergeable merge) {
     if ((merge != null) && (merge instanceof AbstractTimeRangeValue)) {
       final AbstractTimeRangeValue stats = (AbstractTimeRangeValue) merge;
       if (stats.isSet()) {

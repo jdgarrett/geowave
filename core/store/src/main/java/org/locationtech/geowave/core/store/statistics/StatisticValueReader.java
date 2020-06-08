@@ -1,6 +1,7 @@
 package org.locationtech.geowave.core.store.statistics;
 
 import java.util.Arrays;
+import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
@@ -37,7 +38,7 @@ public class StatisticValueReader<V extends StatisticValue<R>, R> implements Clo
       final GeoWaveMetadata row = metadataIter.next();
 
       final V entry = statistic.createEmpty();
-      entry.fromBinary(row.getValue());
+      entry.fromBinary(PersistenceUtils.stripClassId(row.getValue()));
       if (currentValue == null) {
         currentValue = entry;
         if (statistic.getBinningStrategy() != null) {

@@ -17,21 +17,21 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
 import org.opengis.coverage.grid.GridCoverage;
 
 public class RasterOverviewStatistic extends
-    AdapterStatistic<RasterOverviewStatistic.OverviewValue> {
-  public static final AdapterStatisticType<OverviewValue> STATS_TYPE =
+    AdapterStatistic<RasterOverviewStatistic.RasterOverviewValue> {
+  public static final AdapterStatisticType<RasterOverviewValue> STATS_TYPE =
       new AdapterStatisticType<>("RASTER_OVERVIEW");
 
 
@@ -54,15 +54,19 @@ public class RasterOverviewStatistic extends
   }
 
   @Override
-  public OverviewValue createEmpty() {
-    return new OverviewValue(this);
+  public RasterOverviewValue createEmpty() {
+    return new RasterOverviewValue(this);
   }
 
-  public static class OverviewValue extends StatisticValue<Resolution[]> implements
+  public static class RasterOverviewValue extends StatisticValue<Resolution[]> implements
       StatisticsIngestCallback {
     private Resolution[] resolutions = new Resolution[] {};
 
-    private OverviewValue(final Statistic<?> statistic) {
+    public RasterOverviewValue() {
+      this(null);
+    }
+
+    public RasterOverviewValue(final Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -86,10 +90,11 @@ public class RasterOverviewStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<Resolution[]> merge) {
-      if (merge instanceof OverviewValue) {
+    public void merge(Mergeable merge) {
+      if (merge instanceof RasterOverviewValue) {
         synchronized (this) {
-          resolutions = incorporateResolutions(resolutions, ((OverviewValue) merge).getValue());
+          resolutions =
+              incorporateResolutions(resolutions, ((RasterOverviewValue) merge).getValue());
         }
       }
     }

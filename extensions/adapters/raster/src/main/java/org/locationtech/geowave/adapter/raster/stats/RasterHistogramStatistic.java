@@ -31,13 +31,12 @@ import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.adapter.raster.Resolution;
 import org.locationtech.geowave.adapter.raster.plugin.GeoWaveGTRasterFormat;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
@@ -82,7 +81,7 @@ public class RasterHistogramStatistic extends
 
   @Override
   public RasterHistogramValue createEmpty() {
-    return new RasterHistogramValue(this, histogramConfig);
+    return new RasterHistogramValue(this);
   }
 
   // Cache this so we don't have to serialize the histogram multiple times
@@ -118,13 +117,16 @@ public class RasterHistogramStatistic extends
       StatisticValue<Map<Resolution, javax.media.jai.Histogram>> implements
       StatisticsIngestCallback {
     private final Map<Resolution, javax.media.jai.Histogram> histograms = new HashMap<>();
-    private final HistogramConfig histogramConfig;
+    private HistogramConfig histogramConfig;
 
-    private RasterHistogramValue(
-        final Statistic<?> statistic,
-        final HistogramConfig histogramConfig) {
+    public RasterHistogramValue() {
+      super(null);
+      this.histogramConfig = null;
+    }
+
+    private RasterHistogramValue(final RasterHistogramStatistic statistic) {
       super(statistic);
-      this.histogramConfig = histogramConfig;
+      this.histogramConfig = statistic.histogramConfig;
     }
 
     public Set<Resolution> getResolutions() {
@@ -136,7 +138,7 @@ public class RasterHistogramStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<Map<Resolution, javax.media.jai.Histogram>> merge) {
+    public void merge(Mergeable merge) {
       if ((merge != null) && (merge instanceof RasterHistogramValue)) {
         final Set<Resolution> resolutions = new HashSet<>(getResolutions());
         resolutions.addAll(((RasterHistogramValue) merge).getResolutions());

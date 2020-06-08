@@ -10,6 +10,7 @@ package org.locationtech.geowave.adapter.vector.stats;
 
 import java.nio.ByteBuffer;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -89,7 +90,7 @@ public class CountMinSketchStatistic extends
 
   @Override
   public CountMinSketchValue createEmpty() {
-    return new CountMinSketchValue(this, getFieldName(), errorFactor, probabilityOfCorrectness);
+    return new CountMinSketchValue(this);
   }
 
   @Override
@@ -114,17 +115,17 @@ public class CountMinSketchStatistic extends
   public static class CountMinSketchValue extends StatisticValue<CountMinSketch> implements
       StatisticsIngestCallback {
 
-    private final String fieldName;
     private CountMinSketch sketch;
 
-    private CountMinSketchValue(
-        final Statistic<?> statistic,
-        final String fieldName,
-        final double errorFactor,
-        final double probabilityOfCorrectness) {
+    public CountMinSketchValue() {
+      super(null);
+      sketch = null;
+    }
+
+    public CountMinSketchValue(final CountMinSketchStatistic statistic) {
       super(statistic);
-      this.fieldName = fieldName;
-      sketch = new CountMinSketch(errorFactor, probabilityOfCorrectness, 7364181);
+      sketch =
+          new CountMinSketch(statistic.errorFactor, statistic.probabilityOfCorrectness, 7364181);
     }
 
     public long totalSampleSize() {
@@ -136,7 +137,7 @@ public class CountMinSketchStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<CountMinSketch> merge) {
+    public void merge(Mergeable merge) {
       if (merge instanceof CountMinSketchValue) {
         try {
           sketch = CountMinSketch.merge(sketch, ((CountMinSketchValue) merge).sketch);
@@ -148,7 +149,8 @@ public class CountMinSketchStatistic extends
 
     @Override
     public <T> void entryIngested(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      final Object o = adapter.getFieldValue(entry, fieldName);
+      final Object o =
+          adapter.getFieldValue(entry, ((CountMinSketchStatistic) statistic).getFieldName());
       if (o == null) {
         return;
       }

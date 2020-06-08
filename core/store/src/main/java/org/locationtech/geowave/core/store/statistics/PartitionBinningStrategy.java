@@ -17,6 +17,9 @@ public class PartitionBinningStrategy implements StatisticBinningStrategy {
   }
 
   public static ByteArray getBin(final byte[] partitionKey) {
+    if (partitionKey == null) {
+      return new ByteArray();
+    }
     return new ByteArray(partitionKey);
   }
 

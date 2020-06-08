@@ -16,7 +16,6 @@ import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.operations.MetadataDeleter;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
-import org.locationtech.geowave.core.store.operations.MetadataQuery.PrimaryIdQueryType;
 import org.locationtech.geowave.core.store.operations.MetadataType;
 import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
@@ -26,8 +25,6 @@ import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticUpdateCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticValueReader;
 import org.locationtech.geowave.core.store.statistics.StatisticValueWriter;
-import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
-import org.locationtech.geowave.core.store.statistics.StatisticsRegistrySPI.RegisteredStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatisticId;
@@ -36,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class DataStatisticsStoreImpl extends
     AbstractGeoWavePersistence<Statistic<? extends StatisticValue<?>>> implements
@@ -59,42 +55,6 @@ public class DataStatisticsStoreImpl extends
   @Override
   protected ByteArray getSecondaryId(Statistic<? extends StatisticValue<?>> persistedObject) {
     return persistedObject.getId().getGroupId();
-  }
-
-  @Override
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics() {
-    return StatisticsRegistry.instance().getStatistics().values().stream().filter(
-        RegisteredStatistic::isIndexStatistic).map(s -> s.getOptionsConstructor().get()).collect(
-            Collectors.toList());
-  }
-
-  @Override
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(
-      Class<?> adapterDataClass) {
-    return StatisticsRegistry.instance().getStatistics().values().stream().filter(
-        s -> s.isAdapterStatistic() && s.isCompatibleWith(adapterDataClass)).map(
-            s -> s.getOptionsConstructor().get()).collect(Collectors.toList());
-  }
-
-  @Override
-  public Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> getRegisteredFieldStatistics(
-      DataTypeAdapter<?> type,
-      String fieldName) {
-    Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> statistics =
-        Maps.newHashMap();
-    final int fieldCount = type.getFieldCount();
-    for (int i = 0; i < fieldCount; i++) {
-      String name = type.getFieldName(i);
-      Class<?> fieldClass = type.getFieldClass(i);
-      if (fieldName == null || fieldName.equals(name)) {
-        List<Statistic<StatisticValue<Object>>> fieldOptions =
-            StatisticsRegistry.instance().getStatistics().values().stream().filter(
-                s -> s.isFieldStatistic() && s.isCompatibleWith(fieldClass)).map(
-                    s -> s.getOptionsConstructor().get()).collect(Collectors.toList());
-        statistics.put(name, fieldOptions);
-      }
-    }
-    return statistics;
   }
 
   @Override
@@ -224,10 +184,7 @@ public class DataStatisticsStoreImpl extends
       return new TagFilter(stats, tag);
     } else if (tag == null) {
       return internalGetObjects(
-          new MetadataQuery(
-              statisticType.getBytes(),
-              secondaryId.getBytes(),
-              PrimaryIdQueryType.PREFIX));
+          new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes(), true));
     }
     return getCachedObject(StatisticId.generateUniqueId(statisticType, tag), secondaryId);
   }
@@ -244,26 +201,17 @@ public class DataStatisticsStoreImpl extends
           return getCachedObject(primaryId, secondaryId);
         } else {
           return internalGetObjects(
-              new MetadataQuery(
-                  primaryId.getBytes(),
-                  secondaryId.getBytes(),
-                  PrimaryIdQueryType.PREFIX));
+              new MetadataQuery(primaryId.getBytes(), secondaryId.getBytes(), true));
         }
       } else {
         if (tag != null) {
           return new TagFilter(
               internalGetObjects(
-                  new MetadataQuery(
-                      statisticType.getBytes(),
-                      secondaryId.getBytes(),
-                      PrimaryIdQueryType.PREFIX)),
+                  new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes(), true)),
               tag);
         } else {
           return internalGetObjects(
-              new MetadataQuery(
-                  statisticType.getBytes(),
-                  secondaryId.getBytes(),
-                  PrimaryIdQueryType.PREFIX));
+              new MetadataQuery(statisticType.getBytes(), secondaryId.getBytes(), true));
         }
       }
     }
@@ -273,10 +221,7 @@ public class DataStatisticsStoreImpl extends
   protected CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAllStatisticsInternal(
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType) {
     return internalGetObjects(
-        new MetadataQuery(
-            statisticType == null ? null : statisticType.getBytes(),
-            null,
-            PrimaryIdQueryType.PREFIX));
+        new MetadataQuery(statisticType == null ? null : statisticType.getBytes(), null, true));
   }
 
   @Override
@@ -409,7 +354,7 @@ public class DataStatisticsStoreImpl extends
         new MetadataQuery(
             StatisticValue.getValueId(statistic.getId(), bin),
             statistic.getId().getGroupId().getBytes(),
-            exact ? PrimaryIdQueryType.EXACT : PrimaryIdQueryType.PREFIX,
+            !exact,
             authorizations);
     return new StatisticValueReader<>(
         operations.createMetadataReader(MetadataType.STAT_VALUES).query(query),

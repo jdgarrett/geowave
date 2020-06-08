@@ -258,24 +258,6 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     }
 
     @Override
-    public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(
-        Class<?> adapterDataClass) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Map<String, List<? extends Statistic<? extends StatisticValue<?>>>> getRegisteredFieldStatistics(
-        DataTypeAdapter<?> type,
-        String fieldName) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public boolean exists(Statistic<? extends StatisticValue<?>> statistic) {
       throw new UnsupportedOperationException();
     }

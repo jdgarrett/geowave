@@ -38,7 +38,7 @@ public class TimeRangeStatistic extends FieldStatistic<TimeRangeStatistic.TimeRa
 
   @Override
   public TimeRangeValue createEmpty() {
-    return new TimeRangeValue(this, getFieldName());
+    return new TimeRangeValue(this);
   }
 
   @Override
@@ -50,16 +50,18 @@ public class TimeRangeStatistic extends FieldStatistic<TimeRangeStatistic.TimeRa
 
   public static class TimeRangeValue extends AbstractTimeRangeValue {
 
-    private final String fieldName;
+    public TimeRangeValue() {
+      this(null);
+    }
 
-    public TimeRangeValue(final Statistic<?> statistic, final String fieldName) {
+    public TimeRangeValue(final Statistic<?> statistic) {
       super(statistic);
-      this.fieldName = fieldName;
     }
 
     @Override
     protected <T> Interval getInterval(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
-      Object fieldValue = adapter.getFieldValue(entry, fieldName);
+      Object fieldValue =
+          adapter.getFieldValue(entry, ((TimeRangeStatistic) statistic).getFieldName());
       return TimeUtils.getInterval(fieldValue);
     }
 

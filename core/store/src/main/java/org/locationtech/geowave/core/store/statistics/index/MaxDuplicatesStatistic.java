@@ -9,6 +9,7 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -42,7 +43,11 @@ public class MaxDuplicatesStatistic extends
   public static class MaxDuplicatesValue extends StatisticValue<Integer> implements
       StatisticsIngestCallback {
 
-    private MaxDuplicatesValue(Statistic<?> statistic) {
+    public MaxDuplicatesValue() {
+      this(null);
+    }
+
+    public MaxDuplicatesValue(Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -53,9 +58,9 @@ public class MaxDuplicatesStatistic extends
     }
 
     @Override
-    public void merge(StatisticValue<Integer> merge) {
+    public void merge(Mergeable merge) {
       if (merge != null && merge instanceof MaxDuplicatesValue) {
-        maxDuplicates = Math.max(maxDuplicates, merge.getValue());
+        maxDuplicates = Math.max(maxDuplicates, ((MaxDuplicatesValue) merge).getValue());
       }
     }
 

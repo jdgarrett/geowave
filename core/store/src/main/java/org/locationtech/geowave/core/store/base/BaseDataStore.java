@@ -55,8 +55,6 @@ import org.locationtech.geowave.core.store.callback.DuplicateDeletionCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallbackList;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.FieldVisibilityCountValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowIteratorTransformer;
@@ -88,6 +86,8 @@ import org.locationtech.geowave.core.store.query.filter.DedupeFilter;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
 import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
+import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic.FieldVisibilityCountValue;
 import org.locationtech.geowave.core.store.statistics.query.AdapterStatisticQuery;
 import org.locationtech.geowave.core.store.statistics.query.FieldStatisticQuery;
 import org.locationtech.geowave.core.store.statistics.query.IndexStatisticQuery;
@@ -977,7 +977,7 @@ public class BaseDataStore implements DataStore {
       final BaseQueryOptions sanitizedQueryOptions,
       final PersistentAdapterStore tempAdapterStore,
       final boolean delete) {
-    final DifferingFieldVisibilityEntryCountValue differingVisibilityCounts =
+    final DifferingVisibilityCountValue differingVisibilityCounts =
         InternalStatisticsHelper.getDifferingVisibilityCounts(
             index,
             Collections.singletonList(adapter.getAdapterId()),

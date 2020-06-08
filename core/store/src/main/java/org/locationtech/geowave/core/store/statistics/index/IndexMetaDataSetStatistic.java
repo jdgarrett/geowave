@@ -6,12 +6,13 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.core.store.index;
+package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.locationtech.geowave.core.index.IndexMetaData;
 import org.locationtech.geowave.core.index.InsertionIds;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
@@ -20,26 +21,25 @@ import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import com.clearspring.analytics.util.Lists;
 
-public class IndexMetaDataSet extends IndexStatistic<IndexMetaDataSet.IndexMetaDataSetValue> {
+public class IndexMetaDataSetStatistic extends
+    IndexStatistic<IndexMetaDataSetStatistic.IndexMetaDataSetValue> {
   public static final IndexStatisticType<IndexMetaDataSetValue> STATS_TYPE =
       new IndexStatisticType<>("INDEX_METADATA");
 
   private byte[] metadata = null;
 
-  public IndexMetaDataSet() {
+  public IndexMetaDataSetStatistic() {
     this(null, Lists.newArrayList());
   }
 
-  public IndexMetaDataSet(final String indexName) {
+  public IndexMetaDataSetStatistic(final String indexName) {
     this(indexName, Lists.newArrayList());
   }
 
-  public IndexMetaDataSet(final String indexName, List<IndexMetaData> baseMetadata) {
+  public IndexMetaDataSetStatistic(final String indexName, List<IndexMetaData> baseMetadata) {
     super(STATS_TYPE, indexName);
     this.metadata = PersistenceUtils.toBinary(baseMetadata);
   }
@@ -83,7 +83,11 @@ public class IndexMetaDataSet extends IndexStatistic<IndexMetaDataSet.IndexMetaD
 
     private List<IndexMetaData> metadata;
 
-    private IndexMetaDataSetValue(Statistic<?> statistic) {
+    public IndexMetaDataSetValue() {
+      this(null);
+    }
+
+    public IndexMetaDataSetValue(Statistic<?> statistic) {
       super(statistic);
     }
 
@@ -92,7 +96,7 @@ public class IndexMetaDataSet extends IndexStatistic<IndexMetaDataSet.IndexMetaD
     }
 
     @Override
-    public void merge(StatisticValue<List<IndexMetaData>> merge) {
+    public void merge(Mergeable merge) {
       if ((merge != null) && (merge instanceof IndexMetaDataSetValue)) {
         for (int i = 0; i < metadata.size(); i++) {
           final IndexMetaData imd = metadata.get(i);

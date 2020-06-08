@@ -13,6 +13,7 @@ import org.locationtech.geowave.adapter.raster.FitToIndexGridCoverage;
 import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.core.geotime.util.TWKBReader;
 import org.locationtech.geowave.core.geotime.util.TWKBWriter;
+import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
@@ -58,14 +59,18 @@ public class RasterFootprintStatistic extends
   public static class RasterFootprintValue extends StatisticValue<Geometry> implements
       StatisticsIngestCallback {
 
-    private RasterFootprintValue(final Statistic<?> statistic) {
+    public RasterFootprintValue() {
+      this(null);
+    }
+
+    public RasterFootprintValue(final Statistic<?> statistic) {
       super(statistic);
     }
 
     private Geometry footprint = null;
 
     @Override
-    public void merge(StatisticValue<Geometry> merge) {
+    public void merge(Mergeable merge) {
       if (merge instanceof RasterFootprintValue) {
         footprint =
             RasterUtils.combineIntoOneGeometry(footprint, ((RasterFootprintValue) merge).footprint);

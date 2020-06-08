@@ -12,29 +12,24 @@ public class MetadataQuery {
   private final byte[] primaryId;
   private final byte[] secondaryId;
   private final String[] authorizations;
-
-  public enum PrimaryIdQueryType {
-    EXACT, PREFIX
-  }
-
-  private final PrimaryIdQueryType primaryIdQueryType;
+  private final boolean primaryIdPrefix;
 
   public MetadataQuery(
       final byte[] primaryId,
       final byte[] secondaryId,
       final String... authorizations) {
-    this(primaryId, secondaryId, PrimaryIdQueryType.EXACT, authorizations);
+    this(primaryId, secondaryId, false, authorizations);
   }
 
   public MetadataQuery(
       final byte[] primaryId,
       final byte[] secondaryId,
-      final PrimaryIdQueryType primaryIdQueryType,
+      final boolean primaryIdPrefix,
       final String... authorizations) {
     this.primaryId = primaryId;
     this.secondaryId = secondaryId;
     this.authorizations = authorizations;
-    this.primaryIdQueryType = primaryIdQueryType;
+    this.primaryIdPrefix = primaryIdPrefix;
   }
 
   public byte[] getPrimaryId() {
@@ -54,15 +49,11 @@ public class MetadataQuery {
   }
 
   public boolean isExact() {
-    return primaryIdQueryType.equals(PrimaryIdQueryType.EXACT);
+    return !primaryIdPrefix;
   }
 
   public boolean isPrefix() {
-    return primaryIdQueryType.equals(PrimaryIdQueryType.PREFIX);
-  }
-
-  public PrimaryIdQueryType getPrimaryIdQueryType() {
-    return primaryIdQueryType;
+    return primaryIdPrefix;
   }
 
   public String[] getAuthorizations() {

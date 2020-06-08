@@ -8,24 +8,24 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount;
-import org.locationtech.geowave.core.store.data.visibility.DifferingFieldVisibilityEntryCount.DifferingFieldVisibilityEntryCountValue;
-import org.locationtech.geowave.core.store.data.visibility.FieldVisibilityCount.FieldVisibilityCountValue;
-import org.locationtech.geowave.core.store.index.IndexMetaDataSet;
-import org.locationtech.geowave.core.store.index.IndexMetaDataSet.IndexMetaDataSetValue;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexMetaDataSetStatistic;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
+import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic.PartitionsValue;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic.RowRangeHistogramValue;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic.DuplicateEntryCountValue;
+import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic.FieldVisibilityCountValue;
+import org.locationtech.geowave.core.store.statistics.index.IndexMetaDataSetStatistic.IndexMetaDataSetValue;
 
 public class InternalStatisticsHelper {
 
@@ -84,7 +84,7 @@ public class InternalStatisticsHelper {
       final DataStatisticsStore statisticsStore,
       final String... authorizations) {
     return getInternalIndexStatistic(
-        IndexMetaDataSet.STATS_TYPE,
+        IndexMetaDataSetStatistic.STATS_TYPE,
         index,
         adapterIdsToQuery,
         adapterStore,
@@ -107,14 +107,14 @@ public class InternalStatisticsHelper {
         authorizations);
   }
 
-  public static DifferingFieldVisibilityEntryCountValue getDifferingVisibilityCounts(
+  public static DifferingVisibilityCountValue getDifferingVisibilityCounts(
       final Index index,
       final Collection<Short> adapterIdsToQuery,
       final PersistentAdapterStore adapterStore,
       final DataStatisticsStore statisticsStore,
       final String... authorizations) {
     return getInternalIndexStatistic(
-        DifferingFieldVisibilityEntryCount.STATS_TYPE,
+        DifferingVisibilityCountStatistic.STATS_TYPE,
         index,
         adapterIdsToQuery,
         adapterStore,
@@ -129,7 +129,7 @@ public class InternalStatisticsHelper {
       final DataStatisticsStore statisticsStore,
       final String... authorizations) {
     return getInternalIndexStatistic(
-        FieldVisibilityCount.STATS_TYPE,
+        FieldVisibilityCountStatistic.STATS_TYPE,
         index,
         adapterIdsToQuery,
         adapterStore,
