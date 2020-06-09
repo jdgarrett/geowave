@@ -300,12 +300,12 @@ public abstract class AbstractGeoWavePersistence<T extends Persistable> {
     return deleteObjects(primaryId, secondaryId, operations, getType(), this, authorizations);
   }
 
-  protected static boolean deleteObjects(
+  protected static <T extends Persistable> boolean deleteObjects(
       final ByteArray primaryId,
       final ByteArray secondaryId,
       final DataStoreOperations operations,
       final MetadataType type,
-      final AbstractGeoWavePersistence cacheDeleter,
+      final AbstractGeoWavePersistence<T> cacheDeleter,
       final String... authorizations) {
     try {
       if (!operations.metadataExists(type)) {
