@@ -92,7 +92,7 @@ public class CassandraMetadataReader implements MetadataReader {
   }
 
   private byte[] getVisibility(final MetadataQuery query, final Row result) {
-    if (query.getAuthorizations() != null) {
+    if (MetadataType.STAT_VALUES.equals(metadataType)) {
       final ByteBuffer buf = result.get(CassandraMetadataWriter.VISIBILITY_KEY, ByteBuffer.class);
       if (buf != null) {
         return buf.array();

@@ -41,7 +41,7 @@ public class DynamoDBMetadataReader implements MetadataReader {
     this.metadataType = metadataType;
   }
 
-  @Override 
+  @Override
   public CloseableIterator<GeoWaveMetadata> query(final MetadataQuery query) {
     final String tableName = operations.getMetadataTableName(metadataType);
 
