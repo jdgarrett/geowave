@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-@SuppressWarnings("rawtypes")
 public class HBaseUtils {
   public static String getQualifiedTableName(
       final String tableNamespace,

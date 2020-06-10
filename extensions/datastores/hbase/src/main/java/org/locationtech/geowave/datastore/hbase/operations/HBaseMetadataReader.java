@@ -127,7 +127,6 @@ public class HBaseMetadataReader implements MetadataReader {
     return new CloseableIterator.Wrapper<>(Collections.emptyIterator());
   }
 
-  // STATS_TODO: What to do with these?
   private byte[] getMergedStats(
       final Result result,
       final boolean clientsideStatsMerge,

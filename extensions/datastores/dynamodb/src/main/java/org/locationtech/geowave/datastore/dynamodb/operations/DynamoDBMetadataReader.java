@@ -20,7 +20,6 @@ import org.locationtech.geowave.core.store.operations.MetadataReader;
 import org.locationtech.geowave.core.store.operations.MetadataType;
 import org.locationtech.geowave.datastore.dynamodb.util.DynamoDBUtils;
 import org.locationtech.geowave.datastore.dynamodb.util.DynamoDBUtils.NoopClosableIteratorWrapper;
-import org.locationtech.geowave.datastore.dynamodb.util.LazyPaginatedQuery;
 import org.locationtech.geowave.datastore.dynamodb.util.LazyPaginatedScan;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.ComparisonOperator;
@@ -42,9 +41,11 @@ public class DynamoDBMetadataReader implements MetadataReader {
     this.metadataType = metadataType;
   }
 
-  @Override
+  @Override 
   public CloseableIterator<GeoWaveMetadata> query(final MetadataQuery query) {
     final String tableName = operations.getMetadataTableName(metadataType);
+
+    final boolean needsVisibility = MetadataType.STAT_VALUES.equals(metadataType);
 
     if (query.hasPrimaryId() && query.isExact()) {
       final QueryRequest queryRequest = new QueryRequest(tableName);
@@ -64,15 +65,7 @@ public class DynamoDBMetadataReader implements MetadataReader {
 
       final QueryResult queryResult = operations.getClient().query(queryRequest);
 
-      return new CloseableIteratorWrapper<>(
-          new NoopClosableIteratorWrapper(),
-          Iterators.transform(
-              queryResult.getItems().iterator(),
-              result -> new GeoWaveMetadata(
-                  DynamoDBUtils.getPrimaryId(result),
-                  DynamoDBUtils.getSecondaryId(result),
-                  null,
-                  DynamoDBUtils.getValue(result))));
+      return wrapIterator(queryResult.getItems().iterator(), query, needsVisibility);
     }
 
     final ScanRequest scan = new ScanRequest(tableName);
@@ -94,27 +87,42 @@ public class DynamoDBMetadataReader implements MetadataReader {
     }
     final ScanResult scanResult = operations.getClient().scan(scan);
 
-    if (query.getAuthorizations() != null) {
+
+    if (needsVisibility) {
+      return wrapIterator(
+          new LazyPaginatedScan(scanResult, scan, operations.getClient()),
+          query,
+          true);
+    }
+
+    return wrapIterator(scanResult.getItems().iterator(), query, false);
+  }
+
+  private CloseableIterator<GeoWaveMetadata> wrapIterator(
+      final Iterator<Map<String, AttributeValue>> source,
+      final MetadataQuery query,
+      final boolean needsVisibility) {
+    if (needsVisibility) {
       return MetadataIterators.clientVisibilityFilter(
           new CloseableIterator.Wrapper<GeoWaveMetadata>(
               Iterators.transform(
-                  new LazyPaginatedScan(scanResult, scan, operations.getClient()),
+                  source,
                   result -> new GeoWaveMetadata(
                       DynamoDBUtils.getPrimaryId(result),
                       DynamoDBUtils.getSecondaryId(result),
                       DynamoDBUtils.getVisibility(result),
                       DynamoDBUtils.getValue(result)))),
           query.getAuthorizations());
+    } else {
+      return new CloseableIteratorWrapper<>(
+          new NoopClosableIteratorWrapper(),
+          Iterators.transform(
+              source,
+              result -> new GeoWaveMetadata(
+                  DynamoDBUtils.getPrimaryId(result),
+                  DynamoDBUtils.getSecondaryId(result),
+                  null,
+                  DynamoDBUtils.getValue(result))));
     }
-
-    return new CloseableIteratorWrapper<>(
-        new NoopClosableIteratorWrapper(),
-        Iterators.transform(
-            scanResult.getItems().iterator(),
-            result -> new GeoWaveMetadata(
-                DynamoDBUtils.getPrimaryId(result),
-                DynamoDBUtils.getSecondaryId(result),
-                null,
-                DynamoDBUtils.getValue(result))));
   }
 }

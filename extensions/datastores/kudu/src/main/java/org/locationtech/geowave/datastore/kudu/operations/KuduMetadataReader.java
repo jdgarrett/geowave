@@ -90,14 +90,17 @@ public class KuduMetadataReader implements MetadataReader {
     final Iterator<GeoWaveMetadata> temp =
         Streams.stream(Iterators.concat(queryResult.iterator())).map(
             result -> new GeoWaveMetadata(
-                query.hasPrimaryId() ? query.getPrimaryId()
+                (query.hasPrimaryId() && query.isExact()) ? query.getPrimaryId()
                     : result.getBinaryCopy(KuduMetadataField.GW_PRIMARY_ID_KEY.getFieldName()),
                 query.hasSecondaryId() ? query.getSecondaryId()
                     : result.getBinaryCopy(KuduMetadataField.GW_SECONDARY_ID_KEY.getFieldName()),
                 getVisibility(result),
                 result.getBinaryCopy(KuduMetadataField.GW_VALUE_KEY.getFieldName()))).iterator();
     final CloseableIterator<GeoWaveMetadata> retVal = new CloseableIterator.Wrapper<>(temp);
-    return MetadataIterators.clientVisibilityFilter(retVal, query.getAuthorizations());
+    if (MetadataType.STAT_VALUES.equals(metadataType)) {
+      return MetadataIterators.clientVisibilityFilter(retVal, query.getAuthorizations());
+    }
+    return retVal;
   }
 
   private byte[] getVisibility(final RowResult result) {

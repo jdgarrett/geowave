@@ -14,7 +14,6 @@ import org.bouncycastle.util.Arrays;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
-import org.locationtech.geowave.core.store.metadata.ClientMetadataFilteringIterator;
 import org.locationtech.geowave.core.store.metadata.MetadataIterators;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataReader;
@@ -43,7 +42,7 @@ public class CassandraMetadataReader implements MetadataReader {
     final String tableName = operations.getMetadataTableName(metadataType);
     String[] selectedColumns = getSelectedColumns(query);
     Predicate<Row> clientFilter = null;
-    if (query.getAuthorizations() != null) {
+    if (MetadataType.STAT_VALUES.equals(metadataType)) {
       selectedColumns = Arrays.append(selectedColumns, CassandraMetadataWriter.VISIBILITY_KEY);
     }
     if (query.isPrefix()) {
