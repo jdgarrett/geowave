@@ -840,8 +840,10 @@ public class BaseDataStore implements DataStore {
       final InternalDataAdapter<T> adapter,
       final Index index,
       final String... additionalAuthorizations) throws IOException {
-    statisticsStore.removeStatistics(
-        statisticsStore.getAdapterStatistics(adapter.getAdapter(), null, null));
+    try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> adapterStats =
+        statisticsStore.getAdapterStatistics(adapter.getAdapter(), null, null)) {
+      statisticsStore.removeStatistics(adapterStats);
+    }
 
     // cannot delete because authorizations are not used
     // this.indexMappingStore.remove(adapter.getAdapterId());

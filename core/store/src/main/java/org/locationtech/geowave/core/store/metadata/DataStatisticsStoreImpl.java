@@ -90,7 +90,16 @@ public class DataStatisticsStoreImpl extends
 
   @Override
   public boolean removeStatistics(final Index index) {
-    return removeStatistics(getIndexStatistics(index, null, null));
+    boolean removed = deleteObjects(IndexStatistic.generateGroupId(index.getName()));
+    removed =
+        removed
+            || deleteObjects(
+                null,
+                IndexStatistic.generateGroupId(index.getName()),
+                operations,
+                MetadataType.STAT_VALUES,
+                this);
+    return removed;
   }
 
   @Override
@@ -593,7 +602,7 @@ public class DataStatisticsStoreImpl extends
     private void computeNext() {
       while (source.hasNext()) {
         Statistic<? extends StatisticValue<?>> possibleNext = source.next();
-        if (tag.equals(possibleNext.getId().getTag())) {
+        if (tag.equals(possibleNext.getTag())) {
           next = possibleNext;
           break;
         }
@@ -646,11 +655,11 @@ public class DataStatisticsStoreImpl extends
     private void computeNext() {
       while (source.hasNext()) {
         Statistic<? extends StatisticValue<?>> possibleNext = source.next();
-        if (possibleNext.getId() instanceof FieldStatisticId) {
-          FieldStatisticId<? extends StatisticValue<?>> statisticId =
-              (FieldStatisticId<? extends StatisticValue<?>>) possibleNext.getId();
-          if ((tag == null || statisticId.getTag().equals(tag))
-              && (fieldName == null || statisticId.getFieldName().equals(fieldName))) {
+        if (possibleNext instanceof FieldStatistic) {
+          FieldStatistic<? extends StatisticValue<?>> statistic =
+              (FieldStatistic<? extends StatisticValue<?>>) possibleNext;
+          if ((tag == null || statistic.getTag().equals(tag))
+              && (fieldName == null || statistic.getFieldName().equals(fieldName))) {
             next = possibleNext;
             break;
           }
