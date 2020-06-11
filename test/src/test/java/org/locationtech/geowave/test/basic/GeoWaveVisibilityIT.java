@@ -18,6 +18,7 @@ import org.apache.log4j.Logger;
 import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -107,6 +108,11 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
     LOGGER.warn("-----------------------------------------");
   }
 
+  @After
+  public void deleteAll() {
+    TestUtils.deleteAll(dataStoreOptions);
+  }
+
   @Test
   public void testIngestAndQueryMixedVisibilityRasters() throws IOException {
     final String coverageName = "testMixedVisibilityRasters";
@@ -130,8 +136,6 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         eastLon,
         southLat,
         northLat);
-
-    TestUtils.deleteAll(dataStoreOptions);
   }
 
   @Test
@@ -157,8 +161,6 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         eastLon,
         southLat,
         northLat);
-
-    TestUtils.deleteAll(dataStoreOptions);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
@@ -562,7 +564,6 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
     verifyDifferingVisibilities.accept(count);
     verifyQuery.accept(store, statsStore, internalAdapterId, false);
     verifyQuery.accept(store, statsStore, internalAdapterId, true);
-    TestUtils.deleteAll(dataStoreOptions);
   }
 
   private VisibilityWriter<SimpleFeature> getFeatureVisWriter() {

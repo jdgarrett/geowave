@@ -43,6 +43,8 @@ public class HBaseMetadataWriter implements MetadataWriter {
     }
   }
 
+  private long lastFlush = -1;
+
   @Override
   public void write(final GeoWaveMetadata metadata) {
 
@@ -66,7 +68,7 @@ public class HBaseMetadataWriter implements MetadataWriter {
       synchronized (duplicateRowTracker) {
         final ByteArray primaryId = new ByteArray(metadata.getPrimaryId());
         if (!duplicateRowTracker.add(primaryId)) {
-          writer.flush();
+          safeFlush();
           duplicateRowTracker.clear();
           duplicateRowTracker.add(primaryId);
         }
@@ -75,6 +77,18 @@ public class HBaseMetadataWriter implements MetadataWriter {
     } catch (final IOException e) {
       LOGGER.error("Unable to write metadata", e);
     }
+  }
+
+  private void safeFlush() throws IOException {
+    while (System.currentTimeMillis() <= lastFlush) {
+      try {
+        Thread.sleep(10);
+      } catch (final InterruptedException e) {
+        LOGGER.warn("Unable to wait for new time", e);
+      }
+    }
+    writer.flush();
+    lastFlush = System.currentTimeMillis();
   }
 
   @Override

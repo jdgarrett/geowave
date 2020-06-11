@@ -9,6 +9,7 @@
 package org.locationtech.geowave.test.secondary;
 
 import java.io.IOException;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -58,6 +59,11 @@ public class VisibilitySecondaryIndexIT {
   @AfterClass
   public static void reportTest() {
     TestUtils.printEndOfTest(LOGGER, testName, startMillis);
+  }
+
+  @After
+  public void deleteAll() {
+    TestUtils.deleteAll(dataStoreOptions);
   }
 
   @Test
