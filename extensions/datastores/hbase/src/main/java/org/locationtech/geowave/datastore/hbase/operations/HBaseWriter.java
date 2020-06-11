@@ -132,7 +132,7 @@ public class HBaseWriter implements RowWriter {
 
     return mutation;
   }
-  
+
   private void safeFlush() throws IOException {
     while (System.currentTimeMillis() <= lastFlush) {
       try {

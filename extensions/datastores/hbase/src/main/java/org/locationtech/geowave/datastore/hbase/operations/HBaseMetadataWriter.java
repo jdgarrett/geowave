@@ -46,7 +46,7 @@ public class HBaseMetadataWriter implements MetadataWriter {
       LOGGER.warn("Unable to close metadata writer", e);
     }
   }
-  
+
   @Override
   public void flush() {
     try {
