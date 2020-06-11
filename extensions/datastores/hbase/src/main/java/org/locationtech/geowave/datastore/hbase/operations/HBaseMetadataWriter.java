@@ -37,9 +37,25 @@ public class HBaseMetadataWriter implements MetadataWriter {
   @Override
   public void close() throws Exception {
     try {
-      writer.close();
+      synchronized (duplicateRowTracker) {
+        safeFlush();
+        writer.close();
+        duplicateRowTracker.clear();
+      }
     } catch (final IOException e) {
       LOGGER.warn("Unable to close metadata writer", e);
+    }
+  }
+  
+  @Override
+  public void flush() {
+    try {
+      synchronized (duplicateRowTracker) {
+        safeFlush();
+        duplicateRowTracker.clear();
+      }
+    } catch (final IOException e) {
+      LOGGER.warn("Unable to flush metadata writer", e);
     }
   }
 
@@ -89,17 +105,5 @@ public class HBaseMetadataWriter implements MetadataWriter {
     }
     writer.flush();
     lastFlush = System.currentTimeMillis();
-  }
-
-  @Override
-  public void flush() {
-    try {
-      synchronized (duplicateRowTracker) {
-        writer.flush();
-        duplicateRowTracker.clear();
-      }
-    } catch (final IOException e) {
-      LOGGER.warn("Unable to flush metadata writer", e);
-    }
   }
 }
