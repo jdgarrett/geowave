@@ -24,7 +24,7 @@ import org.locationtech.geowave.core.store.index.IndexStore;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import com.beust.jcommander.Parameter;
@@ -89,7 +89,7 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
           statStore.getIndexStatistics(index, statisticType, statsOptions.getTag())) {
         markForRemoval(stats, toRemove);
       }
-    } else if (statisticType instanceof AdapterStatisticType) {
+    } else if (statisticType instanceof DataTypeStatisticType) {
       if (statsOptions.getTypeName() == null) {
         throw new ParameterException(
             "A type name must be specified when removing an adapter statistic.");
@@ -102,7 +102,7 @@ public class RemoveStatCommand extends AbstractStatsCommand<Void> {
         throw new ParameterException("Unable to find an type named: " + statsOptions.getTypeName());
       }
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
-          statStore.getAdapterStatistics(adapter, statisticType, statsOptions.getTag())) {
+          statStore.getDataTypeStatistics(adapter, statisticType, statsOptions.getTag())) {
         markForRemoval(stats, toRemove);
       }
     } else if (statisticType instanceof FieldStatisticType) {

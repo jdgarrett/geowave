@@ -9,6 +9,8 @@
 package org.locationtech.geowave.core.cli.utils;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import com.beust.jcommander.JCommander;
@@ -45,7 +47,39 @@ public class ConsolePrinter {
 
 
   /**
-   * Display output to the console
+   * Display output to the console. Column widths will be calculated for the each page.
+   * 
+   * @param headers The label which appears at the top of each vertical column
+   * @param rowIter An iterator of rows to display
+   */
+  public void print(final List<String> headers, final Iterator<List<Object>> rowIter) {
+    List<List<Object>> rows = new LinkedList<>();
+    while (rowIter.hasNext()) {
+      rows.clear();
+      while (rowIter.hasNext() && rows.size() < resultsPerPage) {
+        rows.add(rowIter.next());
+      }
+      int[] columnWidths = getColumnWidths(headers, rows);
+      printHeader(columnWidths, headers);
+
+      for (int i = 0; i < rows.size(); i++) {
+        printRow(rows.get(i), columnWidths);
+      }
+
+      printFooter(columnWidths);
+      if (rowIter.hasNext()) {
+        console.println("Press <Enter> for more results...");
+        try {
+          System.in.read();
+        } catch (final IOException ignore) {
+          break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Display output to the console. Column widths will be calculated for the whole table.
    * 
    * @param headers The label which appears at the top of each vertical column
    * @param rows A 2D matrix of values to display

@@ -79,10 +79,10 @@ import org.locationtech.geowave.core.store.operations.RowReader;
 import org.locationtech.geowave.core.store.operations.RowWriter;
 import org.locationtech.geowave.core.store.query.constraints.CustomQueryConstraints.InternalCustomConstraints;
 import org.locationtech.geowave.core.store.query.options.CommonQueryOptions.HintKey;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic.RowRangeHistogramValue;
 import org.slf4j.Logger;
@@ -200,7 +200,7 @@ public class DataStoreUtils {
           statisticsStore.getStatisticValue(
               rowRangeHistogramStatistic,
               CompositeBinningStrategy.getBin(
-                  AdapterBinningStrategy.getBin(adapter),
+                  DataTypeBinningStrategy.getBin(adapter),
                   PartitionBinningStrategy.getBin(partitionRange.getPartitionKey())));
       if (value == null) {
         return Long.MAX_VALUE - 1;

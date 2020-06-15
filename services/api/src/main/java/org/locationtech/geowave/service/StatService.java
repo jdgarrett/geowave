@@ -22,14 +22,18 @@ import javax.ws.rs.core.Response;
 public interface StatService {
 
   @GET
-  @Produces(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.TEXT_PLAIN)
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   @Path("/list")
   public Response listStats(
       @QueryParam("storeName") String storeName,
+      @QueryParam("indexName") String indexName,
       @QueryParam("typeName") String typeName,
+      @QueryParam("fieldName") String fieldName,
+      @QueryParam("tag") String tag,
       @QueryParam("authorizations") String authorizations,
-      @QueryParam("jsonFormatFlag") Boolean jsonFormatFlag);
+      @QueryParam("limit") Integer limit,
+      @QueryParam("csv") Boolean csv);
 
   @POST
   @Produces(MediaType.APPLICATION_JSON)

@@ -2,9 +2,19 @@ package org.locationtech.geowave.core.store.statistics;
 
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.FieldValueBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.field.CountMinSketchStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FixedBinNumericHistogramStatistic;
+import org.locationtech.geowave.core.store.statistics.field.HyperLogLogStatistic;
+import org.locationtech.geowave.core.store.statistics.field.NumericHistogramStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FixedBinNumericHistogramStatistic.FixedBinNumericHistogramValue;
+import org.locationtech.geowave.core.store.statistics.field.HyperLogLogStatistic.HyperLogLogPlusValue;
+import org.locationtech.geowave.core.store.statistics.field.NumericHistogramStatistic.NumericHistogramValue;
 import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic;
+import org.locationtech.geowave.core.store.statistics.field.CountMinSketchStatistic.CountMinSketchValue;
 import org.locationtech.geowave.core.store.statistics.field.NumericRangeStatistic.NumericRangeValue;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
@@ -70,7 +80,7 @@ public class CoreRegisteredStatistics extends StatisticsRegistrySPI {
             (short) 2012,
             (short) 2013),
 
-        // Adapter Statistics
+        // Data Type Statistics
         new RegisteredStatistic(
             CountStatistic.STATS_TYPE,
             CountStatistic::new,
@@ -90,14 +100,45 @@ public class CoreRegisteredStatistics extends StatisticsRegistrySPI {
             NumericRangeStatistic::new,
             NumericRangeValue::new,
             (short) 2018,
-            (short) 2019)};
+            (short) 2019),
+        new RegisteredStatistic(
+            CountMinSketchStatistic.STATS_TYPE,
+            CountMinSketchStatistic::new,
+            CountMinSketchValue::new,
+            (short) 2020,
+            (short) 2021),
+        new RegisteredStatistic(
+            HyperLogLogStatistic.STATS_TYPE,
+            HyperLogLogStatistic::new,
+            HyperLogLogPlusValue::new,
+            (short) 2022,
+            (short) 2023),
+        new RegisteredStatistic(
+            NumericHistogramStatistic.STATS_TYPE,
+            NumericHistogramStatistic::new,
+            NumericHistogramValue::new,
+            (short) 2024,
+            (short) 2025)};
   }
 
   @Override
   public RegisteredBinningStrategy[] getProvidedBinningStrategies() {
     return new RegisteredBinningStrategy[] {
-        new RegisteredBinningStrategy("PARTITION", PartitionBinningStrategy::new, (short) 2020),
-        new RegisteredBinningStrategy("ADAPTER", AdapterBinningStrategy::new, (short) 2021),
-        new RegisteredBinningStrategy("COMPOSITE", CompositeBinningStrategy::new, (short) 2022)};
+        new RegisteredBinningStrategy(
+            PartitionBinningStrategy.NAME,
+            PartitionBinningStrategy::new,
+            (short) 2050),
+        new RegisteredBinningStrategy(
+            DataTypeBinningStrategy.NAME,
+            DataTypeBinningStrategy::new,
+            (short) 2051),
+        new RegisteredBinningStrategy(
+            CompositeBinningStrategy.NAME,
+            CompositeBinningStrategy::new,
+            (short) 2052),
+        new RegisteredBinningStrategy(
+            FieldValueBinningStrategy.NAME,
+            FieldValueBinningStrategy::new,
+            (short) 2053)};
   }
 }

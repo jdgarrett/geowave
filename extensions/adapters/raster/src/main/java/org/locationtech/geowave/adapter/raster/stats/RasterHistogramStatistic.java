@@ -38,8 +38,8 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
 import org.locationtech.jts.geom.Polygon;
@@ -49,10 +49,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RasterHistogramStatistic extends
-    AdapterStatistic<RasterHistogramStatistic.RasterHistogramValue> {
+    DataTypeStatistic<RasterHistogramStatistic.RasterHistogramValue> {
   private static final Logger LOGGER = LoggerFactory.getLogger(RasterHistogramStatistic.class);
-  public static final AdapterStatisticType<RasterHistogramValue> STATS_TYPE =
-      new AdapterStatisticType<>("RASTER_HISTOGRAM");
+  public static final DataTypeStatisticType<RasterHistogramValue> STATS_TYPE =
+      new DataTypeStatisticType<>("RASTER_HISTOGRAM");
 
   private HistogramConfig histogramConfig;
 

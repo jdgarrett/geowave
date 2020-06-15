@@ -441,8 +441,7 @@ public class GeoWaveGrpcTestClient {
     final ArrayList<String> params = new ArrayList<>();
     params.add(GeoWaveGrpcTestUtils.storeName);
     final RecalculateStatsCommandParametersProtos request =
-        RecalculateStatsCommandParametersProtos.newBuilder().addAllParameters(
-            params).setJsonFormatFlag(true).build();
+        RecalculateStatsCommandParametersProtos.newBuilder().addAllParameters(params).build();
     coreStoreBlockingStub.recalculateStatsCommand(request);
     return true;
   }
@@ -479,7 +478,7 @@ public class GeoWaveGrpcTestClient {
     final ArrayList<String> params = new ArrayList<>();
     params.add(GeoWaveGrpcTestUtils.storeName);
     final ListStatsCommandParametersProtos request =
-        ListStatsCommandParametersProtos.newBuilder().addAllParameters(params).build();
+        ListStatsCommandParametersProtos.newBuilder().addAllParameters(params).setCsv(true).build();
     final StringResponseProtos resp = coreStoreBlockingStub.listStatsCommand(request);
     return resp.getResponseValue();
   }

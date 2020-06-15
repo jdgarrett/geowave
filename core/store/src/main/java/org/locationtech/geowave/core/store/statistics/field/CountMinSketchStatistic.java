@@ -6,7 +6,7 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.adapter.vector.stats;
+package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
 import org.locationtech.geowave.core.index.ByteArrayUtils;
@@ -17,8 +17,6 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import com.beust.jcommander.Parameter;
 import com.clearspring.analytics.stream.frequency.CountMinSketch;
 import com.clearspring.analytics.stream.frequency.FrequencyMergeException;
@@ -178,15 +176,5 @@ public class CountMinSketchStatistic extends
       final byte[] data = ByteArrayUtils.safeRead(buffer, VarintUtils.readUnsignedInt(buffer));
       sketch = CountMinSketch.deserialize(data);
     }
-
-  }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("sketch[type=").append(getTypeName());
-    buffer.append(", field=").append(getFieldName());
-    buffer.append("]");
-    return buffer.toString();
   }
 }

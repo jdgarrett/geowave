@@ -9,9 +9,6 @@
 package org.locationtech.geowave.core.store.statistics;
 
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
@@ -19,8 +16,6 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.statistics.StatisticsRegistrySPI.RegisteredStatistic;
-import com.google.common.collect.Maps;
 
 /**
  * This is responsible for persisting data statistics (either in memory or to disk depending on the
@@ -46,7 +41,6 @@ public interface DataStatisticsStore {
    * Remove a statistic from the data store.
    * 
    * @param statistic the statistic to remove
-   * @param authorizations the authorizations for the query
    * @return {@code true} if the statistic existed and was removed
    */
   public boolean removeStatistic(Statistic<? extends StatisticValue<?>> statistic);
@@ -55,7 +49,6 @@ public interface DataStatisticsStore {
    * Remove a set of statistics from the data store.
    * 
    * @param statistics the statistics to remove
-   * @param authorizations the authorizations for the query
    * @return {@code true} if statistics were removed
    */
   public boolean removeStatistics(
@@ -70,20 +63,21 @@ public interface DataStatisticsStore {
   public boolean removeStatistics(Index index);
 
   /**
-   * Remove statistics associated with the given adapter.
+   * Remove statistics associated with the given data type.
    * 
    * @param type the type to remove statistics for
+   * @param adapterIndices indices used by the data type
    * @return {@code true} if statistics were removed
    */
   public boolean removeStatistics(DataTypeAdapter<?> type, Index... adapterIndices);
 
   /**
-   * Gets tracked index statistics for the given index.
+   * Get statistics for the given index.
    * 
    * @param index the index to get statistics for
    * @param statisticType an optional statistic type filter
-   * @param name an optional name filter
-   * @return a list of tracked statistics for the given index
+   * @param tag an optional tag filter
+   * @return a list of index statistics for the given index
    */
   public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getIndexStatistics(
       final Index index,
@@ -91,27 +85,27 @@ public interface DataStatisticsStore {
       final @Nullable String tag);
 
   /**
-   * Gets all of the tracked adapter statistics for the given type.
+   * Get statistics for the given data type.
    * 
-   * @param type the type to get statistic for
+   * @param type the type to get statistics for
    * @param statisticType an optional statistic type filter
-   * @param name an optional name filter
-   * @return a list of tracked statistics for the give type
+   * @param tag an optional tag filter
+   * @return a list of data type statistics for the given type
    */
-  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAdapterStatistics(
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getDataTypeStatistics(
       final DataTypeAdapter<?> type,
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
       final @Nullable String tag);
 
   /**
-   * Gets all of the tracked field statistics for the given type. If a field name is specified, only
-   * statistics that pertain to that field will be returned.
+   * Get all field statistics for the given type. If a field name is specified, only statistics that
+   * pertain to that field will be returned.
    * 
-   * @param type
-   * @param statisticType
-   * @param fieldName
-   * @param name
-   * @return
+   * @param type the type to get statistics for
+   * @param statisticType an optional statistic type filter
+   * @param fieldName an optional field name filter
+   * @param tag an optional tag filter
+   * @return a list of field statistics for the given type
    */
   public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getFieldStatistics(
       final DataTypeAdapter<?> type,
@@ -120,19 +114,20 @@ public interface DataStatisticsStore {
       final @Nullable String tag);
 
   /**
-   * Gets all of the tracked statistics in the data store.
+   * Get all statistics in the data store.
    * 
    * @param statisticType an optional statistic type filter
-   * @return a list of tracked statistics in the data store
+   * @return a list of statistics in the data store
    */
   public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAllStatistics(
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType);
 
   /**
-   * Gets the statistic with the given StatisticId, or {@code null} if it could not be found.
+   * Gets the statistic with the given {@link StatisticId}, or {@code null} if it could not be
+   * found.
    * 
    * @param statisticId the id of the statistic to get
-   * @return
+   * @return the statistic that matched the given ID
    */
   public <V extends StatisticValue<R>, R> Statistic<V> getStatisticById(
       final StatisticId<V> statisticId);
@@ -140,18 +135,23 @@ public interface DataStatisticsStore {
   /**
    * This will write the statistic value to the underlying store. Note that this will overwrite
    * whatever the current persisted values are for the given statistic. Use incorporateStatistic to
-   * aggregate the statistic value with any existing values.
+   * aggregate the statistic value with any existing values. This method is not applicable to
+   * statistics that use a binning strategy.
    *
-   * @param statistic The statistic to write
+   * @param statistic the statistic that the value belongs to
+   * @param value the value to set
    */
   public <V extends StatisticValue<R>, R> void setStatisticValue(Statistic<V> statistic, V value);
 
   /**
    * This will write the statistic value to the underlying store. Note that this will overwrite
    * whatever the current persisted values are for the given statistic. Use incorporateStatistic to
-   * aggregate the statistic value with any existing values.
+   * aggregate the statistic value with any existing values. This method is not applicable to
+   * statistics that do not use a binning strategy.
    *
-   * @param statistic The statistic to write
+   * @param statistic the statistic that the value belongs to
+   * @param value the value to set
+   * @param bin the bin that the value belongs to
    */
   public <V extends StatisticValue<R>, R> void setStatisticValue(
       Statistic<V> statistic,
@@ -159,59 +159,117 @@ public interface DataStatisticsStore {
       ByteArray bin);
 
   /**
-   * Add the statistic value to the store, overwriting existing values with the aggregation of this
-   * value and the existing values
+   * Add the statistic value to the store, preserving the existing value. This method is not
+   * applicable to statistics that use a binning strategy.
    *
-   * @param statistic the statistic to incorporate
+   * @param statistic the statistic to that the value belongs to
+   * @param value the value to add
    */
   public <V extends StatisticValue<R>, R> void incorporateStatisticValue(
       Statistic<V> statistic,
       V value);
 
   /**
-   * Add the statistic value to the store, overwriting existing values with the aggregation of this
-   * value and the existing values
+   * Add the statistic value to the store, preserving the existing value. This method is not
+   * applicable to statistics that do not use a binning strategy.
    *
-   * @param statistic the statistic to incorporate
+   * @param statistic the statistic to that the value belongs to
+   * @param value the value to add
+   * @param bin the bin that the value belongs to
    */
   public <V extends StatisticValue<R>, R> void incorporateStatisticValue(
       Statistic<V> statistic,
       V value,
       ByteArray bin);
 
+  /**
+   * Removes the value of the given statistic. This method is not applicable to statistics that use
+   * a binning strategy.
+   * 
+   * @param statistic the statistic to remove the value for
+   * @return {@code true} if the value was removed
+   */
   public boolean removeStatisticValue(Statistic<? extends StatisticValue<?>> statistic);
 
+  /**
+   * Removes the value of the given statistic. This method is not applicable to statistics that do
+   * not use a binning strategy.
+   * 
+   * @param statistic the statistic to remove the value for
+   * @param bin the bin of the statistic value to remove
+   * @return {@code true} if the value was removed
+   */
   public boolean removeStatisticValue(
       Statistic<? extends StatisticValue<?>> statistic,
       ByteArray bin);
 
+  /**
+   * Removes all values associated with the given statistic. If the statistic uses a binning
+   * strategy, all bins will be removed.
+   * 
+   * @param statistic the statistic to remove values for
+   * @return {@code true} if values were removed
+   */
   public boolean removeStatisticValues(Statistic<? extends StatisticValue<?>> statistic);
 
+  /**
+   * Creates a writer that can be used to write values for a given statistic.
+   * 
+   * @param statistic the statistic to write values for
+   * @return a new statistic value writer
+   */
   public <V extends StatisticValue<R>, R> StatisticValueWriter<V> createStatisticValueWriter(
       Statistic<V> statistic);
 
+  /**
+   * Creates a callback that can be used to update statistics for the given index and adapter.
+   * 
+   * @param index the index
+   * @param type the data type
+   * @param updateAdapterStats if {@code true} adapter statistics will be updated, otherwise only
+   *        index statistics will be updated
+   * @return a statistics update callback
+   */
   public <T> StatisticUpdateCallback<T> createUpdateCallback(
       Index index,
-      DataTypeAdapter<T> adapter,
+      DataTypeAdapter<T> type,
       boolean updateAdapterStats);
 
   /**
-   * Returns the values for each provided statistic. Only statistics that use a binning strategy and
-   * match the given bins
+   * Returns all values for each provided statistic. If a set of bins are provided, statistics that
+   * use a binning strategy will only return values that match one of the given bins.
    * 
-   * @param statistics
-   * @param authorizations
-   * @return
+   * @param statistics the statistics to get values for
+   * @param bins an optional bins filter
+   * @param authorizations authorizations for the query
+   * @return an iterator for all matching statistic values
    */
   public CloseableIterator<? extends StatisticValue<?>> getStatisticValues(
       final Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics,
-      final ByteArray[] bins,
+      @Nullable final ByteArray[] bins,
       final String... authorizations);
 
+  /**
+   * Return the value of the given statistic. This method is not applicable to statistics that use a
+   * binning strategy.
+   * 
+   * @param statistic the statistic to get the value of
+   * @param authorizations authorizations for the query
+   * @return the value of the statistic, or {@code null} if it was not found
+   */
   public <V extends StatisticValue<R>, R> V getStatisticValue(
       final Statistic<V> statistic,
       String... authorizations);
 
+  /**
+   * Return the value of the given statistic. This method is not applicable to statistics that do
+   * not use a binning strategy.
+   * 
+   * @param statistic the statistic to get the value of
+   * @param bin the bin of the value to get
+   * @param authorizations authorizations for the query
+   * @return the value of the statistic, or {@code null} if it was not found
+   */
   public <V extends StatisticValue<R>, R> V getStatisticValue(
       final Statistic<V> statistic,
       ByteArray bin,
@@ -222,17 +280,25 @@ public interface DataStatisticsStore {
    * bin will be returned as a separate value.
    * 
    * @param statistic the statistic to get values for
-   * @param authorizations the authorizations
-   * @return
+   * @param authorizations authorizations for the query
+   * @return the values for the statistic
    */
   public <V extends StatisticValue<R>, R> CloseableIterator<V> getStatisticValues(
       final Statistic<V> statistic,
       String... authorizations);
 
+  /**
+   * Merges all statistic values that share the same key. Every separate write to a data type can
+   * create new values for a statistic. Over time, this can result in a lot of values for a single
+   * statistic. This function can be used to merge those values to improve statistic query
+   * performance.
+   * 
+   * @return {@code true} if the merge was successful
+   */
   public boolean mergeStats();
 
   /**
-   * Remove all statistics
+   * Remove all statistics from the data store.
    */
   public void removeAll();
 }

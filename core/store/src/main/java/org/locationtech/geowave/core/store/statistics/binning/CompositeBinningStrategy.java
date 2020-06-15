@@ -1,20 +1,19 @@
-package org.locationtech.geowave.core.store.statistics;
+package org.locationtech.geowave.core.store.statistics.binning;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import org.locationtech.geowave.core.index.ByteArray;
-import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Bytes;
 
 public class CompositeBinningStrategy implements StatisticBinningStrategy {
 
+  public static final String NAME = "COMPOSITE";
   public static final byte[] WILDCARD_BYTES = new byte[0];
 
   private StatisticBinningStrategy left;
@@ -30,6 +29,16 @@ public class CompositeBinningStrategy implements StatisticBinningStrategy {
       final StatisticBinningStrategy right) {
     this.left = left;
     this.right = right;
+  }
+
+  @Override
+  public String getStrategyName() {
+    return NAME;
+  }
+
+  @Override
+  public String getDescription() {
+    return "Bin the statistic using multiple strategies.";
   }
 
   @Override
@@ -60,16 +69,47 @@ public class CompositeBinningStrategy implements StatisticBinningStrategy {
     }
   }
 
-  private int numStrategies() {
-    int leftCount = 1;
-    if (left instanceof CompositeBinningStrategy) {
-      leftCount = ((CompositeBinningStrategy) left).numStrategies();
+  @Override
+  public String binToString(final ByteArray bin) {
+    ByteBuffer buffer = ByteBuffer.wrap(bin.getBytes());
+    byte[] leftBin = new byte[buffer.getShort()];
+    buffer.get(leftBin);
+    byte[] rightBin = new byte[buffer.remaining()];
+    buffer.get(rightBin);
+    return left.binToString(new ByteArray(leftBin))
+        + "|"
+        + right.binToString(new ByteArray(rightBin));
+  }
+
+  public boolean binMatches(
+      Class<? extends StatisticBinningStrategy> binningStrategyClass,
+      ByteArray bin,
+      ByteArray subBin) {
+    ByteBuffer buffer = ByteBuffer.wrap(bin.getBytes());
+    byte[] leftBin = new byte[buffer.getShort()];
+    buffer.get(leftBin);
+    if (binningStrategyClass.isAssignableFrom(left.getClass())) {
+      return Arrays.equals(leftBin, subBin.getBytes());
+    } else if (binningStrategyClass.isAssignableFrom(right.getClass())) {
+      byte[] rightBin = new byte[buffer.remaining()];
+      buffer.get(rightBin);
+      return Arrays.equals(rightBin, subBin.getBytes());
+    } else if (left instanceof CompositeBinningStrategy
+        && ((CompositeBinningStrategy) left).usesStrategy(binningStrategyClass)) {
+      return ((CompositeBinningStrategy) left).binMatches(
+          binningStrategyClass,
+          new ByteArray(leftBin),
+          subBin);
+    } else if (right instanceof CompositeBinningStrategy
+        && ((CompositeBinningStrategy) right).usesStrategy(binningStrategyClass)) {
+      byte[] rightBin = new byte[buffer.remaining()];
+      buffer.get(rightBin);
+      return ((CompositeBinningStrategy) right).binMatches(
+          binningStrategyClass,
+          new ByteArray(rightBin),
+          subBin);
     }
-    int rightCount = 1;
-    if (right instanceof CompositeBinningStrategy) {
-      rightCount = ((CompositeBinningStrategy) right).numStrategies();
-    }
-    return leftCount + rightCount;
+    return false;
   }
 
   public boolean usesStrategy(Class<? extends StatisticBinningStrategy> binningStrategyClass) {
@@ -81,26 +121,6 @@ public class CompositeBinningStrategy implements StatisticBinningStrategy {
             && ((CompositeBinningStrategy) right).usesStrategy(binningStrategyClass));
   }
 
-  public int getStrategyIndex(Class<? extends StatisticBinningStrategy> binningStrategyClass) {
-    if (binningStrategyClass.isAssignableFrom(left.getClass())) {
-      return 0;
-    } else if (left instanceof CompositeBinningStrategy
-        && ((CompositeBinningStrategy) left).usesStrategy(binningStrategyClass)) {
-      return ((CompositeBinningStrategy) left).getStrategyIndex(binningStrategyClass);
-    }
-    int leftSize = 1;
-    if (left instanceof CompositeBinningStrategy) {
-      leftSize = ((CompositeBinningStrategy) left).numStrategies();
-    }
-    if (binningStrategyClass.isAssignableFrom(right.getClass())) {
-      return leftSize;
-    } else if (right instanceof CompositeBinningStrategy
-        && ((CompositeBinningStrategy) right).usesStrategy(binningStrategyClass)) {
-      return leftSize + ((CompositeBinningStrategy) right).getStrategyIndex(binningStrategyClass);
-    }
-    return -1;
-  }
-
   public boolean isOfType(
       Class<? extends StatisticBinningStrategy> leftStrategy,
       Class<? extends StatisticBinningStrategy> rightStrategy) {
@@ -109,36 +129,10 @@ public class CompositeBinningStrategy implements StatisticBinningStrategy {
   }
 
   public static ByteArray getBin(ByteArray left, ByteArray right) {
-    return new ByteArray(
-        Bytes.concat(left.getBytes(), StatisticId.UNIQUE_ID_SEPARATOR, right.getBytes()));
-  }
-
-  public static boolean tokenMatches(ByteArray bin, int tokenIndex, ByteArray token) {
-    int currentToken = 0;
-    byte[] binBytes = bin.getBytes();
-    int tokenStartIndex = -1;
-    for (int i = 0; i < binBytes.length; i++) {
-      if (currentToken == tokenIndex) {
-        tokenStartIndex = i;
-        break;
-      }
-      if (binBytes[i] == StatisticId.UNIQUE_ID_SEPARATOR[0]) {
-        currentToken++;
-      }
-    }
-    if (tokenStartIndex == -1 || token.getBytes().length + tokenStartIndex > binBytes.length) {
-      return false;
-    }
-    byte[] tokenBytes = token.getBytes();
-    for (int i = 0; i < tokenBytes.length; i++) {
-      if (tokenBytes[i] != binBytes[i + tokenStartIndex]) {
-        return false;
-      }
-    }
-    if (tokenBytes.length + tokenStartIndex < binBytes.length
-        && binBytes[tokenBytes.length + tokenStartIndex] != StatisticId.UNIQUE_ID_SEPARATOR[0]) {
-      return false;
-    }
-    return true;
+    ByteBuffer bytes = ByteBuffer.allocate(2 + left.getBytes().length + right.getBytes().length);
+    bytes.putShort((short) left.getBytes().length);
+    bytes.put(left.getBytes());
+    bytes.put(right.getBytes());
+    return new ByteArray(bytes.array());
   }
 }

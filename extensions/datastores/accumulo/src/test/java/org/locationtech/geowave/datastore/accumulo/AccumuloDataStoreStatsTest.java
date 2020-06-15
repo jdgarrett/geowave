@@ -220,7 +220,7 @@ public class AccumuloDataStoreStatsTest {
     final short internalAdapterId = internalAdapterStore.getAdapterId(adapter.getTypeName());
 
     CountStatistic countStat =
-        (CountStatistic) statsStore.getAdapterStatistics(
+        (CountStatistic) statsStore.getDataTypeStatistics(
             adapter,
             CountStatistic.STATS_TYPE,
             Statistic.INTERNAL_TAG).next();
@@ -392,7 +392,7 @@ public class AccumuloDataStoreStatsTest {
 
     statsStore.removeStatistics(adapter, index);
     assertFalse(
-        statsStore.getAdapterStatistics(
+        statsStore.getDataTypeStatistics(
             adapter,
             CountStatistic.STATS_TYPE,
             Statistic.INTERNAL_TAG).hasNext());

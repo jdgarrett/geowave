@@ -39,15 +39,17 @@ public abstract class AbstractStatsCommand<T> extends ServiceEnabledCommand<T> {
 
   public void run(final OperationParams params, final List<String> parameters) {
 
-    final String storeName = parameters.get(0);
+    DataStorePluginOptions inputStoreOptions = null;
+    if (parameters.size() > 0) {
+      final String storeName = parameters.get(0);
 
-    // Attempt to load input store if not already provided (test purposes).
-
-    final StoreLoader inputStoreLoader = new StoreLoader(storeName);
-    if (!inputStoreLoader.loadFromConfig(getGeoWaveConfigFile(params))) {
-      throw new ParameterException("Cannot find store name: " + inputStoreLoader.getStoreName());
+      // Attempt to load input store if not already provided (test purposes).
+      final StoreLoader inputStoreLoader = new StoreLoader(storeName);
+      if (!inputStoreLoader.loadFromConfig(getGeoWaveConfigFile(params))) {
+        throw new ParameterException("Cannot find store name: " + inputStoreLoader.getStoreName());
+      }
+      inputStoreOptions = inputStoreLoader.getDataStorePlugin();
     }
-    final DataStorePluginOptions inputStoreOptions = inputStoreLoader.getDataStorePlugin();
     try {
       performStatsCommand(inputStoreOptions, statsOptions);
     } catch (final IOException e) {

@@ -18,9 +18,9 @@ import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsDeleteCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
 
-public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> {
-  public static final AdapterStatisticType<CountValue> STATS_TYPE =
-      new AdapterStatisticType<>("COUNT");
+public class CountStatistic extends DataTypeStatistic<CountStatistic.CountValue> {
+  public static final DataTypeStatisticType<CountValue> STATS_TYPE =
+      new DataTypeStatisticType<>("COUNT");
 
   public CountStatistic() {
     super(STATS_TYPE);
@@ -38,14 +38,6 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
   @Override
   public CountValue createEmpty() {
     return new CountValue(this);
-  }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("count[type=").append(super.getTypeName());
-    buffer.append("]");
-    return buffer.toString();
   }
 
   public static class CountValue extends StatisticValue<Long> implements
@@ -93,6 +85,5 @@ public class CountStatistic extends AdapterStatistic<CountStatistic.CountValue> 
         count = count + ((CountValue) merge).getValue();
       }
     }
-
   }
 }

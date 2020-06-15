@@ -25,14 +25,14 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
 import org.opengis.coverage.grid.GridCoverage;
 
 public class RasterOverviewStatistic extends
-    AdapterStatistic<RasterOverviewStatistic.RasterOverviewValue> {
-  public static final AdapterStatisticType<RasterOverviewValue> STATS_TYPE =
-      new AdapterStatisticType<>("RASTER_OVERVIEW");
+    DataTypeStatistic<RasterOverviewStatistic.RasterOverviewValue> {
+  public static final DataTypeStatisticType<RasterOverviewValue> STATS_TYPE =
+      new DataTypeStatisticType<>("RASTER_OVERVIEW");
 
 
   public RasterOverviewStatistic() {

@@ -125,13 +125,4 @@ public class NumericRangeStatistic extends FieldStatistic<NumericRangeStatistic.
       max = buffer.getDouble();
     }
   }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("range[type=").append(getTypeName());
-    buffer.append(", field=").append(getFieldName());
-    buffer.append("]");
-    return buffer.toString();
-  }
 }

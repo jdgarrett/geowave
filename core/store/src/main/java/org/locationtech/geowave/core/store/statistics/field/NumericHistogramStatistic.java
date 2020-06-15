@@ -6,7 +6,7 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.adapter.vector.stats;
+package org.locationtech.geowave.core.store.statistics.field;
 
 import java.nio.ByteBuffer;
 import java.util.Date;
@@ -21,8 +21,6 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 
 /**
  * Dynamic histogram provide very high accuracy for CDF and quantiles over the a numeric attribute.
@@ -243,15 +241,6 @@ public class NumericHistogramStatistic extends
         throw new RuntimeException("Cannot decode statistic", e);
       }
     }
-  }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("histogram[type=").append(getTypeName());
-    buffer.append(", field=").append(getFieldName());
-    buffer.append("]");
-    return buffer.toString();
   }
 
   public static class LocalDoubleHistogram extends DoubleHistogram {

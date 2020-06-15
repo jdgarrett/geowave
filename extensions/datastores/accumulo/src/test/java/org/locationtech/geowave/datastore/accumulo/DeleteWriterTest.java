@@ -148,7 +148,7 @@ public class DeleteWriterTest {
   @Test
   public void testDeleteByInsertionId() throws IOException {
     CountStatistic countStats =
-        (CountStatistic) statsStore.getAdapterStatistics(
+        (CountStatistic) statsStore.getDataTypeStatistics(
             adapter,
             CountStatistic.STATS_TYPE,
             null).next();
@@ -188,7 +188,7 @@ public class DeleteWriterTest {
   @Test
   public void testDeleteBySpatialConstraint() throws IOException {
     CountStatistic countStats =
-        (CountStatistic) statsStore.getAdapterStatistics(
+        (CountStatistic) statsStore.getDataTypeStatistics(
             adapter,
             CountStatistic.STATS_TYPE,
             null).next();
@@ -213,7 +213,7 @@ public class DeleteWriterTest {
   @Test
   public void testDeleteByPrefixId() throws IOException {
     CountStatistic countStats =
-        (CountStatistic) statsStore.getAdapterStatistics(
+        (CountStatistic) statsStore.getDataTypeStatistics(
             adapter,
             CountStatistic.STATS_TYPE,
             null).next();
@@ -242,7 +242,7 @@ public class DeleteWriterTest {
   @Test
   public void testDeleteByDataId() throws IOException {
     CountStatistic countStats =
-        (CountStatistic) statsStore.getAdapterStatistics(
+        (CountStatistic) statsStore.getDataTypeStatistics(
             adapter,
             CountStatistic.STATS_TYPE,
             null).next();

@@ -49,10 +49,6 @@ public class WFSTransactionTest extends BaseDataStoreTest {
         DataUtilities.createType(
             "geostuff",
             "geometry:Geometry:srid=4326,pop:java.lang.Long,pid:String");
-    if (dataStore instanceof GeoWaveGTDataStore) {
-      ((GeoWaveGTDataStore) dataStore).dataStore.addStatistic(
-          new NumericRangeStatistic(type.getTypeName(), "pop"));
-    }
 
     dataStore.createSchema(type);
     query =
@@ -60,6 +56,11 @@ public class WFSTransactionTest extends BaseDataStoreTest {
             "geostuff",
             CQL.toFilter("BBOX(geometry,27.20,41.20,27.30,41.30)"),
             new String[] {"geometry", "pid"});
+    if (dataStore instanceof GeoWaveGTDataStore) {
+      ((GeoWaveGTDataStore) dataStore).dataStore.addStatistic(
+          new NumericRangeStatistic(type.getTypeName(), "pop"),
+          false);
+    }
   }
 
   @Test

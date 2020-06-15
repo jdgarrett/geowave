@@ -9,29 +9,42 @@
 package org.locationtech.geowave.core.store.cli.stats;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Predicate;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.Command;
 import org.locationtech.geowave.core.cli.api.OperationParams;
 import org.locationtech.geowave.core.cli.exceptions.TargetNotFoundException;
+import org.locationtech.geowave.core.cli.utils.ConsolePrinter;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
-import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
-import org.locationtech.geowave.core.store.adapter.InternalDataAdapter;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.index.IndexStore;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.StatisticValueIterator;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 @GeowaveOperation(name = "list", parentOperation = StatsSection.class)
 @Parameters(commandDescription = "Print statistics of a data store to standard output")
@@ -42,6 +55,14 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
   @Parameter(description = "<store name>")
   private List<String> parameters = new ArrayList<>();
 
+  @Parameter(
+      names = "--limit",
+      description = "Limit the number or rows returned.  By default, all results will be displayed.")
+  private Integer limit = null;
+
+  @Parameter(names = "--csv", description = "Output statistics in CSV format.")
+  private boolean csv = false;
+
   private String retValue = "";
 
   @Override
@@ -49,7 +70,6 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
     computeResults(params);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   protected boolean performStatsCommand(
       final DataStorePluginOptions storeOptions,
@@ -60,91 +80,107 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
 
     final String[] authorizations = getAuthorizations(statsOptions.getAuthorizations());
 
-    final StringBuilder builder = new StringBuilder();
+    DataTypeAdapter<?> adapter = null;
+
+    if (statsOptions.getTypeName() != null) {
+      adapter = storeOptions.createDataStore().getType(statsOptions.getTypeName());
+      if (adapter == null) {
+        throw new ParameterException(
+            "A type called " + statsOptions.getTypeName() + " was not found.");
+      }
+    }
+
+    List<String> headers = null;
+    List<Statistic<?>> statsToList = Lists.newLinkedList();
+    ValueTransformer transformer = null;
+    Predicate<StatisticValue<?>> filter;
     if (statsOptions.getIndexName() != null) {
       Index index = indexStore.getIndex(statsOptions.getIndexName());
       if (index == null) {
         throw new ParameterException(
-            "An index called " + statsOptions.getIndexName() + " was not found");
+            "An index called " + statsOptions.getIndexName() + " was not found.");
       }
+      headers = Lists.newArrayList("Statistic", "Tag", "Bin", "Value");
+      transformer = new ValueToRow();
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
           statsStore.getIndexStatistics(index, null, statsOptions.getTag())) {
-        if (statsOptions.getTypeName() != null) {
-          while (stats.hasNext()) {
-            Statistic<StatisticValue<Object>> next =
-                (Statistic<StatisticValue<Object>>) stats.next();
-            if (next.getBinningStrategy() != null
-                && next.getBinningStrategy() instanceof AdapterBinningStrategy) {
-              StatisticValue<Object> value =
-                  statsStore.getStatisticValue(
-                      next,
-                      new ByteArray(statsOptions.getTypeName()),
-                      authorizations);
-              // List it...
+        if (adapter != null) {
+          stats.forEachRemaining(stat -> {
+            if (stat.getBinningStrategy() instanceof DataTypeBinningStrategy
+                || (stat.getBinningStrategy() instanceof CompositeBinningStrategy
+                    && ((CompositeBinningStrategy) stat.getBinningStrategy()).usesStrategy(
+                        DataTypeBinningStrategy.class))) {
+              statsToList.add(stat);
             }
-          }
+          });
+          filter = new IndexAdapterFilter(adapter.getTypeName());
         } else {
-          try (CloseableIterator<? extends StatisticValue<?>> statValues =
-              statsStore.getStatisticValues(stats, null, authorizations)) {
-            // STATS_TODO: List these
-          }
+          stats.forEachRemaining(statsToList::add);
+          filter = null;
         }
       }
     } else if (statsOptions.getTypeName() != null) {
+      filter = null;
       if (statsOptions.getFieldName() != null) {
-        // List all field statistics
+        headers = Lists.newArrayList("Statistic", "Tag", "Bin", "Value");
+        transformer = new ValueToRow();
+        try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+            statsStore.getFieldStatistics(
+                adapter,
+                null,
+                statsOptions.getFieldName(),
+                statsOptions.getTag())) {
+          stats.forEachRemaining(statsToList::add);
+        }
       } else {
-        // Get all indices used by this adapter, list the bin of any index statistics binned by
-        // adapter
-        // Get all adapter statistics for it
-        // Get all field statistics for it
+        headers = Lists.newArrayList("Statistic", "Tag", "Field", "Bin", "Value");
+        transformer = new ValueToFieldRow();
+        try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+            statsStore.getDataTypeStatistics(adapter, null, statsOptions.getTag())) {
+          stats.forEachRemaining(statsToList::add);
+        }
+        try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+            statsStore.getFieldStatistics(adapter, null, null, statsOptions.getTag())) {
+          stats.forEachRemaining(statsToList::add);
+        }
       }
     } else if (statsOptions.getFieldName() != null) {
       throw new ParameterException("A type name must be supplied with a field name.");
     } else {
-      // List all index, adapter, and field statistics that match the name (if supplied)
+      filter = null;
+      headers = Lists.newArrayList("Index/Adapter", "Statistic", "Tag", "Field", "Bin", "Value");
+      transformer = new ValueToAllRow();
+      try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> stats =
+          statsStore.getAllStatistics(null)) {
+        stats.forEachRemaining(statsToList::add);
+      }
     }
-
-    // STATS_TODO: This used to support JSON output, is that still needed?
-
-    // try (CloseableIterator<DataStatistics<?, ?, ?>> statsIt =
-    // statsStore.getAllDataStatistics(authorizations)) {
-    // if (statsOptions.getJsonFormatFlag()) {
-    // final JSONArray resultsArray = new JSONArray();
-    // final JSONObject outputObject = new JSONObject();
-    //
-    // try {
-    // // Output as JSON formatted strings
-    // outputObject.put("dataType", adapter.getTypeName());
-    // while (statsIt.hasNext()) {
-    // final DataStatistics<?, ?, ?> stats = statsIt.next();
-    // if (stats.getAdapterId() != adapter.getAdapterId()) {
-    // continue;
-    // }
-    // resultsArray.add(stats.toJSONObject(internalAdapterStore));
-    // }
-    // outputObject.put("stats", resultsArray);
-    // builder.append(outputObject.toString());
-    // } catch (final JSONException ex) {
-    // LOGGER.error("Unable to output statistic as JSON. ", ex);
-    // }
-    // }
-    // // Output as strings
-    // else {
-    // while (statsIt.hasNext()) {
-    // final DataStatistics<?, ?, ?> stats = statsIt.next();
-    // if (stats.getAdapterId() != adapter.getAdapterId()) {
-    // continue;
-    // }
-    // builder.append("[");
-    // builder.append(String.format("%1$-20s", stats.getType().getString()));
-    // builder.append("] ");
-    // builder.append(stats.toString());
-    // builder.append("\n");
-    // }
-    // }
-    retValue = builder.toString().trim();
-    JCommander.getConsole().println(retValue);
+    Collections.sort(statsToList, new StatComparator());
+    try (StatisticValueIterator values =
+        new StatisticValueIterator(statsStore, statsToList.iterator(), null, authorizations)) {
+      Iterator<List<Object>> rows =
+          Iterators.transform(
+              filter == null ? values : Iterators.filter(values, v -> filter.test(v)),
+              transformer::transform);
+      if (limit != null) {
+        rows = Iterators.limit(rows, limit);
+      }
+      if (rows.hasNext()) {
+        if (csv) {
+          StringBuilder sb = new StringBuilder();
+          sb.append(Arrays.toString(headers.toArray()));
+          rows.forEachRemaining(row -> sb.append(Arrays.toString(row.toArray())));
+          retValue = sb.toString();
+          JCommander.getConsole().println(retValue);
+        } else {
+          JCommander.getConsole().println("Matching statistics:");
+          ConsolePrinter printer = new ConsolePrinter(0, limit != null ? limit : 30);
+          printer.print(headers, rows);
+        }
+      } else {
+        JCommander.getConsole().println("No matching statistics were found.");
+      }
+    }
 
     return true;
   }
@@ -172,6 +208,127 @@ public class ListStatsCommand extends AbstractStatsCommand<String> implements Co
       return retValue;
     } else {
       return "No Data Found";
+    }
+  }
+
+  private static class IndexAdapterFilter implements Predicate<StatisticValue<?>> {
+
+    private final ByteArray adapterBin;
+
+    public IndexAdapterFilter(final String typeName) {
+      this.adapterBin = DataTypeBinningStrategy.getBin(typeName);
+    }
+
+    @Override
+    public boolean test(StatisticValue<?> value) {
+      Statistic<?> statistic = value.getStatistic();
+      if (statistic.getBinningStrategy() instanceof DataTypeBinningStrategy) {
+        return true;
+      } else if (statistic.getBinningStrategy() instanceof CompositeBinningStrategy
+          && ((CompositeBinningStrategy) statistic.getBinningStrategy()).usesStrategy(
+              DataTypeBinningStrategy.class)) {
+        CompositeBinningStrategy binningStrategy =
+            (CompositeBinningStrategy) statistic.getBinningStrategy();
+        if (binningStrategy.binMatches(DataTypeBinningStrategy.class, value.getBin(), adapterBin)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+  }
+
+  private static class StatComparator implements Comparator<Statistic<?>>, Serializable {
+
+    private static final long serialVersionUID = 7635824822932295378L;
+
+    @Override
+    public int compare(Statistic<?> o1, Statistic<?> o2) {
+      int compare = 0;
+      if ((o1 instanceof IndexStatistic && o2 instanceof DataTypeStatistic)
+          || (o1 instanceof IndexStatistic && o2 instanceof FieldStatistic)
+          || (o1 instanceof DataTypeStatistic && o2 instanceof FieldStatistic)) {
+        compare = -1;
+      } else if ((o2 instanceof IndexStatistic && o1 instanceof DataTypeStatistic)
+          || (o2 instanceof IndexStatistic && o1 instanceof FieldStatistic)
+          || (o2 instanceof DataTypeStatistic && o1 instanceof FieldStatistic)) {
+        compare = 1;
+      }
+      if (compare == 0) {
+        compare =
+            o1.getId().getGroupId().getString().compareTo(o2.getId().getGroupId().getString());
+      }
+      if (compare == 0) {
+        compare = o1.getStatisticType().getString().compareTo(o2.getStatisticType().getString());
+      }
+      if (compare == 0) {
+        compare = o1.getTag().compareTo(o2.getTag());
+      }
+      return compare;
+    }
+
+  }
+
+  private static interface ValueTransformer {
+    List<Object> transform(StatisticValue<?> value);
+  }
+
+  private static class ValueToRow implements ValueTransformer {
+    @Override
+    public List<Object> transform(StatisticValue<?> value) {
+      return Lists.newArrayList(
+          value.getStatistic().getStatisticType(),
+          value.getStatistic().getTag(),
+          value.getStatistic().getBinningStrategy() != null
+              ? value.getStatistic().getBinningStrategy().binToString(value.getBin())
+              : "N/A",
+          value);
+    }
+  }
+
+  private static class ValueToFieldRow implements ValueTransformer {
+    @Override
+    public List<Object> transform(StatisticValue<?> value) {
+      String fieldName =
+          value.getStatistic() instanceof FieldStatistic
+              ? ((FieldStatistic<?>) value.getStatistic()).getFieldName()
+              : "N/A";
+      return Lists.newArrayList(
+          value.getStatistic().getStatisticType(),
+          value.getStatistic().getTag(),
+          fieldName,
+          value.getStatistic().getBinningStrategy() != null
+              ? value.getStatistic().getBinningStrategy().binToString(value.getBin())
+              : "N/A",
+          value);
+    }
+  }
+
+  private static class ValueToAllRow implements ValueTransformer {
+    @Override
+    public List<Object> transform(StatisticValue<?> value) {
+      Statistic<?> statistic = value.getStatistic();
+      String indexOrAdapter = null;
+      String field = "N/A";
+      String bin = "N/A";
+      if (statistic instanceof IndexStatistic) {
+        indexOrAdapter = ((IndexStatistic<?>) statistic).getIndexName();
+      } else if (statistic instanceof DataTypeStatistic) {
+        indexOrAdapter = ((DataTypeStatistic<?>) statistic).getTypeName();
+      } else if (statistic instanceof FieldStatistic) {
+        indexOrAdapter = ((FieldStatistic<?>) statistic).getTypeName();
+        field = ((FieldStatistic<?>) statistic).getFieldName();
+      }
+      if (statistic.getBinningStrategy() != null) {
+        bin = statistic.getBinningStrategy().binToString(value.getBin());
+      }
+      return Lists.newArrayList(
+          indexOrAdapter,
+          statistic.getStatisticType(),
+          statistic.getTag(),
+          field,
+          bin,
+          value);
     }
   }
 }

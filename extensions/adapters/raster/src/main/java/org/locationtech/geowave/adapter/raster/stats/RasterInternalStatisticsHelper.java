@@ -5,7 +5,7 @@ import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatist
 import org.locationtech.geowave.core.geotime.store.statistics.BoundingBoxStatistic.BoundingBoxValue;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 
 public class RasterInternalStatisticsHelper {
@@ -16,7 +16,7 @@ public class RasterInternalStatisticsHelper {
       final String... authorizations) {
     Statistic<RasterBoundingBoxValue> statistic =
         statisticsStore.getStatisticById(
-            AdapterStatistic.generateStatisticId(
+            DataTypeStatistic.generateStatisticId(
                 typeName,
                 RasterBoundingBoxStatistic.STATS_TYPE,
                 Statistic.INTERNAL_TAG));

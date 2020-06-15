@@ -6,20 +6,19 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.adapter.vector.stats;
+package org.locationtech.geowave.core.store.statistics.field;
 
 import java.io.IOException;
 import org.locationtech.geowave.core.index.Mergeable;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
-import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.beust.jcommander.IValueValidator;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
 import com.clearspring.analytics.stream.cardinality.HyperLogLogPlus;
 
@@ -32,10 +31,10 @@ public class HyperLogLogStatistic extends
   public static final FieldStatisticType<HyperLogLogPlusValue> STATS_TYPE =
       new FieldStatisticType<>("HYPER_LOG_LOG");
 
-  // STATS_TODO: Should there be some kind of validation function to make sure inputs are valid?
   @Parameter(
       names = "--precision",
-      description = "Number of bits per count value. 2^precision will be the maximum count per distinct value. Maximum precision is 32.")
+      description = "Number of bits per count value. 2^precision will be the maximum count per distinct value. Maximum precision is 32.",
+      validateValueWith = PrecisionValidator.class)
   private int precision = 16;
 
 
@@ -131,10 +130,21 @@ public class HyperLogLogStatistic extends
     }
   }
 
+  private static class PrecisionValidator implements IValueValidator<Integer> {
+
+    @Override
+    public void validate(String name, Integer value) throws ParameterException {
+      if (value < 1 || value > 32) {
+        throw new ParameterException("Precision must be a value between 1 and 32.");
+      }
+    }
+
+  }
+
   @Override
   public String toString() {
     final StringBuffer buffer = new StringBuffer();
-    buffer.append("hyperloglog[type=").append(getTypeName());
+    buffer.append("HYPER_LOG_LOG[type=").append(getTypeName());
     buffer.append(", field=").append(getFieldName());
     buffer.append(", precision=").append(precision);
     buffer.append("]");

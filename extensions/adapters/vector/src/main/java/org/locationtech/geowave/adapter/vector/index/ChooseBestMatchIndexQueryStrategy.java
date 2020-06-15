@@ -20,11 +20,11 @@ import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.query.constraints.QueryConstraints;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.StatisticId;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.util.DataStoreUtils;
@@ -77,7 +77,7 @@ public class ChooseBestMatchIndexQueryStrategy implements IndexQueryStrategySPI 
               if (statistic instanceof RowRangeHistogramStatistic
                   && statistic.getBinningStrategy() instanceof CompositeBinningStrategy
                   && ((CompositeBinningStrategy) statistic.getBinningStrategy()).isOfType(
-                      AdapterBinningStrategy.class,
+                      DataTypeBinningStrategy.class,
                       PartitionBinningStrategy.class)) {
                 rowRangeHistogramStatistic = (RowRangeHistogramStatistic) statistic;
               }

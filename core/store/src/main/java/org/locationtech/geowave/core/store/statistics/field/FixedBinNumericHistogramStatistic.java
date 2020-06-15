@@ -182,13 +182,4 @@ public class FixedBinNumericHistogramStatistic extends
       return histogram.count(binSize);
     }
   }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("histogram[type=").append(getTypeName());
-    buffer.append(", field=").append(getFieldName());
-    buffer.append("]");
-    return buffer.toString();
-  }
 }

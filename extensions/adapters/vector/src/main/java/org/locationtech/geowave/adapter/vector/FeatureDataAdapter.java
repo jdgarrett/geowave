@@ -865,7 +865,7 @@ public class FeatureDataAdapter extends AbstractDataAdapter<SimpleFeature> imple
 
   @Override
   public Class<?> getFieldClass(final int fieldIndex) {
-    return reprojectedFeatureType.getDescriptor(fieldIndex).getClass();
+    return reprojectedFeatureType.getDescriptor(fieldIndex).getType().getBinding();
   }
 
   @Override

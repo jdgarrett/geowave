@@ -1,8 +1,8 @@
 package org.locationtech.geowave.adapter.vector.stats.legacy;
 
-import org.locationtech.geowave.adapter.vector.stats.NumericHistogramStatistic;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfig;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.statistics.field.NumericHistogramStatistic;
 import org.opengis.feature.simple.SimpleFeature;
 
 public class FeatureNumericHistogramConfig implements StatsConfig<SimpleFeature> {

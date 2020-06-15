@@ -13,19 +13,19 @@ import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.visibility.DefaultFieldStatisticVisibility;
 import com.beust.jcommander.Parameter;
 
-public abstract class AdapterStatistic<V extends StatisticValue<?>> extends BaseStatistic<V> {
+public abstract class DataTypeStatistic<V extends StatisticValue<?>> extends BaseStatistic<V> {
 
   @Parameter(
       names = "--typeName",
       required = true,
-      description = "The data type adapter for the statistic.")
+      description = "The data type for the statistic.")
   private String typeName = null;
 
-  public AdapterStatistic(final AdapterStatisticType<V> statisticsType) {
+  public DataTypeStatistic(final DataTypeStatisticType<V> statisticsType) {
     super(statisticsType);
   }
 
-  public AdapterStatistic(final AdapterStatisticType<V> statisticsType, final String typeName) {
+  public DataTypeStatistic(final DataTypeStatisticType<V> statisticsType, final String typeName) {
     super(statisticsType);
     this.typeName = typeName;
   }
@@ -47,7 +47,7 @@ public abstract class AdapterStatistic<V extends StatisticValue<?>> extends Base
   public final StatisticId<V> getId() {
     if (cachedStatisticId == null) {
       cachedStatisticId =
-          generateStatisticId(typeName, (AdapterStatisticType<V>) getStatisticType(), getTag());
+          generateStatisticId(typeName, (DataTypeStatisticType<V>) getStatisticType(), getTag());
     }
     return cachedStatisticId;
   }
@@ -81,9 +81,16 @@ public abstract class AdapterStatistic<V extends StatisticValue<?>> extends Base
     typeName = StringUtils.stringFromBinary(nameBytes);
   }
 
+  @Override
+  public String toString() {
+    final StringBuffer buffer = new StringBuffer();
+    buffer.append(getStatisticType().getString()).append("[type=").append(typeName).append("]");
+    return buffer.toString();
+  }
+
   public static <V extends StatisticValue<?>> StatisticId<V> generateStatisticId(
       final String typeName,
-      final AdapterStatisticType<V> statisticType,
+      final DataTypeStatisticType<V> statisticType,
       final String tag) {
     return new StatisticId<>(generateGroupId(typeName), statisticType, tag);
   }

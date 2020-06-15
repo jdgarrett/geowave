@@ -17,10 +17,10 @@ import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
-import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DuplicateEntryCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic;
@@ -112,35 +112,37 @@ public class IndexImpl implements Index, DefaultStatisticsProvider {
     List<Statistic<? extends StatisticValue<?>>> statistics = Lists.newArrayListWithCapacity(6);
     IndexMetaDataSetStatistic metadata =
         new IndexMetaDataSetStatistic(getName(), indexStrategy.createMetaData());
-    metadata.setBinningStrategy(new AdapterBinningStrategy());
+    metadata.setBinningStrategy(new DataTypeBinningStrategy());
     metadata.setInternal();
     statistics.add(metadata);
 
     DuplicateEntryCountStatistic duplicateCounts = new DuplicateEntryCountStatistic(getName());
-    duplicateCounts.setBinningStrategy(new AdapterBinningStrategy());
+    duplicateCounts.setBinningStrategy(new DataTypeBinningStrategy());
     duplicateCounts.setInternal();
     statistics.add(duplicateCounts);
 
     PartitionsStatistic partitions = new PartitionsStatistic(getName());
-    partitions.setBinningStrategy(new AdapterBinningStrategy());
+    partitions.setBinningStrategy(new DataTypeBinningStrategy());
     partitions.setInternal();
     statistics.add(partitions);
 
     DifferingVisibilityCountStatistic differingFieldVisibility =
         new DifferingVisibilityCountStatistic(getName());
-    differingFieldVisibility.setBinningStrategy(new AdapterBinningStrategy());
+    differingFieldVisibility.setBinningStrategy(new DataTypeBinningStrategy());
     differingFieldVisibility.setInternal();
     statistics.add(differingFieldVisibility);
 
     FieldVisibilityCountStatistic fieldVisibilityCount =
         new FieldVisibilityCountStatistic(getName());
-    fieldVisibilityCount.setBinningStrategy(new AdapterBinningStrategy());
+    fieldVisibilityCount.setBinningStrategy(new DataTypeBinningStrategy());
     fieldVisibilityCount.setInternal();
     statistics.add(fieldVisibilityCount);
 
     RowRangeHistogramStatistic rowRangeHistogram = new RowRangeHistogramStatistic(getName());
     rowRangeHistogram.setBinningStrategy(
-        new CompositeBinningStrategy(new AdapterBinningStrategy(), new PartitionBinningStrategy()));
+        new CompositeBinningStrategy(
+            new DataTypeBinningStrategy(),
+            new PartitionBinningStrategy()));
     rowRangeHistogram.setInternal();
     statistics.add(rowRangeHistogram);
 

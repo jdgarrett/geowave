@@ -86,6 +86,15 @@ public abstract class IndexStatistic<V extends StatisticValue<?>> extends BaseSt
     indexName = StringUtils.stringFromBinary(nameBytes);
   }
 
+
+  @Override
+  public String toString() {
+    final StringBuffer buffer = new StringBuffer();
+    buffer.append(getStatisticType().getString()).append("[index=").append(indexName).append("]");
+    return buffer.toString();
+  }
+
+
   public static <V extends StatisticValue<?>> StatisticId<V> generateStatisticId(
       final String indexName,
       final IndexStatisticType<V> statisticType,

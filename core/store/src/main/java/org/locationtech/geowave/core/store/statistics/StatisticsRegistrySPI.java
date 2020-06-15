@@ -6,9 +6,9 @@ import org.locationtech.geowave.core.index.persist.PersistableRegistrySpi;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
-import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
-import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 
 public abstract class StatisticsRegistrySPI implements PersistableRegistrySpi {
 
@@ -89,28 +89,16 @@ public abstract class StatisticsRegistrySPI implements PersistableRegistrySpi {
       return (Supplier<Statistic<StatisticValue<Object>>>) statisticConstructor;
     }
 
-    // STATS_TODO: Is there a better way to handle this without overcomplicating the provider? Maybe
-    // a static compatibility function? Maybe separate provided statistics by type?
-    public boolean isAdapterStatistic() {
-      return isAssignableTo(AdapterStatistic.class);
+    public boolean isDataTypeStatistic() {
+      return statType instanceof DataTypeStatisticType;
     }
 
     public boolean isIndexStatistic() {
-      return isAssignableTo(IndexStatistic.class);
+      return statType instanceof IndexStatisticType;
     }
 
     public boolean isFieldStatistic() {
-      return isAssignableTo(FieldStatistic.class);
-    }
-
-    /**
-     * @return the statistic class
-     */
-    private boolean isAssignableTo(final Class<?> clazz) {
-      if (prototype == null) {
-        prototype = statisticConstructor.get();
-      }
-      return clazz.isAssignableFrom(prototype.getClass());
+      return statType instanceof FieldStatisticType;
     }
 
     public boolean isCompatibleWith(final Class<?> clazz) {

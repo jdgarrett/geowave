@@ -1,9 +1,9 @@
 package org.locationtech.geowave.adapter.vector.stats.legacy;
 
 import java.nio.ByteBuffer;
-import org.locationtech.geowave.adapter.vector.stats.CountMinSketchStatistic;
 import org.locationtech.geowave.adapter.vector.stats.StatsConfig;
 import org.locationtech.geowave.core.store.api.Statistic;
+import org.locationtech.geowave.core.store.statistics.field.CountMinSketchStatistic;
 import org.opengis.feature.simple.SimpleFeature;
 
 public class FeatureCountMinSketchConfig implements StatsConfig<SimpleFeature> {

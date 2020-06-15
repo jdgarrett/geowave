@@ -31,16 +31,27 @@ public class StatServiceClient {
 
   public Response listStats(final String storeName) {
 
-    return listStats(storeName, null, null, null);
+    return listStats(storeName, null, null, null, null, null, null);
   }
 
   public Response listStats(
       final String storeName,
+      final String indexName,
       final String typeName,
+      final String fieldName,
+      final String tag,
       final String authorizations,
-      final Boolean jsonFormatFlag) {
+      final Integer limit) {
     final Response resp =
-        statService.listStats(storeName, typeName, authorizations, jsonFormatFlag);
+        statService.listStats(
+            storeName,
+            indexName,
+            typeName,
+            fieldName,
+            tag,
+            authorizations,
+            limit,
+            true);
     return resp;
   }
 

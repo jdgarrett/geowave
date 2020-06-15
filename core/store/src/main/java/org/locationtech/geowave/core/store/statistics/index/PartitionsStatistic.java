@@ -9,6 +9,7 @@
 package org.locationtech.geowave.core.store.statistics.index;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.locationtech.geowave.core.index.ByteArray;
@@ -114,6 +115,21 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
         }
       }
     }
+
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("[");
+      for (ByteArray partition : partitions) {
+        sb.append(Arrays.toString(partition.getBytes())).append(",");
+      }
+      if (partitions.size() > 0) {
+        // Remove last comma
+        sb.deleteCharAt(sb.length() - 1);
+      }
+      sb.append("]");
+      return sb.toString();
+    }
   }
 
   protected static ByteArray getPartitionKey(final byte[] partitionBytes) {
@@ -123,12 +139,5 @@ public class PartitionsStatistic extends IndexStatistic<PartitionsStatistic.Part
 
   public static int unsignedToBytes(final byte b) {
     return b & 0xFF;
-  }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("partitions[index=").append(getIndexName()).append("]");
-    return buffer.toString();
   }
 }

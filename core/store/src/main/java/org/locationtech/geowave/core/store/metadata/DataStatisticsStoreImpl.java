@@ -1,10 +1,7 @@
 package org.locationtech.geowave.core.store.metadata;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
@@ -17,15 +14,16 @@ import org.locationtech.geowave.core.store.operations.DataStoreOperations;
 import org.locationtech.geowave.core.store.operations.MetadataDeleter;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataType;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticUpdateCallback;
+import org.locationtech.geowave.core.store.statistics.StatisticValueIterator;
 import org.locationtech.geowave.core.store.statistics.StatisticValueReader;
 import org.locationtech.geowave.core.store.statistics.StatisticValueWriter;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatisticId;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
@@ -59,13 +57,11 @@ public class DataStatisticsStoreImpl extends
 
   @Override
   public boolean exists(Statistic<? extends StatisticValue<?>> statistic) {
-    return getObject(getPrimaryId(statistic), getSecondaryId(statistic)) != null;
+    return objectExists(getPrimaryId(statistic), getSecondaryId(statistic));
   }
 
   @Override
   public void addStatistic(Statistic<? extends StatisticValue<?>> statistic) {
-    // STATS_TODO: There needs to be a way to validate the statistic (maybe a statistic.validate()
-    // function that throws an exception)
     this.addObject(statistic);
   }
 
@@ -104,12 +100,12 @@ public class DataStatisticsStoreImpl extends
 
   @Override
   public boolean removeStatistics(final DataTypeAdapter<?> type, final Index... adapterIndices) {
-    boolean removed = deleteObjects(AdapterStatistic.generateGroupId(type.getTypeName()));
+    boolean removed = deleteObjects(DataTypeStatistic.generateGroupId(type.getTypeName()));
     removed =
         removed
             || deleteObjects(
                 null,
-                AdapterStatistic.generateGroupId(type.getTypeName()),
+                DataTypeStatistic.generateGroupId(type.getTypeName()),
                 operations,
                 MetadataType.STAT_VALUES,
                 this);
@@ -122,7 +118,7 @@ public class DataStatisticsStoreImpl extends
                 operations,
                 MetadataType.STAT_VALUES,
                 this);
-    final ByteArray adapterBin = AdapterBinningStrategy.getBin(type);
+    final ByteArray adapterBin = DataTypeBinningStrategy.getBin(type);
     for (Index index : adapterIndices) {
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
           getIndexStatistics(index, null, null)) {
@@ -139,14 +135,13 @@ public class DataStatisticsStoreImpl extends
   private void deleteAdapterIndexStatisticValues(
       Statistic<?> indexStatistic,
       ByteArray adapterBin) {
-    if (indexStatistic.getBinningStrategy() instanceof AdapterBinningStrategy) {
+    if (indexStatistic.getBinningStrategy() instanceof DataTypeBinningStrategy) {
       removeStatisticValue(indexStatistic, adapterBin);
     } else if (indexStatistic.getBinningStrategy() instanceof CompositeBinningStrategy
         && ((CompositeBinningStrategy) indexStatistic.getBinningStrategy()).usesStrategy(
-            AdapterBinningStrategy.class)) {
-      int strategyIndex =
-          ((CompositeBinningStrategy) indexStatistic.getBinningStrategy()).getStrategyIndex(
-              AdapterBinningStrategy.class);
+            DataTypeBinningStrategy.class)) {
+      CompositeBinningStrategy binningStrategy =
+          (CompositeBinningStrategy) indexStatistic.getBinningStrategy();
       // TODO: The current metadata deleter only deletes exact values. One future optimization
       // could be to allow it to delete with a primary Id prefix. If the strategy index is 0,
       // a prefix delete could be used.
@@ -155,7 +150,7 @@ public class DataStatisticsStoreImpl extends
           getStatisticValues((Statistic<StatisticValue<Object>>) indexStatistic)) {
         while (valueIter.hasNext()) {
           ByteArray bin = valueIter.next().getBin();
-          if (CompositeBinningStrategy.tokenMatches(bin, strategyIndex, adapterBin)) {
+          if (binningStrategy.binMatches(DataTypeBinningStrategy.class, bin, adapterBin)) {
             binsToRemove.add(bin);
           }
         }
@@ -245,12 +240,12 @@ public class DataStatisticsStoreImpl extends
   }
 
   @Override
-  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAdapterStatistics(
+  public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getDataTypeStatistics(
       final DataTypeAdapter<?> type,
       final @Nullable StatisticType<? extends StatisticValue<?>> statisticType,
       final @Nullable String tag) {
     return getBasicStatisticsInternal(
-        AdapterStatistic.generateGroupId(type.getTypeName()),
+        DataTypeStatistic.generateGroupId(type.getTypeName()),
         statisticType,
         tag);
   }
@@ -359,9 +354,15 @@ public class DataStatisticsStoreImpl extends
       ByteArray bin,
       boolean exact,
       String... authorizations) {
+    final byte[] primaryId;
+    if (bin == null && !exact) {
+      primaryId = StatisticValue.getValueId(statistic.getId(), new byte[0]);
+    } else {
+      primaryId = StatisticValue.getValueId(statistic.getId(), bin);
+    }
     MetadataQuery query =
         new MetadataQuery(
-            StatisticValue.getValueId(statistic.getId(), bin),
+            primaryId,
             statistic.getId().getGroupId().getBytes(),
             !exact,
             authorizations);
@@ -381,7 +382,7 @@ public class DataStatisticsStoreImpl extends
       deleted =
           deleter.delete(
               new MetadataQuery(
-                  StatisticValue.getValueId(statistic.getId(), null),
+                  statistic.getId().getUniqueId().getBytes(),
                   statistic.getId().getGroupId().getBytes()));
     } catch (Exception e) {
       LOGGER.error("Unable to remove value for statistic", e);
@@ -438,62 +439,7 @@ public class DataStatisticsStoreImpl extends
       final Iterator<? extends Statistic<? extends StatisticValue<?>>> statistics,
       final ByteArray[] bins,
       final String... authorizations) {
-    return new CloseableIterator<StatisticValue<?>>() {
-      private CloseableIterator<? extends StatisticValue<?>> current = null;
-
-      private StatisticValue<?> next = null;
-
-      @SuppressWarnings("unchecked")
-      private void computeNext() {
-        if (next == null) {
-          while ((current == null || !current.hasNext()) && statistics.hasNext()) {
-            if (current != null) {
-              current.close();
-              current = null;
-            }
-            Statistic<StatisticValue<Object>> nextStat =
-                (Statistic<StatisticValue<Object>>) statistics.next();
-            if (nextStat.getBinningStrategy() != null && bins != null && bins.length > 0) {
-              current =
-                  new CloseableIterator.Wrapper<>(
-                      Arrays.stream(bins).map(
-                          bin -> getStatisticValue(nextStat, bin, authorizations)).iterator());
-            } else {
-              current = getStatisticValues(nextStat, authorizations);
-            }
-          }
-          if (current != null && current.hasNext()) {
-            next = current.next();
-          }
-        }
-      }
-
-      @Override
-      public boolean hasNext() {
-        if (next == null) {
-          computeNext();
-        }
-        return next != null;
-      }
-
-      @Override
-      public StatisticValue<?> next() {
-        if (next == null) {
-          computeNext();
-        }
-        StatisticValue<?> retVal = next;
-        next = null;
-        return retVal;
-      }
-
-      @Override
-      public void close() {
-        if (current != null) {
-          current.close();
-          current = null;
-        }
-      }
-    };
+    return new StatisticValueIterator(this, statistics, bins, authorizations);
   }
 
   @Override
@@ -557,7 +503,7 @@ public class DataStatisticsStoreImpl extends
     }
     if (updateAdapterStats) {
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> adapterStats =
-          getAdapterStatistics(adapter, null, null)) {
+          getDataTypeStatistics(adapter, null, null)) {
         while (adapterStats.hasNext()) {
           statistics.add(adapterStats.next());
         }

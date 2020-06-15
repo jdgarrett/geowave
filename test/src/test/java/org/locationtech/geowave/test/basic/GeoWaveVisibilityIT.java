@@ -42,10 +42,10 @@ import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.data.VisibilityWriter;
 import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
 import org.locationtech.geowave.test.GeoWaveITRunner;
@@ -560,7 +560,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
             StatisticQueryBuilder.newBuilder(
                 DifferingVisibilityCountStatistic.STATS_TYPE).indexName(
                     TestUtils.DEFAULT_SPATIAL_INDEX.getName()).addBin(
-                        AdapterBinningStrategy.getBin(adapter)).build());
+                        DataTypeBinningStrategy.getBin(adapter)).build());
     verifyDifferingVisibilities.accept(count);
     verifyQuery.accept(store, statsStore, internalAdapterId, false);
     verifyQuery.accept(store, statsStore, internalAdapterId, true);

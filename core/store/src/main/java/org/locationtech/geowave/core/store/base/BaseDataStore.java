@@ -86,9 +86,13 @@ import org.locationtech.geowave.core.store.query.filter.DedupeFilter;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
 import org.locationtech.geowave.core.store.statistics.InternalStatisticsHelper;
+import org.locationtech.geowave.core.store.statistics.StatisticUpdateCallback;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic.DifferingVisibilityCountValue;
 import org.locationtech.geowave.core.store.statistics.index.FieldVisibilityCountStatistic.FieldVisibilityCountValue;
-import org.locationtech.geowave.core.store.statistics.query.AdapterStatisticQuery;
+import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
+import org.locationtech.geowave.core.store.statistics.query.DataTypeStatisticQuery;
 import org.locationtech.geowave.core.store.statistics.query.FieldStatisticQuery;
 import org.locationtech.geowave.core.store.statistics.query.IndexStatisticQuery;
 import org.locationtech.geowave.core.store.util.NativeEntryIteratorWrapper;
@@ -841,7 +845,7 @@ public class BaseDataStore implements DataStore {
       final Index index,
       final String... additionalAuthorizations) throws IOException {
     try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> adapterStats =
-        statisticsStore.getAdapterStatistics(adapter.getAdapter(), null, null)) {
+        statisticsStore.getDataTypeStatistics(adapter.getAdapter(), null, null)) {
       statisticsStore.removeStatistics(adapterStats);
     }
 
@@ -1316,8 +1320,8 @@ public class BaseDataStore implements DataStore {
           getIndexStatistics(index, statQuery, statistics);
         }
       }
-    } else if (query instanceof AdapterStatisticQuery) {
-      AdapterStatisticQuery<V, R> statQuery = (AdapterStatisticQuery<V, R>) query;
+    } else if (query instanceof DataTypeStatisticQuery) {
+      DataTypeStatisticQuery<V, R> statQuery = (DataTypeStatisticQuery<V, R>) query;
       if (statQuery.typeName() == null) {
         DataTypeAdapter<?>[] adapters = getTypes();
         for (DataTypeAdapter<?> adapter : adapters) {
@@ -1390,10 +1394,10 @@ public class BaseDataStore implements DataStore {
   @SuppressWarnings("unchecked")
   private <V extends StatisticValue<R>, R> void getAdapterStatistics(
       final DataTypeAdapter<?> adapter,
-      final AdapterStatisticQuery<V, R> query,
+      final DataTypeStatisticQuery<V, R> query,
       final List<Statistic<V>> statistics) {
     try (CloseableIterator<? extends Statistic<?>> statsIter =
-        statisticsStore.getAdapterStatistics(adapter, query.statisticType(), query.tag())) {
+        statisticsStore.getDataTypeStatistics(adapter, query.statisticType(), query.tag())) {
       while (statsIter.hasNext()) {
         statistics.add((Statistic<V>) statsIter.next());
       }
@@ -1784,16 +1788,136 @@ public class BaseDataStore implements DataStore {
     addStatistic(statistic, true);
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public void addStatistic(
       Statistic<? extends StatisticValue<?>> statistic,
       boolean calculateStat) {
+    if (statistic == null) {
+      return;
+    }
     if (statisticsStore.exists(statistic)) {
       throw new IllegalArgumentException("The statistic already exists.");
     }
+    if (statistic instanceof IndexStatistic) {
+      IndexStatistic<?> indexStat = (IndexStatistic) statistic;
+      if (indexStat.getIndexName() == null) {
+        throw new IllegalArgumentException("No index specified.");
+      }
+      Index index = indexStore.getIndex(indexStat.getIndexName());
+      if (index == null) {
+        throw new IllegalArgumentException("No index named " + indexStat.getIndexName() + ".");
+      }
+    } else if (statistic instanceof DataTypeStatistic) {
+      DataTypeStatistic<?> adapterStat = (DataTypeStatistic) statistic;
+      if (adapterStat.getTypeName() == null) {
+        throw new IllegalArgumentException("No type specified.");
+      }
+      DataTypeAdapter<?> adapter = getType(adapterStat.getTypeName());
+      if (adapter == null) {
+        throw new IllegalArgumentException("No type named " + adapterStat.getTypeName() + ".");
+      }
+    } else if (statistic instanceof FieldStatistic) {
+      FieldStatistic<?> fieldStat = (FieldStatistic) statistic;
+      if (fieldStat.getTypeName() == null) {
+        throw new IllegalArgumentException("No type specified.");
+      }
+      DataTypeAdapter<?> adapter = getType(fieldStat.getTypeName());
+      if (adapter == null) {
+        throw new IllegalArgumentException("No type named " + fieldStat.getTypeName() + ".");
+      }
+      if (fieldStat.getFieldName() == null) {
+        throw new IllegalArgumentException("No field specified.");
+      }
+      boolean foundMatch = false;
+      for (int i = 0; i < adapter.getFieldCount(); i++) {
+        if (fieldStat.getFieldName().equals(adapter.getFieldName(i))) {
+          foundMatch = true;
+          break;
+        }
+      }
+      if (!foundMatch) {
+        throw new IllegalArgumentException(
+            "No field named "
+                + fieldStat.getFieldName()
+                + " was found on the type "
+                + fieldStat.getTypeName()
+                + ".");
+      }
+    } else {
+      throw new IllegalArgumentException("Unrecognized statistic type.");
+    }
     statisticsStore.addStatistic(statistic);
     if (calculateStat) {
-      // STATS_TODO: calculate the statistic
+      if (statistic instanceof IndexStatistic) {
+        final String indexName = ((IndexStatistic) statistic).getIndexName();
+        final Index index = indexStore.getIndex(indexName);
+        final ArrayList<Short> indexAdapters = new ArrayList<>();
+        try (CloseableIterator<InternalDataAdapter<?>> it = adapterStore.getAdapters()) {
+          while (it.hasNext()) {
+
+            final InternalDataAdapter<?> dataAdapter = it.next();
+            final AdapterToIndexMapping adapterIndexMap =
+                indexMappingStore.getIndicesForAdapter(dataAdapter.getAdapterId());
+            final String[] indexNames = adapterIndexMap.getIndexNames();
+            for (int i = 0; i < indexNames.length; i++) {
+              if (indexNames[i].equals(indexName)) {
+                indexAdapters.add(adapterIndexMap.getAdapterId());
+                break;
+              }
+            }
+          }
+        }
+
+        // Scan all adapters used on the index
+        for (int i = 0; i < indexAdapters.size(); i++) {
+          final short adapterId = indexAdapters.get(i);
+          DataTypeAdapter<?> adapter = adapterStore.getAdapter(adapterId);
+          Query<?> query =
+              QueryBuilder.newBuilder().addTypeName(adapter.getTypeName()).indexName(
+                  index.getName()).build();
+          try (StatisticUpdateCallback<?> updateCallback =
+              new StatisticUpdateCallback(
+                  Lists.newArrayList(statistic),
+                  statisticsStore,
+                  index,
+                  adapter)) {
+            try (CloseableIterator<?> entryIt = this.query(query, (ScanCallback) updateCallback)) {
+              while (entryIt.hasNext()) {
+                entryIt.next();
+              }
+            }
+          }
+        }
+
+      } else {
+        final String typeName;
+        if (statistic instanceof DataTypeStatistic) {
+          typeName = ((DataTypeStatistic<?>) statistic).getTypeName();
+        } else {
+          typeName = ((FieldStatistic<?>) statistic).getTypeName();
+        }
+        final DataTypeAdapter<?> adapter = getType(typeName);
+        final Index[] indices = getIndices(typeName);
+        if (indices.length == 0) {
+          // If there are no indices, then there is nothing to calculate.
+          return;
+        }
+        Query<?> query =
+            QueryBuilder.newBuilder().addTypeName(typeName).indexName(indices[0].getName()).build();
+        try (StatisticUpdateCallback<?> updateCallback =
+            new StatisticUpdateCallback(
+                Lists.newArrayList(statistic),
+                statisticsStore,
+                indices[0],
+                adapter)) {
+          try (CloseableIterator<?> entryIt = this.query(query, (ScanCallback) updateCallback)) {
+            while (entryIt.hasNext()) {
+              entryIt.next();
+            }
+          }
+        }
+      }
     }
   }
 
@@ -1810,6 +1934,6 @@ public class BaseDataStore implements DataStore {
   public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getTypeStatistics(
       String typeName) {
     short adapterId = internalAdapterStore.getAdapterId(typeName);
-    return statisticsStore.getAdapterStatistics(adapterStore.getAdapter(adapterId), null, null);
+    return statisticsStore.getDataTypeStatistics(adapterStore.getAdapter(adapterId), null, null);
   }
 }

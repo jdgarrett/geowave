@@ -1,6 +1,7 @@
 package org.locationtech.geowave.core.store.statistics;
 
 import java.util.Arrays;
+import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.persist.PersistenceUtils;
 import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.api.Statistic;
@@ -41,10 +42,6 @@ public class StatisticValueReader<V extends StatisticValue<R>, R> implements Clo
       entry.fromBinary(PersistenceUtils.stripClassId(row.getValue()));
       if (currentValue == null) {
         currentValue = entry;
-        if (statistic.getBinningStrategy() != null) {
-          currentValue.setBin(
-              StatisticBinningStrategy.getBinFromValueId(statistic.getId(), row.getPrimaryId()));
-        }
         currentPrimaryId = row.getPrimaryId();
       } else {
         if (Arrays.equals(currentPrimaryId, row.getPrimaryId())) {
@@ -56,12 +53,27 @@ public class StatisticValueReader<V extends StatisticValue<R>, R> implements Clo
         }
       }
     }
+    if (currentValue != null && statistic.getBinningStrategy() != null) {
+      currentValue.setBin(getBinFromValueId(statistic.getId(), currentPrimaryId));
+    }
     return currentValue;
   }
 
   @Override
   public void close() {
     metadataIter.close();
+  }
+
+  public static ByteArray getBinFromValueId(
+      final StatisticId<?> statisticId,
+      final byte[] valueId) {
+    int binIndex =
+        statisticId.getUniqueId().getBytes().length + StatisticId.UNIQUE_ID_SEPARATOR.length;
+    byte[] binBytes = new byte[valueId.length - binIndex];
+    for (int i = 0; i < binBytes.length; i++) {
+      binBytes[i] = valueId[i + binIndex];
+    }
+    return new ByteArray(binBytes);
   }
 
 }

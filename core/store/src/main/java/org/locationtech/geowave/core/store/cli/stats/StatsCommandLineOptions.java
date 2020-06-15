@@ -29,9 +29,6 @@ public class StatsCommandLineOptions {
   @Parameter(names = "--auth", description = "The authorizations used when querying statistics.")
   private String authorizations;
 
-  @Parameter(names = "--json", description = "Output in JSON format.")
-  private boolean jsonFormatFlag;
-
   public StatsCommandLineOptions() {}
 
   public String getAuthorizations() {
@@ -40,14 +37,6 @@ public class StatsCommandLineOptions {
 
   public void setAuthorizations(final String authorizations) {
     this.authorizations = authorizations;
-  }
-
-  public boolean getJsonFormatFlag() {
-    return jsonFormatFlag;
-  }
-
-  public void setJsonFormatFlag(final boolean jsonFormatFlag) {
-    this.jsonFormatFlag = jsonFormatFlag;
   }
 
   public void setIndexName(final String indexName) {

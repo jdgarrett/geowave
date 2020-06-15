@@ -120,6 +120,15 @@ public abstract class FieldStatistic<V extends StatisticValue<?>> extends BaseSt
     fieldName = StringUtils.stringFromBinary(nameBytes);
   }
 
+  @Override
+  public String toString() {
+    final StringBuffer buffer = new StringBuffer();
+    buffer.append(getStatisticType().getString()).append("[type=").append(typeName).append(
+        ", field=").append(fieldName).append("]");
+    return buffer.toString();
+  }
+
+
   public static <V extends StatisticValue<?>> StatisticId<V> generateStatisticId(
       final String typeName,
       final FieldStatisticType<V> statisticType,

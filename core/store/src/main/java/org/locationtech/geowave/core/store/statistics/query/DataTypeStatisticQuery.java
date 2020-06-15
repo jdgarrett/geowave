@@ -4,12 +4,12 @@ import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 
-public class AdapterStatisticQuery<V extends StatisticValue<R>, R> extends
+public class DataTypeStatisticQuery<V extends StatisticValue<R>, R> extends
     AbstractStatisticQuery<V, R> {
 
   private final String typeName;
 
-  public AdapterStatisticQuery(
+  public DataTypeStatisticQuery(
       final StatisticType<V> statisticType,
       final String typeName,
       final String tag,

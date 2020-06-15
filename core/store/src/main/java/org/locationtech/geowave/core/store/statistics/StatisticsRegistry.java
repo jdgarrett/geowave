@@ -84,9 +84,11 @@ public class StatisticsRegistry {
    * 
    * @return a list of index statistics
    */
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics() {
-    return statistics.values().stream().filter(RegisteredStatistic::isIndexStatistic).map(
-        s -> s.getStatisticConstructor().get()).collect(Collectors.toList());
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredIndexStatistics(
+      Class<?> indexClass) {
+    return statistics.values().stream().filter(
+        s -> s.isIndexStatistic() && s.isCompatibleWith(indexClass)).map(
+            s -> s.getStatisticConstructor().get()).collect(Collectors.toList());
   }
 
   /**
@@ -95,10 +97,10 @@ public class StatisticsRegistry {
    * @param type the type to get compatible statistics for
    * @return a list of compatible statistics
    */
-  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredAdapterStatistics(
+  public List<? extends Statistic<? extends StatisticValue<?>>> getRegisteredDataTypeStatistics(
       Class<?> adapterDataClass) {
     return statistics.values().stream().filter(
-        s -> s.isAdapterStatistic() && s.isCompatibleWith(adapterDataClass)).map(
+        s -> s.isDataTypeStatistic() && s.isCompatibleWith(adapterDataClass)).map(
             s -> s.getStatisticConstructor().get()).collect(Collectors.toList());
   }
 
@@ -127,6 +129,25 @@ public class StatisticsRegistry {
       }
     }
     return fieldStatistics;
+  }
+
+  /**
+   * Get all registered statistics.
+   * 
+   * @return a list of registered statistics
+   */
+  public List<? extends Statistic<? extends StatisticValue<?>>> getAllRegisteredStatistics() {
+    return statistics.values().stream().map(s -> s.getStatisticConstructor().get()).collect(
+        Collectors.toList());
+  }
+
+  /**
+   * Get all registered binning strategies.
+   * 
+   * @return a list of registered binning strategies
+   */
+  public List<StatisticBinningStrategy> getAllRegisteredBinningStrategies() {
+    return binningStrategies.values().stream().map(b -> b.get()).collect(Collectors.toList());
   }
 
   /**

@@ -760,7 +760,7 @@ public abstract class AbstractGeoWaveBasicVectorIT extends AbstractGeoWaveIT {
             cachedValue.statsCache.entrySet();
         int statsCount = 0;
         try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIterator =
-            statsStore.getAdapterStatistics(adapter, null, null)) {
+            statsStore.getDataTypeStatistics(adapter, null, null)) {
           while (statsIterator.hasNext()) {
             statsIterator.next();
             statsCount++;

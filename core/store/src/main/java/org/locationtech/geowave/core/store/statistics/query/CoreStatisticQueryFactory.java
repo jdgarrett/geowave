@@ -33,8 +33,8 @@ public class CoreStatisticQueryFactory {
   }
 
   // Adapter Statistics
-  public static AdapterStatisticQueryBuilder<CountValue, Long> count() {
-    return new AdapterStatisticQueryBuilder<>(CountStatistic.STATS_TYPE);
+  public static DataTypeStatisticQueryBuilder<CountValue, Long> count() {
+    return new DataTypeStatisticQueryBuilder<>(CountStatistic.STATS_TYPE);
   }
 
   // Field Statistics

@@ -1,11 +1,23 @@
-package org.locationtech.geowave.core.store.statistics;
+package org.locationtech.geowave.core.store.statistics.binning;
 
+import java.util.Arrays;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.StatisticBinningStrategy;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 
 public class PartitionBinningStrategy implements StatisticBinningStrategy {
+  public static final String NAME = "PARTITION";
+
+  @Override
+  public String getStrategyName() {
+    return NAME;
+  }
+
+  @Override
+  public String getDescription() {
+    return "Bin the statistic by the partition that entries reside on.";
+  }
 
   @Override
   public <T> ByteArray[] getBins(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows) {
@@ -30,5 +42,10 @@ public class PartitionBinningStrategy implements StatisticBinningStrategy {
 
   @Override
   public void fromBinary(byte[] bytes) {}
+
+  @Override
+  public String binToString(final ByteArray bin) {
+    return Arrays.toString(bin.getBytes());
+  }
 
 }

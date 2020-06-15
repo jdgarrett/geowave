@@ -3,30 +3,43 @@ package org.locationtech.geowave.core.store.api;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.index.persist.Persistable;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.StatisticId;
-import com.google.common.primitives.Bytes;
 
+/**
+ * Base interface for statistic binning strategies. These strategies allow a statistic's values to
+ * be split up by an arbitrary strategy. This allows a simple statistic to be used in many different
+ * ways.
+ */
 public interface StatisticBinningStrategy extends Persistable {
 
-  public <T> ByteArray[] getBins(DataTypeAdapter<T> adapter, T entry, GeoWaveRow... rows);
+  /**
+   * Get the name of the binning strategy.
+   * 
+   * @return the binning strategy name
+   */
+  public String getStrategyName();
 
-  public static byte[] getBinnedValueId(StatisticId<?> statisticId, ByteArray bin) {
-    return Bytes.concat(
-        statisticId.getUniqueId().getBytes(),
-        StatisticId.UNIQUE_ID_SEPARATOR,
-        bin.getBytes());
-  }
+  /**
+   * Get a human-readable description of the binning strategy.
+   * 
+   * @return a description of the binning strategy
+   */
+  public String getDescription();
 
-  public static ByteArray getBinFromValueId(
-      final StatisticId<?> statisticId,
-      final byte[] valueId) {
-    int binIndex =
-        statisticId.getUniqueId().getBytes().length + StatisticId.UNIQUE_ID_SEPARATOR.length;
-    byte[] binBytes = new byte[valueId.length - binIndex];
-    for (int i = 0; i < binBytes.length; i++) {
-      binBytes[i] = valueId[i + binIndex];
-    }
-    return new ByteArray(binBytes);
-  }
+  /**
+   * Get the bins used by the given entry. Each bin will have a separate statistic value.
+   * 
+   * @param type the data type
+   * @param entry the entry
+   * @param rows the rows created for the entry
+   * @return a set of bins used by the given entry
+   */
+  public <T> ByteArray[] getBins(DataTypeAdapter<T> type, T entry, GeoWaveRow... rows);
 
+  /**
+   * Get a human-readable string of a bin.
+   * 
+   * @param bin the bin
+   * @return the string value of the bin
+   */
+  public String binToString(final ByteArray bin);
 }

@@ -109,6 +109,59 @@ public class ByteArrayUtils {
     return combinedId;
   }
 
+  public static byte[] replace(final byte[] arr, final byte[] find, final byte[] replace) {
+    if (find == null || find.length == 0 || find.length > arr.length || replace == null) {
+      return arr;
+    }
+    int match = 0;
+    int matchCount = 0;
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] == find[match]) {
+        match++;
+        if (match == find.length) {
+          matchCount++;
+          match = 0;
+        }
+      } else if (match > 0 && arr[i] == find[0]) {
+        match = 1;
+      } else {
+        match = 0;
+      }
+    }
+    if (matchCount == 0) {
+      return arr;
+    }
+    byte[] newBytes = new byte[arr.length - find.length * matchCount + replace.length * matchCount];
+    match = 0;
+    int copyIdx = 0;
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] == find[match]) {
+        match++;
+        if (match == find.length) {
+          for (int j = 0; j < replace.length; j++) {
+            newBytes[copyIdx++] = replace[j];
+          }
+          match = 0;
+        }
+        continue;
+      } else if (match > 0) {
+        for (int j = i - match; j < i; j++) {
+          newBytes[copyIdx++] = arr[j];
+        }
+        if (arr[i] == find[0]) {
+          copyIdx--;
+          match = 1;
+        } else {
+          match = 0;
+        }
+      }
+      if (match == 0) {
+        newBytes[copyIdx++] = arr[i];
+      }
+    }
+    return newBytes;
+  }
+
   /**
    * add 1 to the least significant bit in this byte array (the last byte in the array)
    *

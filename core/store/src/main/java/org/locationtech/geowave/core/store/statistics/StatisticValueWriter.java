@@ -24,11 +24,7 @@ public class StatisticValueWriter<V extends StatisticValue<?>> implements AutoCl
   public void writeStatisticValue(final byte[] bin, final byte[] visibility, V value) {
     byte[] primaryId;
     if (statistic.getBinningStrategy() != null) {
-      primaryId =
-          Bytes.concat(
-              statistic.getId().getUniqueId().getBytes(),
-              StatisticId.UNIQUE_ID_SEPARATOR,
-              bin);
+      primaryId = StatisticValue.getValueId(statistic.getId(), bin);
     } else {
       primaryId = statistic.getId().getUniqueId().getBytes();
     }

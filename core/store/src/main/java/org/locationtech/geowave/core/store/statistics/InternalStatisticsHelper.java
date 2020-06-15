@@ -8,8 +8,11 @@ import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatistic;
 import org.locationtech.geowave.core.store.statistics.field.FieldStatisticType;
 import org.locationtech.geowave.core.store.statistics.index.DifferingVisibilityCountStatistic;
@@ -31,12 +34,12 @@ public class InternalStatisticsHelper {
 
   public static <V extends StatisticValue<R>, R> V getAdapterStatistic(
       final DataStatisticsStore statisticsStore,
-      final AdapterStatisticType<V> statisticType,
+      final DataTypeStatisticType<V> statisticType,
       final String typeName,
       final String... authorizations) {
     Statistic<V> statistic =
         statisticsStore.getStatisticById(
-            AdapterStatistic.generateStatisticId(typeName, statisticType, Statistic.INTERNAL_TAG));
+            DataTypeStatistic.generateStatisticId(typeName, statisticType, Statistic.INTERNAL_TAG));
     if (statistic != null) {
       return statisticsStore.getStatisticValue(statistic, authorizations);
     }
@@ -153,7 +156,7 @@ public class InternalStatisticsHelper {
     if (stat != null
         && stat.getBinningStrategy() instanceof CompositeBinningStrategy
         && ((CompositeBinningStrategy) stat.getBinningStrategy()).isOfType(
-            AdapterBinningStrategy.class,
+            DataTypeBinningStrategy.class,
             PartitionBinningStrategy.class)) {
       RowRangeHistogramValue combinedValue = null;
       for (Short adapterId : adapterIds) {
@@ -161,7 +164,7 @@ public class InternalStatisticsHelper {
             statisticsStore.getStatisticValue(
                 stat,
                 CompositeBinningStrategy.getBin(
-                    AdapterBinningStrategy.getBin(adapterStore.getAdapter(adapterId)),
+                    DataTypeBinningStrategy.getBin(adapterStore.getAdapter(adapterId)),
                     PartitionBinningStrategy.getBin(partitionKey.getBytes())),
                 authorizations);
         if (value != null) {
@@ -192,12 +195,12 @@ public class InternalStatisticsHelper {
     if (statistic != null
         && statistic.getBinningStrategy() instanceof CompositeBinningStrategy
         && ((CompositeBinningStrategy) statistic.getBinningStrategy()).isOfType(
-            AdapterBinningStrategy.class,
+            DataTypeBinningStrategy.class,
             PartitionBinningStrategy.class)) {
       return statisticsStore.getStatisticValue(
           statistic,
           CompositeBinningStrategy.getBin(
-              AdapterBinningStrategy.getBin(typeName),
+              DataTypeBinningStrategy.getBin(typeName),
               PartitionBinningStrategy.getBin(partitionKey.getBytes())),
           authorizations);
     }
@@ -222,7 +225,7 @@ public class InternalStatisticsHelper {
         V value =
             statisticsStore.getStatisticValue(
                 stat,
-                AdapterBinningStrategy.getBin(adapter),
+                DataTypeBinningStrategy.getBin(adapter),
                 authorizations);
         if (combinedValue == null) {
           combinedValue = value;

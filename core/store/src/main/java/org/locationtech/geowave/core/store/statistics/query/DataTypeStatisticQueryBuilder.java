@@ -2,18 +2,18 @@ package org.locationtech.geowave.core.store.statistics.query;
 
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.api.StatisticValue;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
 
-public class AdapterStatisticQueryBuilder<V extends StatisticValue<R>, R> extends
-    AbstractStatisticQueryBuilder<V, R, AdapterStatisticQueryBuilder<V, R>> {
+public class DataTypeStatisticQueryBuilder<V extends StatisticValue<R>, R> extends
+    AbstractStatisticQueryBuilder<V, R, DataTypeStatisticQueryBuilder<V, R>> {
 
   protected String typeName = null;
 
-  public AdapterStatisticQueryBuilder(final AdapterStatisticType<V> type) {
-    statisticType(type);
+  public DataTypeStatisticQueryBuilder(final DataTypeStatisticType<V> type) {
+    super(type);
   }
 
-  public AdapterStatisticQueryBuilder<V, R> typeName(final String typeName) {
+  public DataTypeStatisticQueryBuilder<V, R> typeName(final String typeName) {
     this.typeName = typeName;
     return this;
   }
@@ -22,7 +22,7 @@ public class AdapterStatisticQueryBuilder<V extends StatisticValue<R>, R> extend
   public AbstractStatisticQuery<V, R> build() {
     ByteArray[] binArray = bins.toArray(new ByteArray[bins.size()]);
     String[] authorizationsArray = authorizations.toArray(new String[authorizations.size()]);
-    return new AdapterStatisticQuery<V, R>(
+    return new DataTypeStatisticQuery<V, R>(
         statisticType,
         typeName,
         tag,

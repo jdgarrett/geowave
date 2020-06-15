@@ -403,7 +403,7 @@ public class GeoWaveGrpcIT extends AbstractGeoWaveBasicVectorIT {
     Assert.assertTrue(result.contains("SPATIAL_IDX"));
 
     result = client.ListStatsCommand();
-    Assert.assertTrue(!result.equalsIgnoreCase(""));
+    Assert.assertTrue(result.contains("COUNT"));
 
     Assert.assertTrue(client.RecalculateStatsCommand());
 

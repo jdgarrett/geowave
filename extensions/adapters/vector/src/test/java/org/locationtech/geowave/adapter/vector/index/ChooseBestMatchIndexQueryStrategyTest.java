@@ -47,15 +47,15 @@ import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintData;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintSet;
 import org.locationtech.geowave.core.store.query.constraints.BasicQueryByClass.ConstraintsByClass;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
-import org.locationtech.geowave.core.store.statistics.CompositeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
-import org.locationtech.geowave.core.store.statistics.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.StatisticId;
 import org.locationtech.geowave.core.store.statistics.StatisticType;
 import org.locationtech.geowave.core.store.statistics.StatisticUpdateCallback;
 import org.locationtech.geowave.core.store.statistics.StatisticValueWriter;
 import org.locationtech.geowave.core.store.statistics.StatisticsIngestCallback;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
+import org.locationtech.geowave.core.store.statistics.binning.PartitionBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.index.IndexStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic;
 import org.locationtech.geowave.core.store.statistics.index.RowRangeHistogramStatistic.RowRangeHistogramValue;
@@ -76,13 +76,17 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     final RowRangeHistogramStatistic rangeTempStats =
         new RowRangeHistogramStatistic(temporalindex.getName());
     rangeTempStats.setBinningStrategy(
-        new CompositeBinningStrategy(new AdapterBinningStrategy(), new PartitionBinningStrategy()));
+        new CompositeBinningStrategy(
+            new DataTypeBinningStrategy(),
+            new PartitionBinningStrategy()));
     rangeTempStats.setInternal();
 
     final RowRangeHistogramStatistic rangeStats =
         new RowRangeHistogramStatistic(spatialIndex.getName());
     rangeStats.setBinningStrategy(
-        new CompositeBinningStrategy(new AdapterBinningStrategy(), new PartitionBinningStrategy()));
+        new CompositeBinningStrategy(
+            new DataTypeBinningStrategy(),
+            new PartitionBinningStrategy()));
     rangeStats.setInternal();
 
     final Map<StatisticId<?>, Map<ByteArray, StatisticValue<?>>> statsMap = new HashMap<>();
@@ -130,7 +134,7 @@ public class ChooseBestMatchIndexQueryStrategyTest {
         }
         final ByteArray bin =
             CompositeBinningStrategy.getBin(
-                AdapterBinningStrategy.getBin((String) null),
+                DataTypeBinningStrategy.getBin((String) null),
                 PartitionBinningStrategy.getBin(range.getPartitionKey()));
         RowRangeHistogramValue value = (RowRangeHistogramValue) binValues.get(bin);
         if (value == null) {
@@ -173,7 +177,7 @@ public class ChooseBestMatchIndexQueryStrategyTest {
         }
         final ByteArray bin =
             CompositeBinningStrategy.getBin(
-                AdapterBinningStrategy.getBin((String) null),
+                DataTypeBinningStrategy.getBin((String) null),
                 PartitionBinningStrategy.getBin(range.getPartitionKey()));
         RowRangeHistogramValue value = (RowRangeHistogramValue) binValues.get(bin);
         if (value == null) {
@@ -302,7 +306,7 @@ public class ChooseBestMatchIndexQueryStrategyTest {
     }
 
     @Override
-    public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getAdapterStatistics(
+    public CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> getDataTypeStatistics(
         DataTypeAdapter<?> type,
         StatisticType<? extends StatisticValue<?>> statisticType,
         String name) {

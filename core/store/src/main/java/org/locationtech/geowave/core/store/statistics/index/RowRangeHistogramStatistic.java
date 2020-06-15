@@ -134,11 +134,4 @@ public class RowRangeHistogramStatistic extends
   private static NumericHistogram createHistogram() {
     return new TDigestNumericHistogram();
   }
-
-  @Override
-  public String toString() {
-    final StringBuffer buffer = new StringBuffer();
-    buffer.append("histogram[index=").append(getIndexName()).append("]");
-    return buffer.toString();
-  }
 }

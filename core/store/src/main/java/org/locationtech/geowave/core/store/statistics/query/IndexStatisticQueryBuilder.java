@@ -10,7 +10,7 @@ public class IndexStatisticQueryBuilder<V extends StatisticValue<R>, R> extends
   protected String indexName = null;
 
   public IndexStatisticQueryBuilder(final IndexStatisticType<V> type) {
-    statisticType(type);
+    super(type);
   }
 
   public IndexStatisticQueryBuilder<V, R> indexName(final String indexName) {

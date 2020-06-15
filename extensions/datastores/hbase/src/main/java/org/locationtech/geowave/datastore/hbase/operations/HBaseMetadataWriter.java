@@ -40,7 +40,6 @@ public class HBaseMetadataWriter implements MetadataWriter {
       synchronized (duplicateRowTracker) {
         safeFlush();
         writer.close();
-        duplicateRowTracker.clear();
       }
     } catch (final IOException e) {
       LOGGER.warn("Unable to close metadata writer", e);
@@ -52,7 +51,6 @@ public class HBaseMetadataWriter implements MetadataWriter {
     try {
       synchronized (duplicateRowTracker) {
         safeFlush();
-        duplicateRowTracker.clear();
       }
     } catch (final IOException e) {
       LOGGER.warn("Unable to flush metadata writer", e);
@@ -85,7 +83,6 @@ public class HBaseMetadataWriter implements MetadataWriter {
         final ByteArray primaryId = new ByteArray(metadata.getPrimaryId());
         if (!duplicateRowTracker.add(primaryId)) {
           safeFlush();
-          duplicateRowTracker.clear();
           duplicateRowTracker.add(primaryId);
         }
       }
@@ -105,5 +102,6 @@ public class HBaseMetadataWriter implements MetadataWriter {
     }
     writer.flush();
     lastFlush = System.currentTimeMillis();
+    duplicateRowTracker.clear();
   }
 }

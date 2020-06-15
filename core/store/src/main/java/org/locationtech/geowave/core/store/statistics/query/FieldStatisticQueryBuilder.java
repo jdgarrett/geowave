@@ -11,10 +11,8 @@ public class FieldStatisticQueryBuilder<V extends StatisticValue<R>, R> extends
 
   protected String fieldName = null;
 
-  public FieldStatisticQueryBuilder() {}
-
   public FieldStatisticQueryBuilder(final FieldStatisticType<V> type) {
-    statisticType(type);
+    super(type);
   }
 
   public FieldStatisticQueryBuilder<V, R> typeName(final String typeName) {

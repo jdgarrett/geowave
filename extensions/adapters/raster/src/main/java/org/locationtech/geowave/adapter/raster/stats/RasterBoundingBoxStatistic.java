@@ -14,15 +14,15 @@ import org.locationtech.geowave.core.geotime.store.statistics.AbstractBoundingBo
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatistic;
-import org.locationtech.geowave.core.store.statistics.adapter.AdapterStatisticType;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatistic;
+import org.locationtech.geowave.core.store.statistics.adapter.DataTypeStatisticType;
 import org.locationtech.jts.geom.Envelope;
 import org.opengis.coverage.grid.GridCoverage;
 
 public class RasterBoundingBoxStatistic extends
-    AdapterStatistic<RasterBoundingBoxStatistic.RasterBoundingBoxValue> {
-  public static final AdapterStatisticType<RasterBoundingBoxValue> STATS_TYPE =
-      new AdapterStatisticType<>("RASTER_BOUNDING_BOX");
+    DataTypeStatistic<RasterBoundingBoxStatistic.RasterBoundingBoxValue> {
+  public static final DataTypeStatisticType<RasterBoundingBoxValue> STATS_TYPE =
+      new DataTypeStatisticType<>("RASTER_BOUNDING_BOX");
 
   public RasterBoundingBoxStatistic() {
     super(STATS_TYPE);

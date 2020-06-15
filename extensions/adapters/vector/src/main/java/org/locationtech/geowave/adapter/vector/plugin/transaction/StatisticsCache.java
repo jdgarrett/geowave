@@ -70,7 +70,7 @@ public class StatisticsCache {
     }
     V retVal = null;
     try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> statsIter =
-        statisticsStore.getAdapterStatistics(adapter, statisticType, null)) {
+        statisticsStore.getDataTypeStatistics(adapter, statisticType, null)) {
       if (statsIter.hasNext()) {
         Statistic<V> stat = (Statistic<V>) statsIter.next();
         V value = statisticsStore.getStatisticValue(stat, authorizations);

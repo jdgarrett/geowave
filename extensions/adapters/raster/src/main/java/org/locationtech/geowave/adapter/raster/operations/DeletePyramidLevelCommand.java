@@ -33,8 +33,8 @@ import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
-import org.locationtech.geowave.core.store.statistics.AdapterBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
+import org.locationtech.geowave.core.store.statistics.binning.DataTypeBinningStrategy;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic;
 import org.locationtech.geowave.core.store.statistics.index.PartitionsStatistic.PartitionsValue;
 import org.locationtech.geowave.core.store.util.CompoundHierarchicalIndexStrategyWrapper;
@@ -150,7 +150,7 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
       boolean overviewStatsFound = false;
       boolean partitionStatsFound = false;
       try (CloseableIterator<? extends Statistic<? extends StatisticValue<?>>> it =
-          statsStore.getAdapterStatistics(adapter, RasterOverviewStatistic.STATS_TYPE, null)) {
+          statsStore.getDataTypeStatistics(adapter, RasterOverviewStatistic.STATS_TYPE, null)) {
         while (it.hasNext()) {
           final Statistic<? extends StatisticValue<?>> next = it.next();
           if (next instanceof RasterOverviewStatistic && next.getBinningStrategy() == null) {
@@ -175,12 +175,12 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
           final Statistic<? extends StatisticValue<?>> next = it.next();
           if (next instanceof PartitionsStatistic) {
             if (next.getBinningStrategy() != null
-                && next.getBinningStrategy() instanceof AdapterBinningStrategy) {
+                && next.getBinningStrategy() instanceof DataTypeBinningStrategy) {
               PartitionsStatistic statistic = (PartitionsStatistic) next;
               PartitionsValue value =
                   statsStore.getStatisticValue(
                       (PartitionsStatistic) next,
-                      AdapterBinningStrategy.getBin(adapter));
+                      DataTypeBinningStrategy.getBin(adapter));
               for (final ByteArray p : partitions) {
                 if (!value.getValue().remove(p)) {
                   LOGGER.error(
@@ -194,7 +194,7 @@ public class DeletePyramidLevelCommand extends DefaultOperation implements Comma
               statsStore.setStatisticValue(
                   statistic,
                   value,
-                  AdapterBinningStrategy.getBin(adapter));
+                  DataTypeBinningStrategy.getBin(adapter));
               partitionStatsFound = true;
             }
           }

@@ -21,6 +21,7 @@ import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.cli.store.StoreLoader;
 import org.locationtech.geowave.core.store.statistics.BaseStatistic;
 import org.locationtech.geowave.core.store.statistics.StatisticsRegistry;
+import org.locationtech.geowave.core.store.statistics.binning.CompositeBinningStrategy;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
@@ -71,6 +72,10 @@ public class AddStatCommand extends ServiceEnabledCommand<Void> {
       binningStrategy = StatisticsRegistry.instance().getBinningStrategy(binningStrategyName);
       if (binningStrategy == null) {
         throw new ParameterException("Unrecognized binning strategy: " + binningStrategyName);
+      }
+      if (binningStrategy instanceof CompositeBinningStrategy) {
+        throw new ParameterException(
+            "Statistics with composite binning strategies are currently unable to be added through the CLI.");
       }
     }
 

@@ -607,6 +607,11 @@ public class TieredSFCIndexStrategy implements HierarchicalNumericIndexStrategy 
       }
     }
 
+    @Override
+    public String toString() {
+      return "Tier Metadata[Tier Counts:" + Arrays.toString(tierCounts) + "]";
+    }
+
     /** Convert Tiered Index Metadata statistics to a JSON object */
     @Override
     public JSONObject toJSONObject() throws JSONException {
