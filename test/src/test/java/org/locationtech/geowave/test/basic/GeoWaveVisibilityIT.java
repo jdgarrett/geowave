@@ -14,6 +14,7 @@ import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.apache.log4j.Logger;
 import org.geotools.feature.AttributeTypeBuilder;
@@ -37,12 +38,14 @@ import org.locationtech.geowave.core.store.adapter.InternalAdapterStore;
 import org.locationtech.geowave.core.store.api.AggregationQueryBuilder;
 import org.locationtech.geowave.core.store.api.BinConstraints;
 import org.locationtech.geowave.core.store.api.DataStore;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.api.StatisticQueryBuilder;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
-import org.locationtech.geowave.core.store.data.VisibilityWriter;
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.FieldMappedVisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.locationtech.geowave.core.store.statistics.DataStatisticsStore;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic;
 import org.locationtech.geowave.core.store.statistics.adapter.CountStatistic.CountValue;
@@ -62,6 +65,7 @@ import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import com.aol.cyclops.util.function.QuadConsumer;
+import com.google.common.collect.Maps;
 
 @RunWith(GeoWaveITRunner.class)
 public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
@@ -535,7 +539,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
 
   public static void testIngestAndQueryVisibilityFields(
       final DataStorePluginOptions dataStoreOptions,
-      final VisibilityWriter<SimpleFeature> visibilityWriter,
+      final VisibilityHandler visibilityHandler,
       final Consumer<DifferingVisibilityCountValue> verifyDifferingVisibilities,
       final QuadConsumer<DataStore, DataStatisticsStore, Short, Boolean> verifyQuery,
       final int totalFeatures) {
@@ -550,7 +554,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         bldr.set("b", Integer.toString(i));
         bldr.set("c", Integer.toString(i));
         bldr.set("geometry", new GeometryFactory().createPoint(new Coordinate(0, 0)));
-        writer.write(bldr.buildFeature(Integer.toString(i)), visibilityWriter);
+        writer.write(bldr.buildFeature(Integer.toString(i)), visibilityHandler);
       }
     }
     final DataStore dataStore = dataStoreOptions.createDataStore();
@@ -580,7 +584,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
 
   public static void testMixedVisibilityStatistics(
       final DataStorePluginOptions dataStoreOptions,
-      final VisibilityWriter<SimpleFeature> visibilityWriter,
+      final VisibilityHandler visibilityHandler,
       final int totalFeatures) {
     final SimpleFeatureBuilder bldr = new SimpleFeatureBuilder(getType());
     final FeatureDataAdapter adapter = new FeatureDataAdapter(getType());
@@ -612,7 +616,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
         bldr.set("b", B_FIELD_VALUES[i % 3]);
         bldr.set("c", C_FIELD_VALUES[i % 3]);
         bldr.set("geometry", new GeometryFactory().createPoint(new Coordinate(0, 0)));
-        writer.write(bldr.buildFeature(Integer.toString(i)), visibilityWriter);
+        writer.write(bldr.buildFeature(Integer.toString(i)), visibilityHandler);
       }
     }
     final DataStore dataStore = dataStoreOptions.createDataStore();
@@ -677,97 +681,72 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
     assertEquals(totalFeatures, countGeomNoAuth.getValue().longValue());
   }
 
-  private VisibilityWriter<SimpleFeature> getFeatureVisWriter() {
-    return new VisibilityWriter<SimpleFeature>() {
-      @Override
-      public FieldVisibilityHandler<SimpleFeature, Object> getFieldVisibilityHandler(
-          final String fieldId) {
-        return new FieldVisibilityHandler<SimpleFeature, Object>() {
-
-          @Override
-          public byte[] getVisibility(
-              final SimpleFeature rowValue,
-              final String fieldId,
-              final Object fieldValue) {
-
-            final boolean isGeom = fieldId.equals(SpatialField.DEFAULT_GEOMETRY_FIELD_NAME);
-            final int fieldValueInt;
-            if (isGeom) {
-              fieldValueInt = Integer.parseInt(rowValue.getID());
-            } else {
-              fieldValueInt = Integer.parseInt(fieldValue.toString());
-            }
-            // just make half of them varied and
-            // half of them the same
-            if ((fieldValueInt % 2) == 0) {
-              if (isGeom) {
-                return new byte[] {};
-              }
-              return fieldId.getBytes();
-            } else {
-              // of the ones that are the same,
-              // make some no bytes, some a, some
-              // b, and some c
-              final int switchValue = (fieldValueInt / 2) % 4;
-              switch (switchValue) {
-                case 0:
-                  return new ByteArray("a").getBytes();
-
-                case 1:
-                  return new ByteArray("b").getBytes();
-
-                case 2:
-                  return new ByteArray("c").getBytes();
-
-                case 3:
-                default:
-                  return new byte[] {};
-              }
-            }
-          }
-        };
-      }
-    };
+  private VisibilityHandler getFeatureVisWriter() {
+    return new TestFieldVisibilityHandler();
   }
 
-  private VisibilityWriter<GridCoverage> getRasterVisWriter(final String visExpression) {
-    return new VisibilityWriter<GridCoverage>() {
-      @Override
-      public FieldVisibilityHandler<GridCoverage, Object> getFieldVisibilityHandler(
-          final String fieldId) {
-        return new FieldVisibilityHandler<GridCoverage, Object>() {
-          @Override
-          public byte[] getVisibility(
-              final GridCoverage rowValue,
-              final String fieldId,
-              final Object fieldValue) {
-            return new ByteArray(visExpression).getBytes();
-          }
-        };
+  public static class TestFieldVisibilityHandler implements VisibilityHandler {
+
+    @Override
+    public byte[] toBinary() {
+      return new byte[0];
+    }
+
+    @Override
+    public void fromBinary(byte[] bytes) {}
+
+    @Override
+    public <T> byte[] getVisibility(DataTypeAdapter<T> adapter, T entry, String fieldName) {
+      final boolean isGeom = fieldName.equals(SpatialField.DEFAULT_GEOMETRY_FIELD_NAME);
+      final int fieldValueInt;
+      if (isGeom) {
+        fieldValueInt = Integer.parseInt(((SimpleFeature) entry).getID());
+      } else {
+        fieldValueInt = Integer.parseInt(adapter.getFieldValue(entry, fieldName).toString());
       }
-    };
+      // just make half of them varied and
+      // half of them the same
+      if ((fieldValueInt % 2) == 0) {
+        if (isGeom) {
+          return new byte[] {};
+        }
+        return fieldName.getBytes();
+      } else {
+        // of the ones that are the same,
+        // make some no bytes, some a, some
+        // b, and some c
+        final int switchValue = (fieldValueInt / 2) % 4;
+        switch (switchValue) {
+          case 0:
+            return new ByteArray("a").getBytes();
+
+          case 1:
+            return new ByteArray("b").getBytes();
+
+          case 2:
+            return new ByteArray("c").getBytes();
+
+          case 3:
+          default:
+            return new byte[] {};
+        }
+      }
+    }
+
   }
 
-  private VisibilityWriter<SimpleFeature> getFieldIDFeatureVisWriter() {
-    return new VisibilityWriter<SimpleFeature>() {
-      @Override
-      public FieldVisibilityHandler<SimpleFeature, Object> getFieldVisibilityHandler(
-          final String fieldId) {
-        return new FieldVisibilityHandler<SimpleFeature, Object>() {
+  private VisibilityHandler getRasterVisWriter(final String visExpression) {
+    return new GlobalVisibilityHandler(visExpression);
+  }
 
-          @Override
-          public byte[] getVisibility(
-              final SimpleFeature rowValue,
-              final String fieldId,
-              final Object fieldValue) {
-            if (fieldId.equals(SpatialField.DEFAULT_GEOMETRY_FIELD_NAME)) {
-              return new byte[] {};
-            }
-            return fieldId.getBytes();
-          }
-        };
-      }
-    };
+  private VisibilityHandler getFieldIDFeatureVisWriter() {
+    final Map<String, byte[]> fieldVisibilities = Maps.newHashMap();
+    fieldVisibilities.put(SpatialField.DEFAULT_GEOMETRY_FIELD_NAME, new byte[0]);
+    fieldVisibilities.put("a", "a".getBytes());
+    fieldVisibilities.put("b", "b".getBytes());
+    fieldVisibilities.put("c", "c".getBytes());
+    fieldVisibilities.put("geometry", "geometry".getBytes());
+    return new FieldMappedVisibilityHandler(fieldVisibilities);
   }
 
 

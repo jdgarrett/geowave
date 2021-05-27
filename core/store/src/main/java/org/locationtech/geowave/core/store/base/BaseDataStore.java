@@ -53,6 +53,7 @@ import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticQuery;
 import org.locationtech.geowave.core.store.api.StatisticValue;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.base.dataidx.DataIndexUtils;
 import org.locationtech.geowave.core.store.callback.DeleteCallbackList;
@@ -61,6 +62,7 @@ import org.locationtech.geowave.core.store.callback.DuplicateDeletionCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallback;
 import org.locationtech.geowave.core.store.callback.IngestCallbackList;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
+import org.locationtech.geowave.core.store.data.visibility.UnconstrainedVisibilityHandler;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.entities.GeoWaveRowIteratorTransformer;
@@ -103,6 +105,7 @@ import org.locationtech.geowave.core.store.statistics.index.IndexStatisticType;
 import org.locationtech.geowave.core.store.statistics.query.DataTypeStatisticQuery;
 import org.locationtech.geowave.core.store.statistics.query.FieldStatisticQuery;
 import org.locationtech.geowave.core.store.statistics.query.IndexStatisticQuery;
+import org.locationtech.geowave.core.store.util.DataStoreUtils;
 import org.locationtech.geowave.core.store.util.NativeEntryIteratorWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,8 +191,22 @@ public class BaseDataStore implements DataStore {
     return internalAdapterStore.getAdapterId(typeName);
   }
 
+  private VisibilityHandler resolveVisibilityHandler(
+      final InternalDataAdapter<?> adapter,
+      final VisibilityHandler visibilityHandler) {
+    if (visibilityHandler != null) {
+      return visibilityHandler;
+    }
+    if (adapter.getVisibilityHandler() != null) {
+      return adapter.getVisibilityHandler();
+    }
+    // VIS_TODO: Get global store visibility
+    return DataStoreUtils.UNCONSTRAINED_VISIBILITY;
+  }
+
   private <T> Writer<T> createWriter(
       final InternalDataAdapter<T> adapter,
+      final VisibilityHandler visibilityHandler,
       final boolean writingOriginalData,
       final Index... indices) {
     final boolean secondaryIndex =
@@ -197,6 +214,8 @@ public class BaseDataStore implements DataStore {
             && baseOptions.isSecondaryIndexing()
             && DataIndexUtils.adapterSupportsDataIndex(adapter);
     final Writer<T>[] writers = new Writer[secondaryIndex ? indices.length + 1 : indices.length];
+    final VisibilityHandler resolvedVisibilityHandler =
+        resolveVisibilityHandler(adapter, visibilityHandler);
 
     int i = 0;
     if (secondaryIndex) {
@@ -218,6 +237,7 @@ public class BaseDataStore implements DataStore {
           createDataIndexWriter(
               adapter,
               indexMapping,
+              resolvedVisibilityHandler,
               baseOperations,
               baseOptions,
               callbacksList,
@@ -241,6 +261,7 @@ public class BaseDataStore implements DataStore {
               adapter,
               indexMapping,
               index,
+              resolvedVisibilityHandler,
               baseOperations,
               baseOptions,
               callbacksList,
@@ -251,11 +272,12 @@ public class BaseDataStore implements DataStore {
             new IndependentAdapterIndexWriter<>(
                 (IndexDependentDataAdapter<T>) adapter.getAdapter(),
                 index,
+                resolvedVisibilityHandler,
                 writers[i]);
       }
       i++;
     }
-    return new IndexCompositeWriter(writers);
+    return new IndexCompositeWriter<>(writers);
   }
 
   public <T, R extends GeoWaveRow> CloseableIterator<T> query(
@@ -1107,6 +1129,7 @@ public class BaseDataStore implements DataStore {
   protected <T> Writer<T> createDataIndexWriter(
       final InternalDataAdapter<T> adapter,
       final AdapterToIndexMapping indexMapping,
+      final VisibilityHandler visibilityHandler,
       final DataStoreOperations baseOperations,
       final DataStoreOptions baseOptions,
       final IngestCallback<T> callback,
@@ -1114,6 +1137,7 @@ public class BaseDataStore implements DataStore {
     return new BaseDataIndexWriter<>(
         adapter,
         indexMapping,
+        visibilityHandler,
         baseOperations,
         baseOptions,
         callback,
@@ -1124,6 +1148,7 @@ public class BaseDataStore implements DataStore {
       final InternalDataAdapter<T> adapter,
       final AdapterToIndexMapping indexMapping,
       final Index index,
+      final VisibilityHandler visibilityHandler,
       final DataStoreOperations baseOperations,
       final DataStoreOptions baseOptions,
       final IngestCallback<T> callback,
@@ -1132,6 +1157,7 @@ public class BaseDataStore implements DataStore {
         adapter,
         indexMapping,
         index,
+        visibilityHandler,
         baseOperations,
         baseOptions,
         callback,
@@ -1245,7 +1271,8 @@ public class BaseDataStore implements DataStore {
                 size -> new Index[size]);
         if (newIndices.length > 0) {
           internalAddIndices(adapter, newIndices);
-          try (Writer writer = createWriter(adapter, false, newIndices)) {
+          try (Writer writer =
+              createWriter(adapter, adapter.getVisibilityHandler(), false, newIndices)) {
             try (
                 // TODO what about authorizations
                 final CloseableIterator it =
@@ -1275,7 +1302,7 @@ public class BaseDataStore implements DataStore {
 
   @Override
   public <T> void addType(final DataTypeAdapter<T> dataTypeAdapter, final Index... initialIndices) {
-    addTypeInternal(dataTypeAdapter, initialIndices);
+    addTypeInternal(dataTypeAdapter, null, initialIndices);
   }
 
   @Override
@@ -1283,18 +1310,31 @@ public class BaseDataStore implements DataStore {
       final DataTypeAdapter<T> dataTypeAdapter,
       final List<Statistic<?>> statistics,
       final Index... initialIndices) {
-    if (addTypeInternal(dataTypeAdapter, initialIndices)) {
+    addType(dataTypeAdapter, null, statistics, initialIndices);
+  }
+
+
+  @Override
+  public <T> void addType(
+      final DataTypeAdapter<T> dataTypeAdapter,
+      final VisibilityHandler visibilityHandler,
+      final List<Statistic<?>> statistics,
+      final Index... initialIndices) {
+    if (addTypeInternal(dataTypeAdapter, visibilityHandler, initialIndices)) {
       statistics.stream().forEach(stat -> statisticsStore.addStatistic(stat));
     }
   }
 
+
   protected <T> boolean addTypeInternal(
       final DataTypeAdapter<T> dataTypeAdapter,
+      final VisibilityHandler visibilityHandler,
       final Index... initialIndices) {
     // add internal adapter
     final InternalDataAdapter<T> adapter =
         dataTypeAdapter.asInternalAdapter(
-            internalAdapterStore.addTypeName(dataTypeAdapter.getTypeName()));
+            internalAdapterStore.addTypeName(dataTypeAdapter.getTypeName()),
+            visibilityHandler);
     final boolean newAdapter = !adapterStore.adapterExists(adapter.getAdapterId());
     final Index[] initialIndicesUnique =
         Arrays.stream(initialIndices).distinct().toArray(size -> new Index[size]);
@@ -1306,6 +1346,14 @@ public class BaseDataStore implements DataStore {
   /** Returns an index writer to perform batched write operations for the given typename */
   @Override
   public <T> Writer<T> createWriter(final String typeName) {
+    return createWriter(typeName, null);
+  }
+
+  /** Returns an index writer to perform batched write operations for the given typename */
+  @Override
+  public <T> Writer<T> createWriter(
+      final String typeName,
+      final VisibilityHandler visibilityHandler) {
     final Short adapterId = internalAdapterStore.getAdapterId(typeName);
     if (adapterId == null) {
       LOGGER.warn(
@@ -1333,7 +1381,7 @@ public class BaseDataStore implements DataStore {
     }
     final Index[] indices =
         Arrays.stream(mappings).map(mapping -> mapping.getIndex(indexStore)).toArray(Index[]::new);
-    return createWriter(adapter, true, indices);
+    return createWriter(adapter, visibilityHandler, true, indices);
   }
 
   @Override

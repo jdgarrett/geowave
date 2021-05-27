@@ -18,8 +18,10 @@ import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.core.index.StringUtils;
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -31,29 +33,15 @@ import org.opengis.feature.type.AttributeDescriptor;
 public class JsonDefinitionColumnVisibilityManagementTest {
 
   SimpleFeatureType type;
+  DataTypeAdapter<SimpleFeature> adapter;
   List<AttributeDescriptor> descriptors;
   Object[] defaults;
   SimpleFeature newFeature;
-  final JsonDefinitionColumnVisibilityManagement<SimpleFeature> manager =
-      new JsonDefinitionColumnVisibilityManagement<>();
+  final JsonDefinitionColumnVisibilityManagement manager =
+      new JsonDefinitionColumnVisibilityManagement();
   final GeometryFactory factory = new GeometryFactory(new PrecisionModel(PrecisionModel.FIXED));
-  final FieldVisibilityHandler<SimpleFeature, Object> simplePIDHandler =
-      manager.createVisibilityHandler(
-          "pid",
-          new GlobalVisibilityHandler<SimpleFeature, Object>("default"),
-          "vis");
-
-  final FieldVisibilityHandler<SimpleFeature, Object> simplePOPHandler =
-      manager.createVisibilityHandler(
-          "pop",
-          new GlobalVisibilityHandler<SimpleFeature, Object>("default"),
-          "vis");
-
-  final FieldVisibilityHandler<SimpleFeature, Object> simpleGEOHandler =
-      manager.createVisibilityHandler(
-          "geometry",
-          new GlobalVisibilityHandler<SimpleFeature, Object>("default"),
-          "vis");
+  final VisibilityHandler visHandler =
+      manager.createVisibilityHandler("vis", new GlobalVisibilityHandler("default"));
 
   @Before
   public void setup() throws SchemaException, CQLException {
@@ -61,6 +49,7 @@ public class JsonDefinitionColumnVisibilityManagementTest {
         DataUtilities.createType(
             "geostuff",
             "geometry:Geometry:srid=4326,vis:java.lang.String,pop:java.lang.Long,pid:String");
+    adapter = new FeatureDataAdapter(type);
     descriptors = type.getAttributeDescriptors();
     defaults = new Object[descriptors.size()];
     int p = 0;
@@ -81,7 +70,7 @@ public class JsonDefinitionColumnVisibilityManagementTest {
     assertTrue(
         Arrays.equals(
             "TS".getBytes(StringUtils.getGeoWaveCharset()),
-            simplePIDHandler.getVisibility(newFeature, "pid", "pid")));
+            visHandler.getVisibility(adapter, newFeature, "pid")));
   }
 
   @Test
@@ -89,7 +78,7 @@ public class JsonDefinitionColumnVisibilityManagementTest {
     assertTrue(
         Arrays.equals(
             "default".getBytes(StringUtils.getGeoWaveCharset()),
-            simplePOPHandler.getVisibility(newFeature, "pop", "pop")));
+            visHandler.getVisibility(adapter, newFeature, "pop")));
   }
 
   @Test
@@ -97,7 +86,7 @@ public class JsonDefinitionColumnVisibilityManagementTest {
     assertTrue(
         Arrays.equals(
             "S".getBytes(StringUtils.getGeoWaveCharset()),
-            simpleGEOHandler.getVisibility(newFeature, "geometry", "geometry")));
+            visHandler.getVisibility(adapter, newFeature, "geometry")));
   }
 
   @Test
@@ -106,6 +95,6 @@ public class JsonDefinitionColumnVisibilityManagementTest {
     assertTrue(
         Arrays.equals(
             "U".getBytes(StringUtils.getGeoWaveCharset()),
-            simplePOPHandler.getVisibility(newFeature, "pop", "pop")));
+            visHandler.getVisibility(adapter, newFeature, "pop")));
   }
 }

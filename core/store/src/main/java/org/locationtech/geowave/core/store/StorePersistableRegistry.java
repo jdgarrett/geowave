@@ -15,6 +15,10 @@ import org.locationtech.geowave.core.store.adapter.InternalDataAdapterImpl;
 import org.locationtech.geowave.core.store.adapter.SimpleRowTransform;
 import org.locationtech.geowave.core.store.api.AggregationQuery;
 import org.locationtech.geowave.core.store.api.Query;
+import org.locationtech.geowave.core.store.data.visibility.FallbackVisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.FieldMappedVisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.UnconstrainedVisibilityHandler;
 import org.locationtech.geowave.core.store.dimension.BasicNumericDimensionField;
 import org.locationtech.geowave.core.store.index.BasicIndexModel;
 import org.locationtech.geowave.core.store.index.CustomIndex;
@@ -65,7 +69,11 @@ public class StorePersistableRegistry implements PersistableRegistrySpi {
         // 200 is a legacy class (pre 2.0)
         new PersistableIdAndConstructor((short) 201, BaseFieldDescriptor::new),
         // 202 is used by CoreRegisteredIndexFieldMappers
-        // 203-207 Unused
+        new PersistableIdAndConstructor((short) 203, GlobalVisibilityHandler::new),
+        new PersistableIdAndConstructor((short) 204, UnconstrainedVisibilityHandler::new),
+        new PersistableIdAndConstructor((short) 205, FallbackVisibilityHandler::new),
+        new PersistableIdAndConstructor((short) 206, FieldMappedVisibilityHandler::new),
+        // 207 Unused
         new PersistableIdAndConstructor((short) 208, AdapterIdQueryFilter::new),
         new PersistableIdAndConstructor((short) 209, BasicQueryFilter::new),
         new PersistableIdAndConstructor((short) 210, DataIdQueryFilter::new),

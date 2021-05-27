@@ -26,8 +26,8 @@ import org.locationtech.geowave.core.store.CloseableIterator;
 import org.locationtech.geowave.core.store.api.DataStore;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.api.Writer;
-import org.locationtech.geowave.core.store.cli.VisibilityOptions;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.ingest.GeoWaveData;
 import org.locationtech.geowave.core.store.ingest.IndexProvider;
@@ -49,7 +49,7 @@ public class IngestFromKafkaDriver {
   private final List<Index> indices;
   private final Map<String, GeoWaveAvroFormatPlugin<?, ?>> ingestPlugins;
   private final KafkaConsumerCommandLineOptions kafkaOptions;
-  private final VisibilityOptions ingestOptions;
+  private final VisibilityHandler visibilityHandler;
   private final List<Future<?>> futures = new ArrayList<>();
 
   public IngestFromKafkaDriver(
@@ -57,12 +57,12 @@ public class IngestFromKafkaDriver {
       final List<Index> indices,
       final Map<String, GeoWaveAvroFormatPlugin<?, ?>> ingestPlugins,
       final KafkaConsumerCommandLineOptions kafkaOptions,
-      final VisibilityOptions ingestOptions) {
+      final VisibilityHandler visibilityHandler) {
     this.storeOptions = storeOptions;
     this.indices = indices;
     this.ingestPlugins = ingestPlugins;
     this.kafkaOptions = kafkaOptions;
-    this.ingestOptions = ingestOptions;
+    this.visibilityHandler = visibilityHandler;
   }
 
   public boolean runOperation() {
@@ -122,8 +122,7 @@ public class IngestFromKafkaDriver {
 
           final IngestPluginBase<?, ?> ingestWithAvroPlugin =
               avroFormatPlugin.getIngestWithAvroPlugin();
-          final DataTypeAdapter<?>[] dataAdapters =
-              ingestWithAvroPlugin.getDataAdapters(ingestOptions.getVisibility());
+          final DataTypeAdapter<?>[] dataAdapters = ingestWithAvroPlugin.getDataAdapters();
           adapters.addAll(Arrays.asList(dataAdapters));
           final KafkaIngestRunData runData = new KafkaIngestRunData(adapters, dataStore);
 
@@ -279,10 +278,7 @@ public class IngestFromKafkaDriver {
     }
 
     try (CloseableIterator<?> geowaveDataIt =
-        ingestPlugin.toGeoWaveData(
-            dataRecord,
-            indexMap.keySet().toArray(new String[0]),
-            ingestOptions.getVisibility())) {
+        ingestPlugin.toGeoWaveData(dataRecord, indexMap.keySet().toArray(new String[0]))) {
       while (geowaveDataIt.hasNext()) {
         final GeoWaveData<?> geowaveData = (GeoWaveData<?>) geowaveDataIt.next();
         final DataTypeAdapter adapter = ingestRunData.getDataAdapter(geowaveData);
@@ -302,7 +298,10 @@ public class IngestFromKafkaDriver {
             indexList.add(index);
           }
           indexWriter =
-              ingestRunData.getIndexWriter(adapter, indexList.toArray(new Index[indexList.size()]));
+              ingestRunData.getIndexWriter(
+                  adapter,
+                  visibilityHandler,
+                  indexList.toArray(new Index[indexList.size()]));
           writerMap.put(adapter.getTypeName(), indexWriter);
         }
 

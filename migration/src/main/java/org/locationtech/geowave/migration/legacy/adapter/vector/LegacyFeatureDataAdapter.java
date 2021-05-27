@@ -85,6 +85,10 @@ public class LegacyFeatureDataAdapter implements DataTypeAdapter<SimpleFeature> 
     return updatedAdapter;
   }
 
+  public SimpleFeatureType getFeatureType() {
+    return persistedFeatureType;
+  }
+
   @Override
   public byte[] toBinary() {
     final String encodedType = DataUtilities.encodeType(persistedFeatureType);
@@ -217,13 +221,9 @@ public class LegacyFeatureDataAdapter implements DataTypeAdapter<SimpleFeature> 
 
         final SimpleFeatureUserDataConfigurationSet userDataConfiguration =
             new SimpleFeatureUserDataConfigurationSet();
-        userDataConfiguration.addConfigurations(typeName, new TimeDescriptorConfiguration(myType));
-        userDataConfiguration.addConfigurations(
-            typeName,
-            new SimpleFeatureStatsConfigurationCollection(myType));
-        userDataConfiguration.addConfigurations(typeName, new VisibilityConfiguration(myType));
         userDataConfiguration.fromBinary(attrBytes);
         userDataConfiguration.updateType(myType);
+        persistedFeatureType = myType;
         updatedAdapter = new FeatureDataAdapter(myType);
       } catch (final SchemaException e) {
         LOGGER.error("Unable to deserialized feature type", e);

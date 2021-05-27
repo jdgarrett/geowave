@@ -15,7 +15,6 @@ import org.locationtech.geowave.core.index.ByteArrayUtils;
 import org.locationtech.geowave.core.index.StringUtils;
 import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.store.data.visibility.VisibilityManagement;
-import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -29,8 +28,7 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
   private static final long serialVersionUID = -664252700036603897L;
   private String attributeName = "GEOWAVE_VISIBILITY";
   private String managerClassName = JsonDefinitionColumnVisibilityManagement.class.getName();
-  private transient VisibilityManagement<SimpleFeature> manager =
-      new JsonDefinitionColumnVisibilityManagement<>();
+  private transient VisibilityManagement manager = new JsonDefinitionColumnVisibilityManagement();
 
   public VisibilityConfiguration() {}
 
@@ -48,7 +46,7 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
    */
   public void updateWithDefaultIfNeeded(
       final SimpleFeatureType type,
-      final VisibilityManagement<SimpleFeature> manager) {
+      final VisibilityManagement manager) {
     if ((!configureManager(type)) && (manager != null)) {
       this.manager = manager;
       managerClassName = manager.getClass().getName();
@@ -80,7 +78,7 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
   }
 
   @JsonIgnore
-  public VisibilityManagement<SimpleFeature> getManager() {
+  public VisibilityManagement getManager() {
     return manager;
   }
 
@@ -127,7 +125,6 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
     configureManager(persistType);
   }
 
-  @SuppressWarnings("unchecked")
   private boolean configureManager(final SimpleFeatureType persistType) {
     final Object visMgr = persistType.getUserData().get("visibilityManagerClass");
     if (visMgr == null) {
@@ -139,8 +136,7 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
     if ((managerClassName == null) || (!visMgr.toString().equals(managerClassName))) {
       try {
         managerClassName = visMgr.toString();
-        manager =
-            (VisibilityManagement<SimpleFeature>) Class.forName(visMgr.toString()).newInstance();
+        manager = (VisibilityManagement) Class.forName(visMgr.toString()).newInstance();
       } catch (final Exception ex) {
         VisibilityManagementHelper.LOGGER.warn(
             "Cannot load visibility management class " + visMgr.toString(),
@@ -151,13 +147,11 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
     return true;
   }
 
-  @SuppressWarnings("unchecked")
   public Object readResolve() throws ObjectStreamException {
     if ((managerClassName != null)
         && !(manager instanceof JsonDefinitionColumnVisibilityManagement)) {
       try {
-        manager =
-            (VisibilityManagement<SimpleFeature>) Class.forName(managerClassName).newInstance();
+        manager = (VisibilityManagement) Class.forName(managerClassName).newInstance();
       } catch (final Exception ex) {
         VisibilityManagementHelper.LOGGER.warn(
             "Cannot load visibility management class " + managerClassName,
@@ -214,8 +208,7 @@ public class VisibilityConfiguration implements SimpleFeatureUserDataConfigurati
     if ((managerClassName != null)
         && !(managerClassName.equals(JsonDefinitionColumnVisibilityManagement.class.getName()))) {
       try {
-        manager =
-            (VisibilityManagement<SimpleFeature>) Class.forName(managerClassName).newInstance();
+        manager = (VisibilityManagement) Class.forName(managerClassName).newInstance();
       } catch (final Exception ex) {
         VisibilityManagementHelper.LOGGER.warn(
             "Cannot load visibility management class " + managerClassName,

@@ -9,8 +9,14 @@
 package org.locationtech.geowave.core.store.api;
 
 import java.io.Closeable;
-import org.locationtech.geowave.core.store.data.VisibilityWriter;
 
+/**
+ * TODO_VIS: comments
+ * 
+ * @author JD
+ *
+ * @param <T>
+ */
 public interface Writer<T> extends Closeable {
   /**
    * Write the entry using any basic visibilities set elsewhere
@@ -24,10 +30,10 @@ public interface Writer<T> extends Closeable {
    * write the entry using visibilities determined by the fieldVisibilityyWriter
    *
    * @param entry the entry
-   * @param fieldVisibilityWriter method for determining visibility per field
+   * @param fieldVisibilityHandler the handler for determining field visibility
    * @return the Insertion IDs representing where this entry was written
    */
-  WriteResults write(final T entry, final VisibilityWriter<T> fieldVisibilityWriter);
+  WriteResults write(final T entry, final VisibilityHandler fieldVisibilityHandler);
 
   /**
    * get the indices that are being written to

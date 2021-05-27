@@ -15,6 +15,7 @@ import org.locationtech.geowave.adapter.vector.ingest.DataSchemaOptionProvider;
 import org.locationtech.geowave.adapter.vector.ingest.FeatureSerializationOptionProvider;
 import org.locationtech.geowave.adapter.vector.ingest.GeometrySimpOptionProvider;
 import org.locationtech.geowave.adapter.vector.ingest.TypeNameOptionProvider;
+import org.locationtech.geowave.adapter.vector.plugin.visibility.JsonDefinitionColumnVisibilityManagement.JsonDefinitionFieldLevelVisibilityHandler;
 import org.locationtech.geowave.adapter.vector.plugin.visibility.VisibilityConfiguration;
 import org.locationtech.geowave.adapter.vector.query.aggregation.CompositeVectorAggregation;
 import org.locationtech.geowave.adapter.vector.query.aggregation.VectorCountAggregation;
@@ -46,7 +47,9 @@ public class FeatureAdapterPersistableRegistry implements PersistableRegistrySpi
   @Override
   public PersistableIdAndConstructor[] getSupportedPersistables() {
     return new PersistableIdAndConstructor[] {
-        // 500 is available
+        new PersistableIdAndConstructor(
+            (short) 500,
+            JsonDefinitionFieldLevelVisibilityHandler::new),
         // 501 is a legacy class (pre 2.0)
         new PersistableIdAndConstructor((short) 502, PersistableList::new),
         new PersistableIdAndConstructor((short) 503, CQLFilterOptionProvider::new),
@@ -60,6 +63,7 @@ public class FeatureAdapterPersistableRegistry implements PersistableRegistrySpi
         new PersistableIdAndConstructor((short) 511, DistributedRenderResult::new),
         new PersistableIdAndConstructor((short) 512, PersistableComposite::new),
         new PersistableIdAndConstructor((short) 513, PersistableRenderedImage::new),
+        // 514-520 is available
         new PersistableIdAndConstructor((short) 521, DistributedRenderAggregation::new),
         new PersistableIdAndConstructor((short) 522, SimpleFeatureUserDataConfigurationSet::new),
         new PersistableIdAndConstructor((short) 523, TimeDescriptorConfiguration::new),

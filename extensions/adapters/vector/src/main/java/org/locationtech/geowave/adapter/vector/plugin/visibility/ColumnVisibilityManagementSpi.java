@@ -8,7 +8,8 @@
  */
 package org.locationtech.geowave.adapter.vector.plugin.visibility;
 
+import org.locationtech.geowave.core.store.data.visibility.VisibilityManagement;
+
 /** Provides a strategy to create visibility handlers for each attribute. */
-public interface ColumnVisibilityManagementSpi<T> extends
-    org.locationtech.geowave.core.store.data.visibility.VisibilityManagement<T> {
+public interface ColumnVisibilityManagementSpi extends VisibilityManagement {
 }

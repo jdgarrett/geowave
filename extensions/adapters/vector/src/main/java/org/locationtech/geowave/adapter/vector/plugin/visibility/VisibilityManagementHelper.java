@@ -21,13 +21,12 @@ public class VisibilityManagementHelper {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(VisibilityManagementHelper.class);
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public static final <T> ColumnVisibilityManagementSpi<T> loadVisibilityManagement() {
+  public static final ColumnVisibilityManagementSpi loadVisibilityManagement() {
     final Iterator<ColumnVisibilityManagementSpi> managers =
         new SPIServiceRegistry(VisibilityManagementHelper.class).load(
             ColumnVisibilityManagementSpi.class);
     if (!managers.hasNext()) {
-      return new JsonDefinitionColumnVisibilityManagement<>();
+      return new JsonDefinitionColumnVisibilityManagement();
     }
     return managers.next();
   }

@@ -490,11 +490,6 @@ public class FeatureDataAdapter implements
 
       final SimpleFeatureUserDataConfigurationSet userDataConfiguration =
           new SimpleFeatureUserDataConfigurationSet();
-      userDataConfiguration.addConfigurations(typeName, new TimeDescriptorConfiguration(myType));
-      userDataConfiguration.addConfigurations(
-          typeName,
-          new SimpleFeatureStatsConfigurationCollection(myType));
-      userDataConfiguration.addConfigurations(typeName, new VisibilityConfiguration(myType));
       userDataConfiguration.fromBinary(attrBytes);
       userDataConfiguration.updateType(myType);
       setFeatureType(myType);

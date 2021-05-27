@@ -11,7 +11,8 @@ package org.locationtech.geowave.adapter.vector.plugin.visibility;
 import java.io.IOException;
 import java.util.Iterator;
 import org.locationtech.geowave.core.index.StringUtils;
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.FallbackVisibilityHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,19 +32,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * another, as shown in the example. The expression ".*" matches all attributes. The more specific
  * expression "geo.*" must be ordered first.
  */
-public class JsonDefinitionColumnVisibilityManagement<T> implements
-    ColumnVisibilityManagementSpi<T> {
+public class JsonDefinitionColumnVisibilityManagement implements ColumnVisibilityManagementSpi {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger(JsonDefinitionColumnVisibilityManagement.class);
 
-  private static class JsonDefinitionFieldLevelVisibilityHandler<T, CommonIndexValue> extends
-      FieldLevelVisibilityHandler<T, CommonIndexValue> {
-    public JsonDefinitionFieldLevelVisibilityHandler(
-        final String fieldName,
-        final FieldVisibilityHandler<T, Object> fieldVisiblityHandler,
-        final String visibilityAttribute) {
-      super(fieldName, fieldVisiblityHandler, visibilityAttribute);
+  public static class JsonDefinitionFieldLevelVisibilityHandler extends
+      FieldLevelVisibilityHandler {
+
+    public JsonDefinitionFieldLevelVisibilityHandler() {}
+
+    public JsonDefinitionFieldLevelVisibilityHandler(final String visibilityAttribute) {
+      super(visibilityAttribute);
     }
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -101,13 +101,15 @@ public class JsonDefinitionColumnVisibilityManagement<T> implements
   }
 
   @Override
-  public FieldVisibilityHandler<T, Object> createVisibilityHandler(
-      final String fieldName,
-      final FieldVisibilityHandler<T, Object> defaultHandler,
-      final String visibilityAttributeName) {
-    return new JsonDefinitionFieldLevelVisibilityHandler<>(
-        fieldName,
-        defaultHandler,
-        visibilityAttributeName);
+  public VisibilityHandler createVisibilityHandler(
+      final String visibilityAttributeName,
+      final VisibilityHandler fallbackHandler) {
+    if (fallbackHandler != null) {
+      return new FallbackVisibilityHandler(
+          new VisibilityHandler[] {
+              new JsonDefinitionFieldLevelVisibilityHandler(visibilityAttributeName),
+              fallbackHandler});
+    }
+    return new JsonDefinitionFieldLevelVisibilityHandler(visibilityAttributeName);
   }
 }

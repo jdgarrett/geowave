@@ -11,7 +11,6 @@ package org.locationtech.geowave.migration.cli;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.core.cli.annotations.GeowaveOperation;
 import org.locationtech.geowave.core.cli.api.Command;
 import org.locationtech.geowave.core.cli.api.DefaultOperation;
@@ -39,7 +38,7 @@ import org.locationtech.geowave.core.store.operations.MetadataDeleter;
 import org.locationtech.geowave.core.store.operations.MetadataQuery;
 import org.locationtech.geowave.core.store.operations.MetadataType;
 import org.locationtech.geowave.core.store.statistics.DefaultStatisticsProvider;
-import org.locationtech.geowave.migration.legacy.adapter.vector.LegacyFeatureDataAdapter;
+import org.locationtech.geowave.migration.legacy.adapter.LegacyInternalDataAdapterWrapper;
 import org.locationtech.geowave.migration.legacy.core.geotime.LegacySpatialField;
 import org.locationtech.geowave.migration.legacy.core.store.LegacyAdapterIndexMappingStore;
 import org.locationtech.geowave.migration.legacy.core.store.LegacyAdapterToIndexMapping;
@@ -126,12 +125,11 @@ public class MigrationCommand extends DefaultOperation implements Command {
       while (adapters.hasNext()) {
         final InternalDataAdapter<?> adapter = adapters.next();
         adapterIDs.add(adapter.getAdapterId());
-        if (adapter.getAdapter() instanceof LegacyFeatureDataAdapter) {
-          final FeatureDataAdapter updatedAdapter =
-              ((LegacyFeatureDataAdapter) adapter.getAdapter()).getUpdatedAdapter();
-          // Write updated adapter
+        if (adapter instanceof LegacyInternalDataAdapterWrapper) {
           adapterStore.removeAdapter(adapter.getAdapterId());
-          adapterStore.addAdapter(updatedAdapter.asInternalAdapter(adapter.getAdapterId()));
+          // Write updated adapter
+          adapterStore.addAdapter(
+              ((LegacyInternalDataAdapterWrapper<?>) adapter).getUpdatedAdapter());
           migratedAdapters++;
         }
       }

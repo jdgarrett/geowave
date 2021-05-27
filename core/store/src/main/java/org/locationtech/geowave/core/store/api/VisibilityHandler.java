@@ -6,16 +6,16 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.core.store.data.field;
+package org.locationtech.geowave.core.store.api;
+
+import org.locationtech.geowave.core.index.persist.Persistable;
 
 /**
- * This class must be implemented to perform per field value visibility decisions. The byte array
- * that is returned will be used directly in the visibility column for Accumulo.
- *
- * @param <RowType>
- * @param <FieldType>
+ * VIS_TODO: comments This class must be implemented to perform per field value visibility
+ * decisions. The byte array that is returned will be used directly in the visibility column for
+ * Accumulo.
  */
-public interface FieldVisibilityHandler<RowType, FieldType> {
+public interface VisibilityHandler extends Persistable {
   /**
    * Determine visibility on a per field basis.
    *
@@ -24,5 +24,5 @@ public interface FieldVisibilityHandler<RowType, FieldType> {
    * @param fieldValue The value of the field to determine visibility
    * @return The visibility for a field
    */
-  public byte[] getVisibility(RowType rowValue, String fieldName, FieldType fieldValue);
+  public <T> byte[] getVisibility(DataTypeAdapter<T> adapter, T entry, String fieldName);
 }

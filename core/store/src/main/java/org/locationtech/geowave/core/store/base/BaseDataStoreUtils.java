@@ -63,6 +63,7 @@ import org.locationtech.geowave.core.store.api.Aggregation;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.api.IndexFieldMapper;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.api.IndexFieldMapper.IndexFieldOptions;
 import org.locationtech.geowave.core.store.base.IntermediaryWriteEntryInfo.FieldInfo;
 import org.locationtech.geowave.core.store.base.dataidx.BatchDataIndexRetrieval;
@@ -71,8 +72,6 @@ import org.locationtech.geowave.core.store.base.dataidx.DataIndexUtils;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
 import org.locationtech.geowave.core.store.cli.store.DataStorePluginOptions;
 import org.locationtech.geowave.core.store.data.DataWriter;
-import org.locationtech.geowave.core.store.data.VisibilityWriter;
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
 import org.locationtech.geowave.core.store.data.field.FieldWriter;
 import org.locationtech.geowave.core.store.dimension.NumericDimensionField;
 import org.locationtech.geowave.core.store.entities.GeoWaveMetadata;
@@ -161,13 +160,13 @@ public class BaseDataStoreUtils {
       final InternalDataAdapter<T> adapter,
       final AdapterToIndexMapping indexMapping,
       final Index index,
-      final VisibilityWriter<T> customFieldVisibilityWriter) {
+      final VisibilityHandler visibilityHandler) {
     return getWriteInfo(
         entry,
         adapter,
         indexMapping,
         index,
-        customFieldVisibilityWriter,
+        visibilityHandler,
         false,
         false,
         true).getRows();
@@ -424,7 +423,7 @@ public class BaseDataStoreUtils {
       final InternalDataAdapter<T> adapter,
       final AdapterToIndexMapping indexMapping,
       final Index index,
-      final VisibilityWriter<T> customFieldVisibilityWriter,
+      final VisibilityHandler visibilityHandler,
       final boolean secondaryIndex,
       final boolean dataIdIndex,
       final boolean visibilityEnabled) {
@@ -448,20 +447,17 @@ public class BaseDataStoreUtils {
             indexModelVisibility =
                 DataStoreUtils.mergeVisibilities(
                     indexModelVisibility,
-                    customFieldVisibilityWriter.getFieldVisibilityHandler(
-                        fieldValue.getKey()).getVisibility(
-                            entry,
-                            fieldValue.getKey(),
-                            fieldValue.getValue()));
+                    visibilityHandler.getVisibility(adapter, entry, fieldValue.getKey()));
           }
         }
         if (indexModel.useInSecondaryIndex()) {
           final List<FieldInfo<?>> fieldInfoList = new ArrayList<>();
           addCommonFields(
+              adapter,
               entry,
               index,
               indexModel,
-              customFieldVisibilityWriter,
+              visibilityHandler,
               encodedData,
               visibilityEnabled,
               fieldInfoList);
@@ -480,10 +476,11 @@ public class BaseDataStoreUtils {
       } else {
         final List<FieldInfo<?>> fieldInfoList = new ArrayList<>();
         addCommonFields(
+            adapter,
             entry,
             index,
             indexModel,
-            customFieldVisibilityWriter,
+            visibilityHandler,
             encodedData,
             visibilityEnabled,
             fieldInfoList);
@@ -492,10 +489,11 @@ public class BaseDataStoreUtils {
             final FieldInfo<?> fieldInfo =
                 getFieldInfo(
                     adapter,
+                    adapter,
                     fieldValue.getKey(),
                     fieldValue.getValue(),
                     entry,
-                    customFieldVisibilityWriter,
+                    visibilityHandler,
                     visibilityEnabled);
             if (fieldInfo != null) {
               fieldInfoList.add(fieldInfo);
@@ -532,10 +530,11 @@ public class BaseDataStoreUtils {
   }
 
   private static <T> void addCommonFields(
+      final DataTypeAdapter<T> adapter,
       final T entry,
       final Index index,
       final CommonIndexModel indexModel,
-      final VisibilityWriter<T> customFieldVisibilityWriter,
+      final VisibilityHandler visibilityHandler,
       final AdapterPersistenceEncoding encodedData,
       final boolean visibilityEnabled,
       final List<FieldInfo<?>> fieldInfoList) {
@@ -544,10 +543,11 @@ public class BaseDataStoreUtils {
       final FieldInfo<?> fieldInfo =
           getFieldInfo(
               indexModel,
+              adapter,
               fieldValue.getKey(),
               fieldValue.getValue(),
               entry,
-              customFieldVisibilityWriter,
+              visibilityHandler,
               visibilityEnabled);
       if (fieldInfo != null) {
         fieldInfoList.add(fieldInfo);
@@ -669,19 +669,19 @@ public class BaseDataStoreUtils {
 
   private static <T> FieldInfo<?> getFieldInfo(
       final DataWriter dataWriter,
+      final DataTypeAdapter<T> adapter,
       final String fieldName,
       final Object fieldValue,
       final T entry,
-      final VisibilityWriter<T> customFieldVisibilityWriter,
+      final VisibilityHandler visibilityHandler,
       final boolean visibilityEnabled) {
     final FieldWriter fieldWriter = dataWriter.getWriter(fieldName);
-    final FieldVisibilityHandler<T, Object> customVisibilityHandler =
-        customFieldVisibilityWriter.getFieldVisibilityHandler(fieldName);
     if (fieldWriter != null) {
       return new FieldInfo(
           fieldName,
           fieldWriter.writeField(fieldValue),
-          visibilityEnabled ? customVisibilityHandler.getVisibility(entry, fieldName, fieldValue)
+          visibilityEnabled && visibilityHandler != null
+              ? visibilityHandler.getVisibility(adapter, entry, fieldName)
               : new byte[0]);
     } else if (fieldValue != null) {
       LOGGER.warn(

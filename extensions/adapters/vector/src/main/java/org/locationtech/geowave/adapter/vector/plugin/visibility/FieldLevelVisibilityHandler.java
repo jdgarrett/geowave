@@ -8,66 +8,52 @@
  */
 package org.locationtech.geowave.adapter.vector.plugin.visibility;
 
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
+import org.locationtech.geowave.core.index.StringUtils;
+import org.locationtech.geowave.core.store.api.DataTypeAdapter;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.data.visibility.VisibilityManagement;
 import org.opengis.feature.simple.SimpleFeature;
 
 /**
- * Define visibility for a specific attribute using the {@link VisibilityManagement}. The visibility
- * is determined by meta-data in a separate feature attribute.
- *
- * @see JsonDefinitionColumnVisibilityManagement
+ * VIS_TODO: Update comments
+ * 
  * @param <T>
- * @param <CommonIndexValue>
  */
-public abstract class FieldLevelVisibilityHandler<T, CommonIndexValue> implements
-    FieldVisibilityHandler<T, CommonIndexValue> {
+public class FieldLevelVisibilityHandler implements VisibilityHandler {
 
-  private final String visibilityAttribute;
-  private final String fieldName;
-  private final FieldVisibilityHandler<T, Object> defaultFieldVisiblityHandler;
+  private String visibilityAttribute;
 
-  /**
-   * Used when acting with an Index adaptor as a visibility handler. This
-   *
-   * @param fieldName - the name of the field for which to set determine the visibility.
-   * @param fieldVisiblityHandler default visibility handler if a specific visibility cannot be
-   *        determined from the contents of the attribute used to determine visibility (name
-   *        providied by parameter 'visibilityAttribute')
-   * @param visibilityAttribute the attribute name that contains data to discern visibility for
-   *        other field/attributes.
-   */
-  public FieldLevelVisibilityHandler(
-      final String fieldName,
-      final FieldVisibilityHandler<T, Object> fieldVisiblityHandler,
-      final String visibilityAttribute) {
+  public FieldLevelVisibilityHandler() {}
+
+  public FieldLevelVisibilityHandler(final String visibilityAttribute) {
     super();
-    this.fieldName = fieldName;
     this.visibilityAttribute = visibilityAttribute;
-    this.defaultFieldVisiblityHandler = fieldVisiblityHandler;
   }
 
-  /**
-   * @param visibilityObject an object that defines visibility for each field
-   * @param fieldName the field to which visibility is being requested
-   * @return null if the default should be used, otherwise return the visibility for the provide
-   *         field given the instructions found in the visibilityObject
-   */
-  public abstract byte[] translateVisibility(final Object visibilityObject, final String fieldName);
+  protected byte[] translateVisibility(final Object visibilityObject, final String fieldName) {
+    if (visibilityObject == null) {
+      return null;
+    }
+    return StringUtils.stringToBinary(visibilityObject.toString());
+  }
 
   @Override
-  public byte[] getVisibility(
-      final T rowValue,
-      final String fieldName,
-      final CommonIndexValue fieldValue) {
+  public <T> byte[] getVisibility(
+      final DataTypeAdapter<T> adapter,
+      final T entry,
+      final String fieldName) {
 
-    final SimpleFeature feature = (SimpleFeature) rowValue;
-    final Object visibilityAttributeValue = feature.getAttribute(this.visibilityAttribute);
-    final byte[] result =
-        visibilityAttributeValue != null ? translateVisibility(visibilityAttributeValue, fieldName)
-            : null;
-    return result != null ? result
-        : (defaultFieldVisiblityHandler == null ? new byte[0]
-            : defaultFieldVisiblityHandler.getVisibility(rowValue, fieldName, fieldValue));
+    final Object visibilityAttributeValue = adapter.getFieldValue(entry, visibilityAttribute);
+    return translateVisibility(visibilityAttributeValue, fieldName);
+  }
+
+  @Override
+  public byte[] toBinary() {
+    return StringUtils.stringToBinary(visibilityAttribute);
+  }
+
+  @Override
+  public void fromBinary(byte[] bytes) {
+    visibilityAttribute = StringUtils.stringFromBinary(bytes);
   }
 }
