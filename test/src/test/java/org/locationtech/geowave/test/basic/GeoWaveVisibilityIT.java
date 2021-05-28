@@ -30,7 +30,6 @@ import org.locationtech.geowave.adapter.raster.RasterUtils;
 import org.locationtech.geowave.adapter.raster.adapter.RasterDataAdapter;
 import org.locationtech.geowave.adapter.raster.adapter.merge.nodata.NoDataMergeStrategy;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
-import org.locationtech.geowave.core.geotime.store.dimension.SpatialField;
 import org.locationtech.geowave.core.geotime.store.query.ExplicitSpatialQuery;
 import org.locationtech.geowave.core.index.ByteArray;
 import org.locationtech.geowave.core.store.CloseableIterator;
@@ -697,7 +696,7 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
 
     @Override
     public <T> byte[] getVisibility(DataTypeAdapter<T> adapter, T entry, String fieldName) {
-      final boolean isGeom = fieldName.equals(SpatialField.DEFAULT_GEOMETRY_FIELD_NAME);
+      final boolean isGeom = fieldName.equals("geometry");
       final int fieldValueInt;
       if (isGeom) {
         fieldValueInt = Integer.parseInt(((SimpleFeature) entry).getID());
@@ -741,11 +740,10 @@ public class GeoWaveVisibilityIT extends AbstractGeoWaveIT {
 
   private VisibilityHandler getFieldIDFeatureVisWriter() {
     final Map<String, byte[]> fieldVisibilities = Maps.newHashMap();
-    fieldVisibilities.put(SpatialField.DEFAULT_GEOMETRY_FIELD_NAME, new byte[0]);
     fieldVisibilities.put("a", "a".getBytes());
     fieldVisibilities.put("b", "b".getBytes());
     fieldVisibilities.put("c", "c".getBytes());
-    fieldVisibilities.put("geometry", "geometry".getBytes());
+    fieldVisibilities.put("geometry", new byte[0]);
     return new FieldMappedVisibilityHandler(fieldVisibilities);
   }
 

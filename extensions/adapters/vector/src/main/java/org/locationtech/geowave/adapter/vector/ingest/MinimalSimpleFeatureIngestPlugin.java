@@ -6,280 +6,107 @@
  * under the terms of the Apache License, Version 2.0 which accompanies this distribution and is
  * available at http://www.apache.org/licenses/LICENSE-2.0.txt
  */
-package org.locationtech.geowave.format.twitter;
+package org.locationtech.geowave.adapter.vector.ingest;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.zip.GZIPInputStream;
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import org.apache.avro.Schema;
-import org.apache.commons.io.IOUtils;
-import org.geotools.feature.simple.SimpleFeatureBuilder;
-import org.locationtech.geowave.adapter.vector.ingest.AbstractSimpleFeatureIngestPlugin;
-import org.locationtech.geowave.adapter.vector.ingest.AbstractSimpleFeatureIngestPlugin.AbstractIngestSimpleFeatureWithMapper;
-import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigurationSet;
+import java.util.Iterator;
+import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
 import org.locationtech.geowave.core.geotime.store.dimension.SpatialField;
 import org.locationtech.geowave.core.geotime.store.dimension.TimeField;
-import org.locationtech.geowave.core.index.StringUtils;
+import org.locationtech.geowave.core.index.ByteArrayUtils;
+import org.locationtech.geowave.core.index.VarintUtils;
 import org.locationtech.geowave.core.index.persist.Persistable;
-import org.locationtech.geowave.core.ingest.avro.AvroWholeFile;
-import org.locationtech.geowave.core.ingest.hdfs.mapreduce.IngestFromHdfsPlugin;
-import org.locationtech.geowave.core.ingest.hdfs.mapreduce.IngestWithMapper;
-import org.locationtech.geowave.core.ingest.hdfs.mapreduce.IngestWithReducer;
 import org.locationtech.geowave.core.store.CloseableIterator;
+import org.locationtech.geowave.core.store.CloseableIteratorWrapper;
 import org.locationtech.geowave.core.store.api.DataTypeAdapter;
 import org.locationtech.geowave.core.store.api.Index;
 import org.locationtech.geowave.core.store.ingest.GeoWaveData;
-import org.locationtech.geowave.core.store.ingest.IngestPluginBase;
 import org.locationtech.geowave.core.store.ingest.LocalFileIngestPlugin;
-import org.locationtech.geowave.format.twitter.TwitterIngestPlugin;
-import org.locationtech.geowave.format.twitter.TwitterUtils;
-import org.locationtech.geowave.format.twitter.TwitterIngestPlugin.IngestTwitterFromHdfs;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /*
  */
-public class MinimalSimpleFeatureIngestPlugin extends AbstractSimpleFeatureIngestPlugin<AvroWholeFile> {
+public abstract class MinimalSimpleFeatureIngestPlugin implements
+    LocalFileIngestPlugin<SimpleFeature>,
+    Persistable {
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(MinimalSimpleFeatureIngestPlugin.class);
+  protected CQLFilterOptionProvider filterOptionProvider = new CQLFilterOptionProvider();
+  protected TypeNameOptionProvider typeNameProvider = new TypeNameOptionProvider();
+  protected GeometrySimpOptionProvider simpOptionProvider = new GeometrySimpOptionProvider();
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TwitterIngestPlugin.class);
+  public void setFilterProvider(final CQLFilterOptionProvider filterOptionProvider) {
+    this.filterOptionProvider = filterOptionProvider;
+  }
 
-  public TwitterIngestPlugin() {
-    twitterSft = TwitterUtils.createTwitterEventDataType();
-    twitterSftBuilder = new SimpleFeatureBuilder(twitterSft);
+  public void setTypeNameProvider(final TypeNameOptionProvider typeNameProvider) {
+    this.typeNameProvider = typeNameProvider;
+  }
+
+  public void setGeometrySimpOptionProvider(final GeometrySimpOptionProvider geometryProvider) {
+    this.simpOptionProvider = geometryProvider;
   }
 
   @Override
-  protected SimpleFeatureType[] getTypes() {
-    return new SimpleFeatureType[] {
-        SimpleFeatureUserDataConfigurationSet.configureType(twitterSft)};
+  public byte[] toBinary() {
+    final byte[] filterBinary = filterOptionProvider.toBinary();
+    final byte[] typeNameBinary = typeNameProvider.toBinary();
+    final byte[] simpBinary = simpOptionProvider.toBinary();
+    final ByteBuffer buf =
+        ByteBuffer.allocate(
+            filterBinary.length
+                + typeNameBinary.length
+                + simpBinary.length
+                + VarintUtils.unsignedIntByteLength(filterBinary.length)
+                + VarintUtils.unsignedIntByteLength(typeNameBinary.length)
+                + VarintUtils.unsignedIntByteLength(simpBinary.length));
+    VarintUtils.writeUnsignedInt(filterBinary.length, buf);
+    buf.put(filterBinary);
+    VarintUtils.writeUnsignedInt(typeNameBinary.length, buf);
+    buf.put(typeNameBinary);
+    VarintUtils.writeUnsignedInt(simpBinary.length, buf);
+    buf.put(simpBinary);
+
+    return buf.array();
+  }
+
+  @Override
+  public void fromBinary(final byte[] bytes) {
+    final ByteBuffer buf = ByteBuffer.wrap(bytes);
+    final int filterBinaryLength = VarintUtils.readUnsignedInt(buf);
+    final byte[] filterBinary = ByteArrayUtils.safeRead(buf, filterBinaryLength);
+
+    final int typeNameBinaryLength = VarintUtils.readUnsignedInt(buf);
+    final byte[] typeNameBinary = ByteArrayUtils.safeRead(buf, typeNameBinaryLength);
+
+    final int geometrySimpLength = VarintUtils.readUnsignedInt(buf);
+    final byte[] geometrySimpBinary = ByteArrayUtils.safeRead(buf, geometrySimpLength);
+
+    filterOptionProvider = new CQLFilterOptionProvider();
+    filterOptionProvider.fromBinary(filterBinary);
+
+    typeNameProvider = new TypeNameOptionProvider();
+    typeNameProvider.fromBinary(typeNameBinary);
+
+    simpOptionProvider = new GeometrySimpOptionProvider();
+    simpOptionProvider.fromBinary(geometrySimpBinary);
   }
 
   @Override
   public String[] getFileExtensionFilters() {
-    return new String[] {"gz"};
+    return new String[0];
   }
 
   @Override
-  public void init(final URL baseDirectory) {}
+  public void init(URL url) {}
 
-  @Override
-  public boolean supportsFile(final URL file) {
-    return TwitterUtils.validate(file);
-  }
-
-  @Override
-  public Schema getAvroSchema() {
-    return AvroWholeFile.getClassSchema();
-  }
-
-  @Override
-  public CloseableIterator<AvroWholeFile> toAvroObjects(final URL input) {
-    final AvroWholeFile avroFile = new AvroWholeFile();
-    avroFile.setOriginalFilePath(input.getPath());
-    try {
-      avroFile.setOriginalFile(ByteBuffer.wrap(IOUtils.toByteArray(input)));
-    } catch (final IOException e) {
-      LOGGER.warn("Unable to read Twitter file: " + input.getPath(), e);
-      return new CloseableIterator.Empty<>();
-    }
-
-    return new CloseableIterator.Wrapper<>(Iterators.singletonIterator(avroFile));
-  }
-
-  @Override
-  public boolean isUseReducerPreferred() {
-    return false;
-  }
-
-  @Override
-  public IngestWithMapper<AvroWholeFile, SimpleFeature> ingestWithMapper() {
-    return new IngestTwitterFromHdfs(this);
-  }
-
-  @Override
-  public IngestWithReducer<AvroWholeFile, ?, ?, SimpleFeature> ingestWithReducer() {
-    // unsupported right now
-    throw new UnsupportedOperationException("Twitter events cannot be ingested with a reducer");
-  }
-
-  @Override
-  @SuppressFBWarnings(
-      value = {"REC_CATCH_EXCEPTION"},
-      justification = "Intentionally catching any possible exception as there may be unknown format issues in a file and we don't want to error partially through parsing")
-  protected CloseableIterator<GeoWaveData<SimpleFeature>> toGeoWaveDataInternal(
-      final AvroWholeFile hfile,
-      final String[] indexNames) {
-
-    final List<GeoWaveData<SimpleFeature>> featureData = new ArrayList<>();
-
-    final InputStream in = new ByteArrayInputStream(hfile.getOriginalFile().array());
-
-    try {
-      final GZIPInputStream zip = new GZIPInputStream(in);
-
-      final InputStreamReader isr = new InputStreamReader(zip, StringUtils.UTF8_CHARSET);
-      final BufferedReader br = new BufferedReader(isr);
-
-      final GeometryFactory geometryFactory = new GeometryFactory();
-
-      String line;
-      int lineNumber = 0;
-      String userid = "";
-      String userName = "";
-      String tweetText = "";
-      String inReplyUser = "";
-      String inReplyStatus = "";
-      int retweetCount = 0;
-      String lang = "";
-      Date dtg = null;
-      String dtgString = "";
-      String tweetId = "";
-      double lat = 0;
-      double lon = 0;
-
-      StringReader sr = new StringReader("");
-      JsonReader jsonReader = null;
-
-      try {
-        while ((line = br.readLine()) != null) {
-          userid = "";
-          userName = "";
-          tweetText = "";
-          inReplyUser = "";
-          inReplyStatus = "";
-          retweetCount = 0;
-          lang = "";
-          dtg = null;
-          dtgString = "";
-          tweetId = "";
-          lat = 0;
-          lon = 0;
-
-          lineNumber++;
-          try {
-            sr = new StringReader(line);
-            jsonReader = Json.createReader(sr);
-            final JsonObject tweet = jsonReader.readObject();
-
-            try {
-              lon =
-                  tweet.getJsonObject("coordinates").getJsonArray("coordinates").getJsonNumber(
-                      0).doubleValue();
-              lat =
-                  tweet.getJsonObject("coordinates").getJsonArray("coordinates").getJsonNumber(
-                      1).doubleValue();
-              LOGGER.debug("line " + lineNumber + " at POINT(" + lon + " " + lat + ")");
-            } catch (final Exception e) {
-              LOGGER.debug(
-                  "Error reading twitter coordinate on line "
-                      + lineNumber
-                      + " of "
-                      + hfile.getOriginalFilePath()
-                      + "\n"
-                      + line,
-                  e);
-              continue;
-            }
-
-            final Coordinate coord = new Coordinate(lon, lat);
-
-            try {
-
-              dtgString = tweet.getString("created_at");
-              dtg = TwitterUtils.parseDate(dtgString);
-            } catch (final Exception e) {
-              LOGGER.warn(
-                  "Error reading tweet date on line "
-                      + lineNumber
-                      + " of "
-                      + hfile.getOriginalFilePath(),
-                  e);
-              continue;
-            }
-
-            final JsonObject user = tweet.getJsonObject("user");
-
-            tweetId = tweet.getString("id_str");
-            userid = user.getString("id_str");
-            userName = user.getString("name");
-
-            tweetText = tweet.getString("text");
-
-            // nullable
-            if (!tweet.isNull("in_reply_to_user_id_str")) {
-              inReplyUser = tweet.getString("in_reply_to_user_id_str");
-            }
-
-            if (!tweet.isNull("in_reply_to_status_id_str")) {
-              inReplyStatus = tweet.getString("in_reply_to_status_id_str");
-            }
-
-            retweetCount = tweet.getInt("retweet_count");
-
-            if (!tweet.isNull("lang")) {
-              lang = tweet.getString("lang");
-            }
-
-            twitterSftBuilder.set(TwitterUtils.TWITTER_USERID_ATTRIBUTE, userid);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_USERNAME_ATTRIBUTE, userName);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_TEXT_ATTRIBUTE, tweetText);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_INREPLYTOUSER_ATTRIBUTE, inReplyUser);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_INREPLYTOSTATUS_ATTRIBUTE, inReplyStatus);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_RETWEETCOUNT_ATTRIBUTE, retweetCount);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_LANG_ATTRIBUTE, lang);
-            twitterSftBuilder.set(TwitterUtils.TWITTER_DTG_ATTRIBUTE, dtg);
-            twitterSftBuilder.set(
-                TwitterUtils.TWITTER_GEOMETRY_ATTRIBUTE,
-                geometryFactory.createPoint(coord));
-
-            final SimpleFeature tweetSft = twitterSftBuilder.buildFeature(tweetId);
-            // LOGGER.warn(tweetSft.toString());
-
-            featureData.add(new GeoWaveData<>(TwitterUtils.TWITTER_SFT_NAME, indexNames, tweetSft));
-          } catch (final Exception e) {
-
-            LOGGER.error("Error parsing line: " + line, e);
-            continue;
-          } finally {
-            if (sr != null) {
-              sr.close();
-            }
-            if (jsonReader != null) {
-              jsonReader.close();
-            }
-          }
-        }
-
-      } catch (final IOException e) {
-        LOGGER.warn("Error reading line from Twitter file: " + hfile.getOriginalFilePath(), e);
-      } finally {
-        IOUtils.closeQuietly(br);
-        IOUtils.closeQuietly(isr);
-        IOUtils.closeQuietly(in);
-      }
-    } catch (final IOException e) {
-      LOGGER.error("Failed to read gz entry: " + hfile.getOriginalFilePath(), e);
-    }
-    return new CloseableIterator.Wrapper<>(featureData.iterator());
-  }
 
   @Override
   public Index[] getRequiredIndices() {
@@ -287,23 +114,94 @@ public class MinimalSimpleFeatureIngestPlugin extends AbstractSimpleFeatureInges
   }
 
   @Override
-  public IngestPluginBase<AvroWholeFile, SimpleFeature> getIngestWithAvroPlugin() {
-    return new IngestTwitterFromHdfs(this);
+  public String[] getSupportedIndexTypes() {
+    return new String[] {SpatialField.DEFAULT_GEOMETRY_FIELD_NAME, TimeField.DEFAULT_FIELD_ID};
   }
 
-  public static class IngestTwitterFromHdfs extends
-      AbstractIngestSimpleFeatureWithMapper<AvroWholeFile> {
-    public IngestTwitterFromHdfs() {
-      this(new TwitterIngestPlugin());
-    }
+  protected DataTypeAdapter<SimpleFeature> newAdapter(final SimpleFeatureType type) {
+    return new FeatureDataAdapter(type);
+  }
 
-    public IngestTwitterFromHdfs(final TwitterIngestPlugin parentPlugin) {
-      super(parentPlugin);
+  protected abstract SimpleFeatureType[] getTypes();
+
+  protected abstract CloseableIterator<SimpleFeature> getFeatures(URL input);
+
+  @Override
+  public DataTypeAdapter<SimpleFeature>[] getDataAdapters() {
+    final SimpleFeatureType[] types = getTypes();
+    final DataTypeAdapter<SimpleFeature>[] retVal = new FeatureDataAdapter[types.length];
+    for (int i = 0; i < types.length; i++) {
+      retVal[i] = newAdapter(types[i]);
     }
+    return retVal;
   }
 
   @Override
-  public String[] getSupportedIndexTypes() {
-    return new String[] {SpatialField.DEFAULT_GEOMETRY_FIELD_NAME, TimeField.DEFAULT_FIELD_ID};
+  public CloseableIterator<GeoWaveData<SimpleFeature>> toGeoWaveData(
+      final URL input,
+      final String[] indexNames) {
+    final CloseableIterator<SimpleFeature> filteredFeatures = applyFilters(getFeatures(input));
+    return toGeoWaveDataInternal(filteredFeatures, indexNames);
+  }
+
+  private CloseableIterator<SimpleFeature> applyFilters(
+      final CloseableIterator<SimpleFeature> source) {
+    final CQLFilterOptionProvider internalFilterProvider;
+    if ((filterOptionProvider != null)
+        && (filterOptionProvider.getCqlFilterString() != null)
+        && !filterOptionProvider.getCqlFilterString().trim().isEmpty()) {
+      internalFilterProvider = filterOptionProvider;
+    } else {
+      internalFilterProvider = null;
+    }
+    final TypeNameOptionProvider internalTypeNameProvider;
+    if ((typeNameProvider != null)
+        && (typeNameProvider.getTypeName() != null)
+        && !typeNameProvider.getTypeName().trim().isEmpty()) {
+      internalTypeNameProvider = typeNameProvider;
+    } else {
+      internalTypeNameProvider = null;
+    }
+    final GeometrySimpOptionProvider internalSimpOptionProvider;
+    if ((simpOptionProvider != null)) {
+      internalSimpOptionProvider = simpOptionProvider;
+    } else {
+      internalSimpOptionProvider = null;
+    }
+    if ((internalFilterProvider != null) || (internalTypeNameProvider != null)) {
+      final Iterator<SimpleFeature> it = Iterators.filter(source, new Predicate<SimpleFeature>() {
+        @Override
+        public boolean apply(final SimpleFeature input) {
+          if ((internalTypeNameProvider != null)
+              && !internalTypeNameProvider.typeNameMatches(input.getFeatureType().getTypeName())) {
+            return false;
+          }
+          if ((internalFilterProvider != null) && !internalFilterProvider.evaluate(input)) {
+            return false;
+          }
+          if ((internalSimpOptionProvider != null)) {
+            final Geometry simpGeom =
+                internalSimpOptionProvider.simplifyGeometry((Geometry) input.getDefaultGeometry());
+            if (!internalSimpOptionProvider.filterGeometry(simpGeom)) {
+              return false;
+            }
+            input.setDefaultGeometry(simpGeom);
+          }
+          return true;
+        }
+      });
+      return new CloseableIteratorWrapper<>(source, it);
+    }
+    return source;
+  }
+
+  private CloseableIterator<GeoWaveData<SimpleFeature>> toGeoWaveDataInternal(
+      final CloseableIterator<SimpleFeature> source,
+      final String[] indexNames) {
+    final Iterator<GeoWaveData<SimpleFeature>> geowaveData =
+        Iterators.transform(source, feature -> {
+          return new GeoWaveData<>(feature.getFeatureType().getTypeName(), indexNames, feature);
+        });
+    return new CloseableIteratorWrapper<>(source, geowaveData);
   }
 }

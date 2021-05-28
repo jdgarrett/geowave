@@ -119,7 +119,7 @@ public class IngestOptions<T> {
    * @return a new builder
    */
   public static <T> Builder<T> newBuilder() {
-    return new IngestOptionsBuilderImpl<>();
+    return new IngestOptionsBuilderImpl<T>();
   }
 
   /**

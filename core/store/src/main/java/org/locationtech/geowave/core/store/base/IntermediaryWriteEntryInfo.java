@@ -33,7 +33,7 @@ class IntermediaryWriteEntryInfo {
     public FieldInfo(final String fieldName, final byte[] writtenValue, final byte[] visibility) {
       this.fieldName = fieldName;
       this.writtenValue = writtenValue;
-      this.visibility = visibility;
+      this.visibility = visibility == null ? new byte[0] : visibility;
     }
 
     public String getFieldId() {
