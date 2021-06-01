@@ -8,22 +8,19 @@
  */
 package org.locationtech.geowave.core.store.data.visibility;
 
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 
 /** Provides a single consolidated tool to determine the visibility for a specific field. */
-public interface VisibilityManagement<T> {
+public interface VisibilityManagement {
   /**
    * Create a visibility handler
    *
-   * @param fieldName the name of the field for object of type T requiring visibility treatment
-   * @param defaultFieldVisibilityHandler default handler if the visibilityAttributeName is not
-   *        provided or the field does not exist in a provided object of type T.
    * @param visibilityAttribute optional name of a field that determines visibility of each field in
    *        an object of type T
+   * @param fallbackHandler a fallback visibility handler
    * @return the visibility handler
    */
-  public FieldVisibilityHandler<T, Object> createVisibilityHandler(
-      final String fieldName,
-      FieldVisibilityHandler<T, Object> defaultFieldVisibilityHandler,
-      final String visibilityAttribute);
+  public VisibilityHandler createVisibilityHandler(
+      final String visibilityAttribute,
+      final VisibilityHandler fallbackHandler);
 }

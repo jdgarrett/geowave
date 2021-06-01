@@ -45,11 +45,11 @@ import org.locationtech.geowave.core.store.api.Query;
 import org.locationtech.geowave.core.store.api.QueryBuilder;
 import org.locationtech.geowave.core.store.api.Statistic;
 import org.locationtech.geowave.core.store.api.StatisticValue;
+import org.locationtech.geowave.core.store.api.VisibilityHandler;
 import org.locationtech.geowave.core.store.api.Writer;
 import org.locationtech.geowave.core.store.base.BaseDataStore;
 import org.locationtech.geowave.core.store.callback.ScanCallback;
-import org.locationtech.geowave.core.store.data.VisibilityWriter;
-import org.locationtech.geowave.core.store.data.field.FieldVisibilityHandler;
+import org.locationtech.geowave.core.store.data.visibility.GlobalVisibilityHandler;
 import org.locationtech.geowave.core.store.entities.GeoWaveRow;
 import org.locationtech.geowave.core.store.metadata.DataStatisticsStoreImpl;
 import org.locationtech.geowave.core.store.metadata.InternalAdapterStoreImpl;
@@ -105,41 +105,9 @@ public class AccumuloDataStoreStatsTest {
     mockDataStore = new AccumuloDataStore(accumuloOperations, options);
   }
 
-  public static final VisibilityWriter<TestGeometry> visWriterAAA =
-      new VisibilityWriter<TestGeometry>() {
+  public static final VisibilityHandler visHandlerAAA = new GlobalVisibilityHandler("aaa");
 
-        @Override
-        public FieldVisibilityHandler<TestGeometry, Object> getFieldVisibilityHandler(
-            final String fieldId) {
-          return new FieldVisibilityHandler<TestGeometry, Object>() {
-            @Override
-            public byte[] getVisibility(
-                final TestGeometry rowValue,
-                final String fieldId,
-                final Object fieldValue) {
-              return "aaa".getBytes();
-            }
-          };
-        }
-      };
-
-  public static final VisibilityWriter<TestGeometry> visWriterBBB =
-      new VisibilityWriter<TestGeometry>() {
-
-        @Override
-        public FieldVisibilityHandler<TestGeometry, Object> getFieldVisibilityHandler(
-            final String fieldId) {
-          return new FieldVisibilityHandler<TestGeometry, Object>() {
-            @Override
-            public byte[] getVisibility(
-                final TestGeometry rowValue,
-                final String fieldId,
-                final Object fieldValue) {
-              return "bbb".getBytes();
-            }
-          };
-        }
-      };
+  public static final VisibilityHandler visHandlerBBB = new GlobalVisibilityHandler("bbb");
 
   @Test
   public void test() throws IOException {
@@ -167,13 +135,13 @@ public class AccumuloDataStoreStatsTest {
           new ByteArray(
               indexWriter.write(
                   new TestGeometry(factory.createPoint(new Coordinate(25, 32)), "test_pt"),
-                  visWriterAAA).getInsertionIdsWritten(
+                  visHandlerAAA).getInsertionIdsWritten(
                       index.getName()).getPartitionKeys().iterator().next().getPartitionKey());
       ByteArray testPartitionKey =
           new ByteArray(
               indexWriter.write(
                   new TestGeometry(factory.createPoint(new Coordinate(26, 32)), "test_pt_1"),
-                  visWriterAAA).getInsertionIdsWritten(
+                  visHandlerAAA).getInsertionIdsWritten(
                       index.getName()).getPartitionKeys().iterator().next().getPartitionKey());
       // they should all be the same partition key, let's just make sure
       Assert.assertEquals(
@@ -184,7 +152,7 @@ public class AccumuloDataStoreStatsTest {
           new ByteArray(
               indexWriter.write(
                   new TestGeometry(factory.createPoint(new Coordinate(27, 32)), "test_pt_2"),
-                  visWriterBBB).getInsertionIdsWritten(
+                  visHandlerBBB).getInsertionIdsWritten(
                       index.getName()).getPartitionKeys().iterator().next().getPartitionKey());
       Assert.assertEquals(
           "test_pt_2 should have the same partition key as test_pt",

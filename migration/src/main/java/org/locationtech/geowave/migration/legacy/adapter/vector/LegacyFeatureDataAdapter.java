@@ -15,8 +15,6 @@ import org.geotools.feature.SchemaException;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.referencing.CRS;
 import org.locationtech.geowave.adapter.vector.FeatureDataAdapter;
-import org.locationtech.geowave.adapter.vector.plugin.visibility.VisibilityConfiguration;
-import org.locationtech.geowave.adapter.vector.stats.StatsConfigurationCollection.SimpleFeatureStatsConfigurationCollection;
 import org.locationtech.geowave.adapter.vector.util.FeatureDataUtils;
 import org.locationtech.geowave.adapter.vector.util.SimpleFeatureUserDataConfigurationSet;
 import org.locationtech.geowave.core.geotime.util.GeometryUtils;
@@ -85,6 +83,10 @@ public class LegacyFeatureDataAdapter implements DataTypeAdapter<SimpleFeature> 
     return updatedAdapter;
   }
 
+  public SimpleFeatureType getFeatureType() {
+    return persistedFeatureType;
+  }
+
   @Override
   public byte[] toBinary() {
     final String encodedType = DataUtilities.encodeType(persistedFeatureType);
@@ -99,12 +101,6 @@ public class LegacyFeatureDataAdapter implements DataTypeAdapter<SimpleFeature> 
     userDataConfiguration.addConfigurations(
         typeName,
         new TimeDescriptorConfiguration(persistedFeatureType));
-    userDataConfiguration.addConfigurations(
-        typeName,
-        new SimpleFeatureStatsConfigurationCollection(persistedFeatureType));
-    userDataConfiguration.addConfigurations(
-        typeName,
-        new VisibilityConfiguration(persistedFeatureType));
     final byte[] attrBytes = userDataConfiguration.toBinary();
     final String namespace = reprojectedFeatureType.getName().getNamespaceURI();
 
@@ -217,13 +213,9 @@ public class LegacyFeatureDataAdapter implements DataTypeAdapter<SimpleFeature> 
 
         final SimpleFeatureUserDataConfigurationSet userDataConfiguration =
             new SimpleFeatureUserDataConfigurationSet();
-        userDataConfiguration.addConfigurations(typeName, new TimeDescriptorConfiguration(myType));
-        userDataConfiguration.addConfigurations(
-            typeName,
-            new SimpleFeatureStatsConfigurationCollection(myType));
-        userDataConfiguration.addConfigurations(typeName, new VisibilityConfiguration(myType));
         userDataConfiguration.fromBinary(attrBytes);
         userDataConfiguration.updateType(myType);
+        persistedFeatureType = myType;
         updatedAdapter = new FeatureDataAdapter(myType);
       } catch (final SchemaException e) {
         LOGGER.error("Unable to deserialized feature type", e);
