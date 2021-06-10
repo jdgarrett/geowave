@@ -42,9 +42,12 @@ class InternalAdapterUtils {
       final IndexFieldMapper<N, I> fieldMapper,
       final DataTypeAdapter<T> adapter,
       final T entry) {
-    return fieldMapper.toIndex(
-        (List<N>) Arrays.stream(fieldMapper.getAdapterFields()).map(
-            fieldName -> adapter.getFieldValue(entry, fieldName)).collect(Collectors.toList()));
+    List<N> fieldValues = (List<N>) Arrays.stream(fieldMapper.getAdapterFields()).map(
+        fieldName -> adapter.getFieldValue(entry, fieldName)).collect(Collectors.toList());
+    if (fieldValues.contains(null)) {
+      return null;
+    }
+    return fieldMapper.toIndex(fieldValues);
   }
 
   @SuppressWarnings("unchecked")
@@ -52,8 +55,11 @@ class InternalAdapterUtils {
       final IndexFieldMapper<N, I> fieldMapper,
       final DataTypeAdapter<T> adapter,
       final PersistentDataset<Object> adapterPersistenceEncoding) {
-    return fieldMapper.toIndex(
-        (List<N>) Arrays.stream(fieldMapper.getAdapterFields()).map(
-            adapterPersistenceEncoding::getValue).collect(Collectors.toList()));
+    final List<N> fieldValues = (List<N>) Arrays.stream(fieldMapper.getAdapterFields()).map(
+        adapterPersistenceEncoding::getValue).collect(Collectors.toList());
+    if (fieldValues.contains(null)) {
+      return null;
+    }
+    return fieldMapper.toIndex(fieldValues);
   }
 }
